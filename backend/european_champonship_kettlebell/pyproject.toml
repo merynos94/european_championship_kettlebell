@@ -1,0 +1,69 @@
+[tool.ruff]
+fix = true
+target-version = "py312"
+line-length = 120
+
+# Black/Ruff formatter rules
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 60
+exclude = ["features/"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W", # pycodestyle, pyflakes, warnings
+    "I", # isort
+    "N", # pep8-naming
+    "D", # pydocstyle
+    "UP", # pyupgrade
+    "B", # flake8-bugbear
+    "C90", # mccabe complexity
+    "T20", # flake8-print
+    "ARG", # flake8-unused-arguments
+    "PL", "PLC", # pylint
+    "G", # flake8-logging-format
+    "TD", # TODO comments
+]
+
+# Bardziej czytelne ignorowanie reguł
+ignore = [
+    "D212", # Multi-line docstring summary should start at the first line
+    "D415", # First line should end with a period, question mark, or exclamation point
+    "E203",
+    "E722"
+]
+extend-select = ["D213", "D412", "D200"]
+# PycodeStyle rules
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+# Isort rules
+[tool.ruff.lint.isort]
+case-sensitive = true
+
+# Flake8 rules
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+# McCabe rules
+[tool.ruff.lint.mccabe]
+max-complexity = 5
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.mypy]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+exclude = ["/third_party/"]
+warn_redundant_casts = true
+warn_return_any = true
+warn_incomplete_stub = true
+warn_unused_ignores = true
+warn_unused_configs = true
+no_implicit_optional = true
+follow_imports = "silent"
+show_error_codes = true
