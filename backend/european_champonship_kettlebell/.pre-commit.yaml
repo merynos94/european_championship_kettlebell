@@ -1,0 +1,61 @@
+repos:
+  # Basic code cleaning tools
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: debug-statements
+      - id: double-quote-string-fixer
+      - id: name-tests-test
+      - id: requirements-txt-fixer
+
+  # Unified code formatter and linter (replaces flake8, isort, pyupgrade)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # Setup.cfg formatter
+  - repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v2.7.0
+    hooks:
+      - id: setup-cfg-fmt
+
+  # Gherkin formatter
+  - repo: https://github.com/ducminh-phan/reformat-gherkin
+    rev: v3.0.1
+    hooks:
+      - id: reformat-gherkin
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+#  - repo: https://github.com/PyCQA/flake8
+#    rev: 7.1.2
+#    hooks:
+#      - id: flake8
+#  - repo: https://github.com/PyCQA/isort
+#    rev: 6.0.1
+#    hooks:
+#      - id: isort
+#  - repo: https://github.com/asottile/pyupgrade
+#    rev: v3.19.1
+#    hooks:
+#      - id: pyupgrade
+#        args: [ --py312-plus ]
+#  - repo: https://github.com/ducminh-phan/reformat-gherkin
+#    rev: v3.0.1
+#    hooks:
+#      - id: reformat-gherkin
+#  - repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v1.15.0
+#    hooks:
+#      - id: mypy
