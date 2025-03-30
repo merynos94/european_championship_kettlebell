@@ -4,7 +4,6 @@ from decimal import Decimal
 
 from django.contrib import admin
 
-# Import wszystkich modeli
 from .models import Athlete, AthleteCategory, Category, Club, Exercise, ExerciseType
 
 
@@ -243,7 +242,3 @@ class ExerciseAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queries by prefetching related objects."""
         return super().get_queryset(request).select_related("athlete", "exercise_type", "category")
-
-
-# Register additional admin views if needed
-# You can add custom admin views for specific actions like rankings, result import, etc.
