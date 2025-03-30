@@ -173,3 +173,4 @@ frontend/.DS_Store
 backend/.DS_Store
 .DS_Store
 backend/european_champonship_kettlebell/logfile
+backend/.env
