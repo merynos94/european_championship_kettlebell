@@ -54,7 +54,49 @@ class Exercise(models.Model):
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name="Próba 3 [kg]",
     )
-
+    # Add these fields to your Exercise model
+    attempt1_weight_left = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Próba 1 - lewa ręka [kg]",
+    )
+    attempt1_weight_right = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Próba 1 - prawa ręka [kg]",
+    )
+    attempt2_weight_left = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Próba 2 - lewa ręka [kg]",
+    )
+    attempt2_weight_right = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Próba 2 - prawa ręka [kg]",
+    )
+    attempt3_weight_left = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Próba 3 - lewa ręka [kg]",
+    )
+    attempt3_weight_right = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Próba 3 - prawa ręka [kg]",
+    )
     # === Metadata ===
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -76,54 +118,31 @@ class Exercise(models.Model):
     # === Score calculation methods ===
 
     def calculate_score(self):
-        """
-        Calculate exercise score based on the calculation method defined in exercise type.
-        """
-        # Bezpiecznie pobierz calculation_method z exercise_type
-        try:
-            calculation_method = self.exercise_type.calculation_method
-        except AttributeError:
-            # Jeśli nie można uzyskać dostępu do calculation_method,
-            # sprawdź czy istnieje pole name w exercise_type i użyj go do określenia metody
-            if hasattr(self.exercise_type, "name"):
-                exercise_name = self.exercise_type.name.lower()
-                if "snatch" in exercise_name:
-                    calculation_method = "weight_x_reps"
-                elif any(x in exercise_name for x in ["turkish", "tgu", "press", "squat"]):
-                    calculation_method = "weight_to_body"
-                else:
-                    calculation_method = "best_attempt"
-            else:
-                # Domyślna metoda, jeśli nie można określić po nazwie
-                calculation_method = "best_attempt"
+        """Calculate exercise score based on the calculation method."""
+        calculation_method = self.exercise_type.calculation_method
 
-        # Obliczanie wyniku na podstawie metody
-        if calculation_method == "weight_x_reps":
-            # Dla Snatch: kettlebell weight × repetitions
+        if calculation_method == "athlete_weight_x_reps":
             return float(self.kettlebell_weight) * self.repetitions
 
-        elif calculation_method == "weight_to_body":
-            # Dla ćwiczeń z relacją wagi do masy ciała (TGU, Press)
+        elif calculation_method == "weight_to_percent_body":
             best_attempt = float(self.get_best_attempt())
-
-            # Bezpiecznie pobierz body_weight z athlete
-            try:
-                body_weight = float(self.athlete.body_weight)
-            except (AttributeError, ValueError):
-                # Jeśli nie można uzyskać dostępu do body_weight, zwróć samą wartość próby
-                return best_attempt
-
-            if best_attempt > 0 and body_weight > 0:
-                return best_attempt / body_weight
-            return 0
+            body_weight = float(self.athlete.body_weight) if self.athlete.body_weight else 1
+            return best_attempt / body_weight if body_weight > 0 else 0
 
         elif calculation_method == "best_attempt":
-            # Po prostu zwróć najlepszą próbę
             return float(self.get_best_attempt())
 
-        # Możliwość rozszerzenia o inne metody kalkulacji
-        return 0
+        elif calculation_method == "weight_to_percent_body_two_hands":
+            # Calculate best combined weight for each attempt
+            attempt1 = float(self.attempt1_weight_left) + float(self.attempt1_weight_right)
+            attempt2 = float(self.attempt2_weight_left) + float(self.attempt2_weight_right)
+            attempt3 = float(self.attempt3_weight_left) + float(self.attempt3_weight_right)
+            best_attempt = max(attempt1, attempt2, attempt3)
 
+            body_weight = float(self.athlete.body_weight) if self.athlete.body_weight else 1
+            return best_attempt / body_weight if body_weight > 0 else 0
+
+        return 0
     # === Update methods ===
 
     def update_snatch(self, weight, repetitions):

@@ -42,7 +42,7 @@ class ExerciseTypeAdmin(admin.ModelAdmin):
 
     list_display = ("name", "calculation_method", "attempts_count", "is_active", "display_categories")
     list_filter = ("calculation_method", "is_active", "categories")
-    search_fields = ("name", "description")
+    search_fields = ("name",)
     filter_horizontal = ("categories",)
 
     def display_categories(self, obj):
@@ -80,11 +80,24 @@ class ExerciseInline(admin.TabularInline):
 
     def display_score(self, obj):
         """Display calculated score for this exercise."""
-        if obj.id:  # Only calculate if object exists in database
-            return f"{obj.calculate_score():.2f}"
-        return "-"
+        return f"{obj.calculate_score():.2f}"
 
     display_score.short_description = "Wynik"
+
+    def display_details(self, obj):
+        """Display exercise details based on calculation method."""
+        method = obj.exercise_type.calculation_method
+
+        if method == "athlete_weight_x_reps":
+            return f"{obj.kettlebell_weight} kg × {obj.repetitions} powtórzeń"
+        elif method == "weight_to_percent_body_two_hands":
+            best_left = max(obj.attempt1_weight_left, obj.attempt2_weight_left, obj.attempt3_weight_left)
+            best_right = max(obj.attempt1_weight_right, obj.attempt2_weight_right, obj.attempt3_weight_right)
+            return f"L: {best_left} kg, P: {best_right} kg"
+        else:
+            return f"Max: {obj.get_best_attempt()} kg"
+
+    display_details.short_description = "Szczegóły"
 
 
 @admin.register(Athlete)
@@ -202,43 +215,84 @@ class ExerciseAdmin(admin.ModelAdmin):
     search_fields = ("athlete__first_name", "athlete__last_name", "exercise_type__name")
     autocomplete_fields = ["athlete", "exercise_type", "category"]
 
-    fieldsets = (
-        ("Podstawowe informacje", {"fields": ("athlete", "exercise_type", "category")}),
-        (
-            "Wyniki Snatch",
-            {
-                "fields": ("kettlebell_weight", "repetitions"),
-                "classes": ("collapse",),
-                "description": "Pola używane dla ćwiczenia typu Snatch (waga × powtórzenia).",
-            },
-        ),
-        (
-            "Wyniki prób (TGU, Press, Squat)",
-            {
-                "fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight"),
-                "classes": ("collapse",),
-                "description": "Pola używane dla ćwiczeń z wieloma próbami.",
-            },
-        ),
-    )
-
     def display_score(self, obj):
         """Display calculated score for this exercise."""
-        score = obj.calculate_score()
-        return f"{score:.2f}"
+        return f"{obj.calculate_score():.2f}"
 
     display_score.short_description = "Wynik"
 
     def display_details(self, obj):
-        """Display exercise details based on type."""
-        if obj.exercise_type.calculation_method == "weight_x_reps":
-            return f"{obj.kettlebell_weight}kg × {obj.repetitions}"
+        """Display exercise details based on calculation method."""
+        method = obj.exercise_type.calculation_method
+
+        if method == "athlete_weight_x_reps":
+            return f"{obj.kettlebell_weight} kg × {obj.repetitions} powtórzeń"
+        elif method == "weight_to_percent_body_two_hands":
+            best_left = max(obj.attempt1_weight_left, obj.attempt2_weight_left, obj.attempt3_weight_left)
+            best_right = max(obj.attempt1_weight_right, obj.attempt2_weight_right, obj.attempt3_weight_right)
+            return f"L: {best_left} kg, P: {best_right} kg"
         else:
-            attempts = [f"{obj.attempt1_weight}kg", f"{obj.attempt2_weight}kg", f"{obj.attempt3_weight}kg"]
-            return " / ".join(attempts)
+            return f"Max: {obj.get_best_attempt()} kg"
 
     display_details.short_description = "Szczegóły"
 
-    def get_queryset(self, request):
-        """Optimize queries by prefetching related objects."""
-        return super().get_queryset(request).select_related("athlete", "exercise_type", "category")
+    # Keep the rest of your existing methods
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Customize form based on exercise type calculation method."""
+        if obj and obj.exercise_type:
+            method = obj.exercise_type.calculation_method
+        elif request.GET.get('exercise_type'):
+            try:
+                exercise_type = ExerciseType.objects.get(id=request.GET.get('exercise_type'))
+                method = exercise_type.calculation_method
+            except (ExerciseType.DoesNotExist, ValueError):
+                method = None
+        else:
+            method = None
+
+        # Store the method for use in get_fieldsets
+        request._calculation_method = method
+        return super().get_form(request, obj, **kwargs)
+
+    def get_fieldsets(self, request, obj=None):
+        """Return fieldsets based on calculation method."""
+        method = getattr(request, '_calculation_method', None)
+
+        # Base fieldset always shown
+        basic_fieldset = ("Podstawowe informacje", {"fields": ("athlete", "exercise_type", "category")})
+
+        if method == "athlete_weight_x_reps":
+            return [
+                basic_fieldset,
+                ("Wyniki Snatch", {"fields": ("kettlebell_weight", "repetitions")})
+            ]
+        elif method == "weight_to_percent_body":
+            return [
+                basic_fieldset,
+                ("Wyniki prób", {"fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight")}),
+                ("Dane zawodnika", {"fields": ()})  # Body weight is from athlete model
+            ]
+        elif method == "best_attempt":
+            return [
+                basic_fieldset,
+                ("Wyniki prób", {"fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight")}),
+                ("Dane zawodnika", {"fields": ()})  # Body weight is from athlete model
+            ]
+        elif method == "weight_to_percent_body_two_hands":
+            return [
+                basic_fieldset,
+                ("Próba 1", {"fields": ("attempt1_weight_left", "attempt1_weight_right")}),
+                ("Próba 2", {"fields": ("attempt2_weight_left", "attempt2_weight_right")}),
+                ("Próba 3", {"fields": ("attempt3_weight_left", "attempt3_weight_right")}),
+                ("Dane zawodnika", {"fields": ()})  # Body weight is from athlete model
+            ]
+        else:
+            # Default fieldsets if no specific method is specified
+            return [
+                basic_fieldset,
+                ("Wyniki Snatch", {"fields": ("kettlebell_weight", "repetitions")}),
+                ("Wyniki prób (TGU, Press, Squat)", {"fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight")}),
+            ]
+
+    # Keep your existing methods (display_score, display_details, etc.)
