@@ -1,1 +1,1 @@
-"""Migrations for the live results app."""
+"""Inititial migration for the live results app."""
