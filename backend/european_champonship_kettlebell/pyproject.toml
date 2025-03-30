@@ -7,7 +7,6 @@ line-length = 120
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = 60
-exclude = ["features/"]
 
 [tool.ruff.lint]
 select = [
@@ -25,7 +24,6 @@ select = [
     "TD", # TODO comments
 ]
 
-# Bardziej czytelne ignorowanie reguł
 ignore = [
     "D212", # Multi-line docstring summary should start at the first line
     "D415", # First line should end with a period, question mark, or exclamation point

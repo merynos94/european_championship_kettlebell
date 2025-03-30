@@ -27,35 +27,8 @@ repos:
     hooks:
       - id: setup-cfg-fmt
 
-  # Gherkin formatter
-  - repo: https://github.com/ducminh-phan/reformat-gherkin
-    rev: v3.0.1
-    hooks:
-      - id: reformat-gherkin
-
   # Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0
     hooks:
       - id: mypy
-#  - repo: https://github.com/PyCQA/flake8
-#    rev: 7.1.2
-#    hooks:
-#      - id: flake8
-#  - repo: https://github.com/PyCQA/isort
-#    rev: 6.0.1
-#    hooks:
-#      - id: isort
-#  - repo: https://github.com/asottile/pyupgrade
-#    rev: v3.19.1
-#    hooks:
-#      - id: pyupgrade
-#        args: [ --py312-plus ]
-#  - repo: https://github.com/ducminh-phan/reformat-gherkin
-#    rev: v3.0.1
-#    hooks:
-#      - id: reformat-gherkin
-#  - repo: https://github.com/pre-commit/mirrors-mypy
-#    rev: v1.15.0
-#    hooks:
-#      - id: mypy
