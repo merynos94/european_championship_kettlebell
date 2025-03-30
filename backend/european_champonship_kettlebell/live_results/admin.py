@@ -11,8 +11,8 @@ from .models import Athlete, AthleteCategory, Category, Club, Exercise, Exercise
 class ClubAdmin(admin.ModelAdmin):
     """Admin panel configuration for Club model."""
 
-    list_display = ("name", "contact", "count_athletes")
-    search_fields = ("name", "contact")
+    list_display = ("name", "count_athletes")
+    search_fields = ("name",)
     list_filter = ("name",)
 
     def count_athletes(self, obj):
