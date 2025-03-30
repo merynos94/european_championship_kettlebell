@@ -26,7 +26,7 @@ class ClubAdmin(admin.ModelAdmin):
 class CategoryAdmin(admin.ModelAdmin):
     """Admin panel configuration for Category model."""
 
-    list_display = ("name", "description", "count_athletes")
+    list_display = ("name", "count_athletes")
     search_fields = ("name",)
 
     def count_athletes(self, obj):
