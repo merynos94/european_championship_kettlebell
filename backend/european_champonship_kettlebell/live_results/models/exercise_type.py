@@ -25,7 +25,7 @@ class ExerciseType(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Aktywne")
     categories = models.ManyToManyField(
         Category,
-        related_name="exercises",
+        related_name="exercise_types",  # Zmieniona nazwa relacji zwrotnej
         verbose_name="Kategorie",
         blank=True,
         help_text="Kategorie, w których to ćwiczenie jest używane",

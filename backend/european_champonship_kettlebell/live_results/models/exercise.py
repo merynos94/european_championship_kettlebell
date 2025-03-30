@@ -14,8 +14,12 @@ class Exercise(models.Model):
     exercise_type = models.ForeignKey(
         "ExerciseType", on_delete=models.CASCADE, related_name="exercises", verbose_name="Typ ćwiczenia"
     )
+
     category = models.ForeignKey(
-        "Category", on_delete=models.CASCADE, related_name="exercises", verbose_name="Kategoria"
+        "Category",
+        on_delete=models.CASCADE,
+        related_name="category_exercises",  # Zmieniona nazwa relacji zwrotnej
+        verbose_name="Kategoria",
     )
 
     # === Fields for Snatch ===
