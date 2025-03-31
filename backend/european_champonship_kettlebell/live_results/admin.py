@@ -1,298 +1,741 @@
-"""European Kettlebell Championships Admin panel"""
-
-from decimal import Decimal
-
+from django import forms
 from django.contrib import admin
+from django.db import models
+from django.db.models.functions import Greatest
+from django.utils.translation import gettext_lazy as _
+from import_export.admin import ImportExportModelAdmin
+from typing import Optional
+# Importuj wszystko z nowego pakietu models
+from .models import (
+    AVAILABLE_DISCIPLINES,
+    BestKBSquatResult,
+    BestSeeSawPressResult,
+    Category,
+    KBSquatResult,
+    OverallResult,
+    PistolSquatResult,
+    Player,
+    SeeSawPressResult,
+    SnatchResult,
+    SportClub,
+    TGUResult,
+    OneKettlebellPressResult,
+    TwoKettlebellPressResult,
+    BestTwoKettlebellPressResult,
+    # Nie importuj DISCIPLINE_NAMES jeśli nie jest tu używane
+)
 
-from .models import Athlete, AthleteCategory, Category, Club, Exercise, ExerciseType
-
-
-@admin.register(Club)
-class ClubAdmin(admin.ModelAdmin):
-    """Admin panel configuration for Club model."""
-
-    list_display = ("name", "count_athletes")
-    search_fields = ("name",)
-    list_filter = ("name",)
-
-    def count_athletes(self, obj):
-        """Display the number of athletes in this club."""
-        return obj.athletes.count()
-
-    count_athletes.short_description = "Liczba zawodników"
-
-
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    """Admin panel configuration for Category model."""
-
-    list_display = ("name", "count_athletes")
-    search_fields = ("name",)
-
-    def count_athletes(self, obj):
-        """Display the number of athletes in this category."""
-        return obj.athletes.count()
-
-    count_athletes.short_description = "Liczba zawodników"
+# Importuj zasoby import/export (zakładam, że plik resources.py istnieje)
+# Dostosuj ścieżkę jeśli resources.py jest gdzie indziej
+from .resources import PlayerExportResource, PlayerImportResource
 
 
-@admin.register(ExerciseType)
-class ExerciseTypeAdmin(admin.ModelAdmin):
-    """Admin panel configuration for ExerciseType model."""
-
-    list_display = ("name", "calculation_method", "attempts_count", "is_active", "display_categories")
-    list_filter = ("calculation_method", "is_active", "categories")
-    search_fields = ("name",)
-    filter_horizontal = ("categories",)
-
-    def display_categories(self, obj):
-        """Display all categories this exercise is used in."""
-        return ", ".join([c.name for c in obj.categories.all()])
-
-    display_categories.short_description = "Kategorie"
-
-
-class AthleteCategoryInline(admin.TabularInline):
-    """Inline form for AthleteCategory within Athlete admin."""
-
-    model = AthleteCategory
-    extra = 1
-    autocomplete_fields = ["category"]
-
-
-class ExerciseInline(admin.TabularInline):
-    """Inline form for Exercise results within Athlete admin."""
-
-    model = Exercise
-    extra = 0
-    fields = (
-        "exercise_type",
-        "category",
-        "kettlebell_weight",
-        "repetitions",
-        "attempt1_weight",
-        "attempt2_weight",
-        "attempt3_weight",
-        "display_score",
+# --- Formularz dla Category Admin ---
+class CategoryAdminForm(forms.ModelForm):
+    # Używamy stałej zaimportowanej z models, która już zawiera nowe dyscypliny
+    disciplines = forms.MultipleChoiceField(
+        choices=AVAILABLE_DISCIPLINES, # Ta stała została zaktualizowana w constants.py
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label=_("Disciplines"),
+        help_text=_("Select disciplines for this category."),
     )
-    readonly_fields = ("display_score",)
-    autocomplete_fields = ["exercise_type", "category"]
 
-    def display_score(self, obj):
-        """Display calculated score for this exercise."""
-        return f"{obj.calculate_score():.2f}"
+    class Meta:
+        model = Category
+        fields = ["name", "disciplines"]
 
-    display_score.short_description = "Wynik"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Inicjalizacja pola disciplines z modelu
+        if self.instance and self.instance.pk:
+            self.fields["disciplines"].initial = self.instance.get_disciplines()
 
-    def display_details(self, obj):
-        """Display exercise details based on calculation method."""
-        method = obj.exercise_type.calculation_method
-
-        if method == "athlete_weight_x_reps":
-            return f"{obj.kettlebell_weight} kg × {obj.repetitions} powtórzeń"
-        elif method == "weight_to_percent_body_two_hands":
-            best_left = max(obj.attempt1_weight_left, obj.attempt2_weight_left, obj.attempt3_weight_left)
-            best_right = max(obj.attempt1_weight_right, obj.attempt2_weight_right, obj.attempt3_weight_right)
-            return f"L: {best_left} kg, P: {best_right} kg"
-        else:
-            return f"Max: {obj.get_best_attempt()} kg"
-
-    display_details.short_description = "Szczegóły"
+    def save(self, commit=True):
+        # Zapisz najpierw instancję, aby mieć PK
+        instance = super().save(commit=False)
+        # Użyj metody set_disciplines z modelu (która już nie zapisuje)
+        instance.set_disciplines(self.cleaned_data["disciplines"])
+        if commit:
+            instance.save()
+            # self.save_m2m() # Nie jest potrzebne dla JSONField
+        return instance
 
 
-@admin.register(Athlete)
-class AthleteAdmin(admin.ModelAdmin):
-    """Admin panel configuration for Athlete model."""
+# --- Admin dla Player ---
+@admin.register(Player)
+class PlayerAdmin(ImportExportModelAdmin):
+    # Zasoby import/export
+    resource_classes = [PlayerImportResource]  # Użyj resource_classes od Django 4.x
+    export_resource_classes = [PlayerExportResource]  # Nowsza składnia
 
-    list_display = ("last_name", "first_name", "club", "body_weight", "display_categories")
-    list_filter = ("club", "categories")
-    search_fields = ("first_name", "last_name", "club__name")
-    fieldsets = (("Dane podstawowe", {"fields": ("first_name", "last_name", "body_weight", "club", "notes")}),)
-    inlines = [AthleteCategoryInline, ExerciseInline]
-    autocomplete_fields = ["club"]
+    list_display = (
+        "full_name",  # Użyj property full_name
+        "weight",
+        "club",
+        "get_categories_display",  # Zmieniona nazwa dla jasności
+        "get_snatch_score_display",  # Pobierz wynik ze SnatchResult
+        "get_tgu_max_display",  # Pobierz max z TGUResult
+        "get_best_ssp_display",  # Pobierz best z BestSeeSawPressResult
+        "get_best_kbs_display",  # Pobierz best z BestKBSquatResult
+        "get_max_pistol_display",  # Pobierz max z PistolSquatResult
+        "get_one_kb_press_max_display", # <-- NOWE
+        "get_best_two_kb_press_display",# <-- NOWE
+        "tiebreak",
+    )
+    list_filter = ("club", "categories", "tiebreak")
+    search_fields = ("name", "surname", "club__name", "categories__name")
+    # Dodaj filtrowanie wg wagi
+    list_filter = ("club", "categories", "tiebreak", ("weight", admin.EmptyFieldListFilter))
 
-    def display_categories(self, obj):
-        """Display all categories this athlete participates in."""
-        return ", ".join([c.name for c in obj.categories.all()])
+    # Fieldsets odnoszą się do pól *wejściowych* na modelu Player.
+    # To jest OK, dopóki te pola istnieją na Player.
+    fieldsets = (
+        (_("Basic Info"), {"fields": ("name", "surname", "weight", "club", "categories", "tiebreak")}),
+        (_("Snatch Input"), {"fields": ("snatch_kettlebell_weight", "snatch_repetitions")}),
+        (_("TGU Input"), {"fields": ("tgu_weight_1", "tgu_weight_2", "tgu_weight_3")}),
+        (_("One Kettlebell Press Input"), {
+            "fields": ("one_kb_press_weight_1", "one_kb_press_weight_2", "one_kb_press_weight_3")
+        }),
+        (_("Two Kettlebell Press Input"), {
+            "fields": (
+                ("two_kb_press_weight_left_1", "two_kb_press_weight_right_1"),
+                ("two_kb_press_weight_left_2", "two_kb_press_weight_right_2"),
+                ("two_kb_press_weight_left_3", "two_kb_press_weight_right_3"),
+            )
+        }),
+        (
+            _("See Saw Press Input"),
+            {
+                "fields": (
+                    ("see_saw_press_weight_left_1", "see_saw_press_weight_right_1"),
+                    ("see_saw_press_weight_left_2", "see_saw_press_weight_right_2"),
+                    ("see_saw_press_weight_left_3", "see_saw_press_weight_right_3"),
+                )
+            },
+        ),
+        (
+            _("KB Squat Input"),
+            {
+                "fields": (
+                    ("kb_squat_weight_left_1", "kb_squat_weight_right_1"),
+                    ("kb_squat_weight_left_2", "kb_squat_weight_right_2"),
+                    ("kb_squat_weight_left_3", "kb_squat_weight_right_3"),
+                )
+            },
+        ),
+        (
+            _("Pistol Squat Input"),
+            {
+                "fields": (
+                    "pistol_squat_weight_1",
+                    "pistol_squat_weight_2",
+                    "pistol_squat_weight_3",
+                )
+            },
+        ),
+        # Można dodać sekcję z wynikami tylko do odczytu
+        (
+            _("Calculated Results (Read-Only)"),
+            {
+                "classes": ("collapse",),  # Zwinięta domyślnie
+                "fields": (
+                    "get_snatch_score_display",
+                    "get_tgu_max_display",
+                    "get_best_ssp_display",
+                    "get_best_kbs_display",
+                    "get_max_pistol_display",
+                    "get_overall_score_display",
+                    'get_one_kb_press_max_display',  # <-- NOWE
+                    'get_best_two_kb_press_display',  # <-- NOWE
+                ),
+            },
+        ),
+    )
 
-    display_categories.short_description = "Kategorie"
+    # Pola tylko do odczytu dla wyliczonych wyników w sekcji 'Calculated Results'
+    readonly_fields = (
+        "get_snatch_score_display",
+        "get_tgu_max_display",
+        "get_best_ssp_display",
+        "get_best_kbs_display",
+        "get_max_pistol_display",
+        "get_overall_score_display",
+        'get_one_kb_press_max_display', # <-- NOWE
+        'get_best_two_kb_press_display',# <-- NOWE
+    )
+
+    # Metody do wyświetlania danych z powiązanych modeli
+    @admin.display(description=_("Categories"))
+    def get_categories_display(self, obj: Player) -> str:
+        return ", ".join([cat.name for cat in obj.categories.all()])
+
+    @admin.display(description=_("Snatch Score"))
+    def get_snatch_score_display(self, obj: Player) -> str | None:
+        try:
+            score = obj.snatch_result.result
+            return f"{score:.1f}" if score is not None else "---"
+        except SnatchResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("TGU Max"))
+    def get_tgu_max_display(self, obj: Player) -> str:
+        try:
+            return f"{obj.tgu_result.max_result:.1f}"
+        except TGUResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("Best SSP (L/R)"))
+    def get_best_ssp_display(self, obj: Player) -> str:
+        try:
+            res = obj.best_see_saw_press_result
+            return f"{res.best_left:.1f} / {res.best_right:.1f}"
+        except BestSeeSawPressResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("Best KBS"))
+    def get_best_kbs_display(self, obj: Player) -> str:
+        try:
+            return f"{obj.best_kb_squat_result.best_result:.1f}"
+        except BestKBSquatResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("Pistol Max"))
+    def get_max_pistol_display(self, obj: Player) -> str:
+        try:
+            # Pistol nie ma modelu Best*, więc bierzemy max z PistolSquatResult
+            return f"{obj.pistol_squat_result.max_result:.1f}"
+        except PistolSquatResult.DoesNotExist:
+            return "---"
+        # Lub jeśli pola są nadal na Player:
+        # return f"{obj.get_max_pistol_squat_weight():.1f}"
+
+    @admin.display(description=_("Overall Score"))
+    def get_overall_score_display(self, obj: Player) -> str:
+        try:
+            # Zakładając, że OverallResult ma pole total_points
+            return f"{obj.overallresult.total_points:.1f}"
+        except OverallResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("One KB Press Max"))
+    def get_one_kb_press_max_display(self, obj: Player) -> str:
+        try:
+            return f"{obj.one_kettlebell_press_result.max_result:.1f}"
+        except OneKettlebellPressResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("Best Two KB Press"))
+    def get_best_two_kb_press_display(self, obj: Player) -> str:
+        try:
+            return f"{obj.best_two_kettlebell_press_result.best_result:.1f}"
+        except BestTwoKettlebellPressResult.DoesNotExist:
+            return "---"
+
+    # Metody import/export bez zmian
+    def get_import_resource_classes(self):
+        return [PlayerImportResource]
+
+    def get_export_resource_classes(self):
+        return [PlayerExportResource]
+
+
+# --- Admin dla SportClub ---
+@admin.register(SportClub)
+class SportClubAdmin(admin.ModelAdmin):
+    list_display = ("name", "player_count")
+    search_fields = ("name",)
+
+    @admin.display(description=_("Number of Players"))
+    def player_count(self, obj: SportClub) -> int:
+        # Można zoptymalizować przez annotację w get_queryset
+        return obj.players.count()
 
     def get_queryset(self, request):
-        """Optimize queries by prefetching related objects."""
-        return super().get_queryset(request).prefetch_related("categories", "club")
+        qs = super().get_queryset(request)
+        qs = qs.annotate(player_count_annotation=models.Count("players"))
+        return qs
+
+    @admin.display(description=_("Number of Players"), ordering="player_count_annotation")
+    def player_count(self, obj: SportClub) -> int:
+        return obj.player_count_annotation
 
 
-@admin.register(AthleteCategory)
-class AthleteCategoryAdmin(admin.ModelAdmin):
-    """Admin panel configuration for AthleteCategory model."""
+# --- Admin dla Category ---
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    form = CategoryAdminForm  # Użyj zmodyfikowanego formularza
+    list_display = ("name", "get_disciplines_list_display")  # Użyj metody z modelu
+    search_fields = ("name",)
 
-    list_display = ("athlete", "category", "place", "points", "tiebreaker", "display_total_points")
-    list_filter = ("category", "tiebreaker")
-    search_fields = ("athlete__first_name", "athlete__last_name", "category__name")
-    autocomplete_fields = ["athlete", "category"]
-    list_editable = ("place", "tiebreaker")
-
-    actions = ["calculate_points_from_place", "calculate_places_from_scores"]
-
-    def display_total_points(self, obj):
-        """Display total points including tiebreaker."""
-        total = obj.points
-        if obj.tiebreaker:
-            total -= Decimal("0.5")
-        return total
-
-    display_total_points.short_description = "Suma punktów"
-
-    @admin.action(description="Oblicz punkty na podstawie miejsca")
-    def calculate_points_from_place(self, request, queryset):
-        """Calculate points based on place (1st place = 1 point, etc.)."""
-        updated = 0
-        for obj in queryset:
-            if obj.place is not None and obj.place > 0:
-                obj.points = obj.place
-                obj.save()
-                updated += 1
-
-        self.message_user(request, f"Zaktualizowano punkty dla {updated} zawodników.")
-
-    @admin.action(description="Oblicz miejsca na podstawie wyników")
-    def calculate_places_from_scores(self, request, queryset):
-        """Calculate places based on exercise scores within each category."""
-        # Group by category
-        categories = set(queryset.values_list("category", flat=True))
-        updated = 0
-
-        for category_id in categories:
-            # Get all athletes in this category
-            athletes_in_category = queryset.filter(category_id=category_id)
-
-            # Calculate total scores for each athlete in this category
-            athlete_scores = []
-            for enrollment in athletes_in_category:
-                total_score = 0
-                for exercise in Exercise.objects.filter(athlete=enrollment.athlete, category_id=category_id):
-                    total_score += exercise.calculate_score()
-
-                athlete_scores.append((enrollment, total_score))
-
-            # Sort by score (higher is better)
-            athlete_scores.sort(key=lambda x: x[1], reverse=True)
-
-            # Assign places
-            for place, (enrollment, _) in enumerate(athlete_scores, 1):
-                enrollment.place = place
-                enrollment.points = place  # Set points equal to place
-                enrollment.save()
-                updated += 1
-
-        self.message_user(request, f"Obliczono miejsca i punkty dla {updated} zawodników na podstawie wyników.")
+    @admin.display(description=_("Disciplines"))
+    def get_disciplines_list_display(self, obj: Category) -> str:
+        # Użyj metody z modelu Category
+        return obj.get_disciplines_display()
 
 
-class AthleteFilter(admin.SimpleListFilter):
-    """Custom filter for Exercise admin to filter by athlete."""
-
-    title = "Zawodnik"
-    parameter_name = "athlete"
-
-    def lookups(self, request, model_admin):
-        """Return all athletes as filter options."""
-        athletes = Athlete.objects.all().order_by("last_name", "first_name")
-        return [(a.id, f"{a.last_name} {a.first_name}") for a in athletes]
-
-    def queryset(self, request, queryset):
-        """Filter queryset by selected athlete."""
-        if self.value():
-            return queryset.filter(athlete_id=self.value())
-        return queryset
+# --- Admin dla Wyników (Odkomentowane i Ulepszone) ---
 
 
-@admin.register(Exercise)
-class ExerciseAdmin(admin.ModelAdmin):
-    """Admin panel configuration for Exercise model."""
+@admin.register(SnatchResult)
+class SnatchResultAdmin(admin.ModelAdmin):
+    list_display = ("player_link", "result", "position", "get_player_categories")
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position")  # Pozycja jest obliczana
+    list_select_related = ("player",)  # Optymalizacja zapytania
 
-    list_display = ("athlete", "exercise_type", "category", "display_score", "display_details")
-    list_filter = ("exercise_type", "category", AthleteFilter)
-    search_fields = ("athlete__first_name", "athlete__last_name", "exercise_type__name")
-    autocomplete_fields = ["athlete", "exercise_type", "category"]
+    @admin.display(description=_("Zawodnik"), ordering="player__surname")
+    def player_link(self, obj: SnatchResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
 
-    def display_score(self, obj):
-        """Display calculated score for this exercise."""
-        return f"{obj.calculate_score():.2f}"
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])  # Zmień 'twoja_aplikacja'
+        return format_html('<a href="{}">{}</a>', link, obj.player)
 
-    display_score.short_description = "Wynik"
+    @admin.display(description=_("Kategorie"))
+    def get_player_categories(self, obj: SnatchResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
 
-    def display_details(self, obj):
-        """Display exercise details based on calculation method."""
-        method = obj.exercise_type.calculation_method
 
-        if method == "athlete_weight_x_reps":
-            return f"{obj.kettlebell_weight} kg × {obj.repetitions} powtórzeń"
-        elif method == "weight_to_percent_body_two_hands":
-            best_left = max(obj.attempt1_weight_left, obj.attempt2_weight_left, obj.attempt3_weight_left)
-            best_right = max(obj.attempt1_weight_right, obj.attempt2_weight_right, obj.attempt3_weight_right)
-            return f"L: {best_left} kg, P: {best_right} kg"
-        else:
-            return f"Max: {obj.get_best_attempt()} kg"
+@admin.register(TGUResult)
+class TGUResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link",
+        "result_1",
+        "result_2",
+        "result_3",
+        "get_max_result_display",
+        "get_bw_percentage_display",
+        "position",
+        "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position", "get_max_result_display", "get_bw_percentage_display")
+    list_select_related = ("player",)
 
-    display_details.short_description = "Szczegóły"
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: TGUResult):
+        # Jak wyżej...
+        from django.urls import reverse
+        from django.utils.html import format_html
 
-    # Keep the rest of your existing methods
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
 
-    def get_form(self, request, obj=None, **kwargs):
-        """Customize form based on exercise type calculation method."""
-        if obj and obj.exercise_type:
-            method = obj.exercise_type.calculation_method
-        elif request.GET.get('exercise_type'):
-            try:
-                exercise_type = ExerciseType.objects.get(id=request.GET.get('exercise_type'))
-                method = exercise_type.calculation_method
-            except (ExerciseType.DoesNotExist, ValueError):
-                method = None
-        else:
-            method = None
+    @admin.display(
+        description=_("Maksymlalny wynik"), ordering="max_result"
+    )  # Zakładamy adnotację max_result w queryset
+    def get_max_result_display(self, obj: TGUResult) -> str:
+        return f"{obj.max_result:.1f}"  # Użyj property z modelu
 
-        # Store the method for use in get_fieldsets
-        request._calculation_method = method
-        return super().get_form(request, obj, **kwargs)
+    @admin.display(description=_("%BW"))
+    def get_bw_percentage_display(self, obj: TGUResult) -> str | None:
+        bw = obj.bw_percentage  # Użyj property z modelu
+        return f"{bw:.2f}%" if bw is not None else "---"
 
-    def get_fieldsets(self, request, obj=None):
-        """Return fieldsets based on calculation method."""
-        method = getattr(request, '_calculation_method', None)
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: TGUResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
 
-        # Base fieldset always shown
-        basic_fieldset = ("Podstawowe informacje", {"fields": ("athlete", "exercise_type", "category")})
+    def get_queryset(self, request):
+        # Adnotacja dla sortowania wg max_result
+        qs = super().get_queryset(request)
+        qs = qs.annotate(max_result=Greatest("result_1", "result_2", "result_3"))
+        return qs
 
-        if method == "athlete_weight_x_reps":
-            return [
-                basic_fieldset,
-                ("Wyniki Snatch", {"fields": ("kettlebell_weight", "repetitions")})
-            ]
-        elif method == "weight_to_percent_body":
-            return [
-                basic_fieldset,
-                ("Wyniki prób", {"fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight")}),
-                ("Dane zawodnika", {"fields": ()})  # Body weight is from athlete model
-            ]
-        elif method == "best_attempt":
-            return [
-                basic_fieldset,
-                ("Wyniki prób", {"fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight")}),
-                ("Dane zawodnika", {"fields": ()})  # Body weight is from athlete model
-            ]
-        elif method == "weight_to_percent_body_two_hands":
-            return [
-                basic_fieldset,
-                ("Próba 1", {"fields": ("attempt1_weight_left", "attempt1_weight_right")}),
-                ("Próba 2", {"fields": ("attempt2_weight_left", "attempt2_weight_right")}),
-                ("Próba 3", {"fields": ("attempt3_weight_left", "attempt3_weight_right")}),
-                ("Dane zawodnika", {"fields": ()})  # Body weight is from athlete model
-            ]
-        else:
-            # Default fieldsets if no specific method is specified
-            return [
-                basic_fieldset,
-                ("Wyniki Snatch", {"fields": ("kettlebell_weight", "repetitions")}),
-                ("Wyniki prób (TGU, Press, Squat)", {"fields": ("attempt1_weight", "attempt2_weight", "attempt3_weight")}),
-            ]
 
-    # Keep your existing methods (display_score, display_details, etc.)
+@admin.register(PistolSquatResult)
+class PistolSquatResultAdmin(admin.ModelAdmin):
+    # Podobnie jak TGUResultAdmin...
+    list_display = (
+        "player_link",
+        "result_1",
+        "result_2",
+        "result_3",
+        "get_max_result_display",
+        "get_bw_percentage_display",
+        "position",
+        "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position", "get_max_result_display", "get_bw_percentage_display")
+    list_select_related = ("player",)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: PistolSquatResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Największy wynik"), ordering="max_result")
+    def get_max_result_display(self, obj: PistolSquatResult) -> str:
+        return f"{obj.max_result:.1f}"
+
+    @admin.display(description=_("%BW"))
+    def get_bw_percentage_display(self, obj: PistolSquatResult) -> str | None:
+        bw = obj.bw_percentage
+        return f"{bw:.2f}%" if bw is not None else "---"
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: PistolSquatResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.annotate(max_result=Greatest("result_1", "result_2", "result_3"))
+        return qs
+
+
+@admin.register(SeeSawPressResult)
+class SeeSawPressResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link",
+        "get_attempt_1_display",
+        "get_attempt_2_display",
+        "get_attempt_3_display",
+        "get_max_score_display",
+        "position",
+        "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = (
+        "player_link",
+        "position",
+        "get_max_score_display",
+        "get_attempt_1_display",
+        "get_attempt_2_display",
+        "get_attempt_3_display",
+    )
+    list_select_related = ("player",)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: SeeSawPressResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Attempt 1 (L/R)"))
+    def get_attempt_1_display(self, obj: SeeSawPressResult) -> str:
+        return f"{obj.result_left_1:.1f} / {obj.result_right_1:.1f}"
+
+    @admin.display(description=_("Attempt 2 (L/R)"))
+    def get_attempt_2_display(self, obj: SeeSawPressResult) -> str:
+        return f"{obj.result_left_2:.1f} / {obj.result_right_2:.1f}"
+
+    @admin.display(description=_("Attempt 3 (L/R)"))
+    def get_attempt_3_display(self, obj: SeeSawPressResult) -> str:
+        return f"{obj.result_left_3:.1f} / {obj.result_right_3:.1f}"
+
+    @admin.display(description=_("Max Score"), ordering="max_score")  # Zakłada adnotację
+    def get_max_score_display(self, obj: SeeSawPressResult) -> str:
+        return f"{obj.max_score:.1f}"  # Użyj property z modelu
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: SeeSawPressResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
+
+    # Potrzebna adnotacja dla sortowania wg max_score
+    # def get_queryset(self, request):
+    #      qs = super().get_queryset(request)
+    #      # Dodaj adnotację max_score obliczoną podobnie jak w services.py
+    #      # ...
+    #      return qs
+
+
+@admin.register(KBSquatResult)
+class KBSquatResultAdmin(admin.ModelAdmin):
+    # Podobnie do SeeSawPressResultAdmin...
+    list_display = (
+        "player_link",
+        "get_attempt_1_display",
+        "get_attempt_2_display",
+        "get_attempt_3_display",
+        "get_max_score_display",
+        "position",
+        "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = (
+        "player_link",
+        "position",
+        "get_max_score_display",
+        "get_attempt_1_display",
+        "get_attempt_2_display",
+        "get_attempt_3_display",
+    )
+    list_select_related = ("player",)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: KBSquatResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Attempt 1 (L/R)"))
+    def get_attempt_1_display(self, obj: KBSquatResult) -> str:
+        return f"{obj.result_left_1:.1f} / {obj.result_right_1:.1f}"
+
+    @admin.display(description=_("Attempt 2 (L/R)"))
+    def get_attempt_2_display(self, obj: KBSquatResult) -> str:
+        return f"{obj.result_left_2:.1f} / {obj.result_right_2:.1f}"
+
+    @admin.display(description=_("Attempt 3 (L/R)"))
+    def get_attempt_3_display(self, obj: KBSquatResult) -> str:
+        return f"{obj.result_left_3:.1f} / {obj.result_right_3:.1f}"
+
+    @admin.display(description=_("Max Score"), ordering="max_score")  # Zakłada adnotację
+    def get_max_score_display(self, obj: KBSquatResult) -> str:
+        return f"{obj.max_score:.1f}"
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: KBSquatResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
+
+    # def get_queryset(self, request):
+    #      qs = super().get_queryset(request)
+    #      # Dodaj adnotację max_score
+    #      # ...
+    #      return qs
+
+
+@admin.register(OverallResult)
+class OverallResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link",
+        "get_player_categories",
+        "snatch_points",
+        "tgu_points",
+        "see_saw_press_points",
+        "kb_squat_points",
+        "pistol_squat_points",
+        "tiebreak_points",
+        "total_points",
+        "final_position",
+    )
+    # Sortowanie domyślne wg pozycji końcowej
+    ordering = ("final_position", "total_points")
+    list_filter = ("player__categories", "final_position")
+    search_fields = ("player__name", "player__surname", "player__categories__name")
+    readonly_fields = (  # Wszystkie pola są obliczane
+        "player_link",
+        "snatch_points",
+        "tgu_points",
+        "see_saw_press_points",
+        "kb_squat_points",
+        "pistol_squat_points",
+        "tiebreak_points",
+        "total_points",
+        "final_position",
+        "get_player_categories",
+    )
+    list_select_related = ("player",)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: OverallResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: OverallResult) -> str:
+        # Można by dodać filtrowanie OverallResult tylko do jednej kategorii
+        # na widoku listy, jeśli to potrzebne.
+        return ", ".join([c.name for c in obj.player.categories.all()])
+
+    # Ta klasa admin nie powinna pozwalać na edycję, bo wyniki są kalkulowane.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        # Można zezwolić na widok, ale nie na zmianę
+        return False  # lub return request.method == 'GET' dla Django < 5.0 (?)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(BestSeeSawPressResult)
+class BestSeeSawPressResultAdmin(admin.ModelAdmin):
+    list_display = ("player_link", "best_left", "best_right", "get_player_categories")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "best_left", "best_right", "get_player_categories")
+    list_select_related = ("player",)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: BestSeeSawPressResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: BestSeeSawPressResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(BestKBSquatResult)
+class BestKBSquatResultAdmin(admin.ModelAdmin):
+    list_display = ("player_link", "best_result", "get_player_categories")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "best_result", "get_player_categories")
+    list_select_related = ("player",)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: BestKBSquatResult):
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        link = reverse("admin:live_results_player_change", args=[obj.player.id])
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: BestKBSquatResult) -> str:
+        return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(OneKettlebellPressResult)
+class OneKettlebellPressResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link", "result_1", "result_2", "result_3",
+        "get_max_result_display", "get_bw_percentage_display", "position", "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position", "get_max_result_display", "get_bw_percentage_display")
+    list_select_related = ('player',)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: OneKettlebellPressResult):
+        # ... (kod linku jak w innych adminach) ...
+        from django.urls import reverse
+        from django.utils.html import format_html
+        link = reverse("admin:live_results_player_change", args=[obj.player.id]) # Zmień 'live_results' na nazwę Twojej aplikacji
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+
+    @admin.display(description=_("Max Result"), ordering='max_result')
+    def get_max_result_display(self, obj: OneKettlebellPressResult) -> str:
+       return f"{obj.max_result:.1f}"
+
+    @admin.display(description=_("%BW"))
+    def get_bw_percentage_display(self, obj: OneKettlebellPressResult) -> Optional[str]:
+       bw = obj.bw_percentage
+       return f"{bw:.2f}%" if bw is not None else "---"
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: OneKettlebellPressResult) -> str:
+       return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def get_queryset(self, request):
+       qs = super().get_queryset(request)
+       qs = qs.annotate(max_result=Greatest('result_1', 'result_2', 'result_3'))
+       return qs
+
+
+@admin.register(TwoKettlebellPressResult)
+class TwoKettlebellPressResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link",
+        "get_attempt_1_display", "get_attempt_2_display", "get_attempt_3_display",
+        "get_max_score_display", "get_bw_percentage_display", "position", "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position", "get_max_score_display", "get_bw_percentage_display",
+                       "get_attempt_1_display", "get_attempt_2_display", "get_attempt_3_display")
+    list_select_related = ('player',)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: TwoKettlebellPressResult):
+         # ... (kod linku) ...
+        from django.urls import reverse
+        from django.utils.html import format_html
+        link = reverse("admin:live_results_player_change", args=[obj.player.id]) # Zmień 'live_results'
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Attempt 1 (L/R)"))
+    def get_attempt_1_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.result_left_1:.1f} / {obj.result_right_1:.1f}"
+
+    @admin.display(description=_("Attempt 2 (L/R)"))
+    def get_attempt_2_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.result_left_2:.1f} / {obj.result_right_2:.1f}"
+
+    @admin.display(description=_("Attempt 3 (L/R)"))
+    def get_attempt_3_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.result_left_3:.1f} / {obj.result_right_3:.1f}"
+
+    @admin.display(description=_("Max Score"), ordering='max_score')
+    def get_max_score_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.max_score:.1f}"
+
+    @admin.display(description=_("%BW"))
+    def get_bw_percentage_display(self, obj: TwoKettlebellPressResult) -> Optional[str]:
+        bw = obj.bw_percentage
+        return f"{bw:.2f}%" if bw is not None else "---"
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: TwoKettlebellPressResult) -> str:
+         return ", ".join([c.name for c in obj.player.categories.all()])
+
+    # def get_queryset(self, request):
+    #      qs = super().get_queryset(request)
+    #      # Dodaj adnotację max_score
+    #      # ...
+    #      return qs
+
+
+@admin.register(BestTwoKettlebellPressResult)
+class BestTwoKettlebellPressResultAdmin(admin.ModelAdmin):
+    list_display = ("player_link", "best_result", "get_player_categories")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "best_result", "get_player_categories")
+    list_select_related = ('player',)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: BestTwoKettlebellPressResult):
+        # ... (kod linku) ...
+        from django.urls import reverse
+        from django.utils.html import format_html
+        link = reverse("admin:live_results_player_change", args=[obj.player.id]) # Zmień 'live_results'
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: BestTwoKettlebellPressResult) -> str:
+       return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
+
