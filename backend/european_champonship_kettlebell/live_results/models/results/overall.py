@@ -25,6 +25,9 @@ class OverallResult(models.Model):
     see_saw_press_points = models.FloatField(_("See Saw Press Points (Position)"), null=True, blank=True, default=0.0)
     kb_squat_points = models.FloatField(_("KB Squat Points (Position)"), null=True, blank=True, default=0.0)
     pistol_squat_points = models.FloatField(_("Pistol Squat Points (Position)"), null=True, blank=True, default=0.0)
+    one_kb_press_points = models.FloatField(_("One KB Press Points (Position)"), null=True, blank=True, default=0.0) # <--- NOWE
+    two_kb_press_points = models.FloatField(_("Two KB Press Points (Position)"), null=True, blank=True, default=0.0) # <--- NOWE
+
 
     # Punkty karne za remis (np. -0.5)
     tiebreak_points = models.FloatField(_("Tiebreak Points"), default=0.0)
@@ -59,9 +62,11 @@ class OverallResult(models.Model):
             (self.see_saw_press_points or 0.0) +
             (self.kb_squat_points or 0.0) +
             (self.pistol_squat_points or 0.0) +
-            (self.tiebreak_points or 0.0) # tiebreak_points domyślnie jest 0.0
+            (self.one_kb_press_points or 0.0) + # <--- NOWE
+            (self.two_kb_press_points or 0.0) + # <--- NOWE
+            (self.tiebreak_points or 0.0)
         )
-        self.total_points = round(total, 1) # Zaokrąglenie do 1 miejsca po przecinku
+        self.total_points = round(total, 1)# Zaokrąglenie do 1 miejsca po przecinku
 
     # Celowo nie ma tu metody save(), aby uniknąć niekontrolowanych zapisów.
     # Logika przypisywania punktów i pozycji końcowej znajduje się w `services.py`.

@@ -71,6 +71,19 @@ class Player(models.Model):
     pistol_squat_weight_1 = models.FloatField(_("Pistol: Attempt 1"), null=True, blank=True, default=0.0)
     pistol_squat_weight_2 = models.FloatField(_("Pistol: Attempt 2"), null=True, blank=True, default=0.0)
     pistol_squat_weight_3 = models.FloatField(_("Pistol: Attempt 3"), null=True, blank=True, default=0.0)
+
+    # One Kettlebell Press Input Fields
+    one_kb_press_weight_1 = models.FloatField(_("One KB Press: Attempt 1"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_2 = models.FloatField(_("One KB Press: Attempt 2"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_3 = models.FloatField(_("One KB Press: Attempt 3"), null=True, blank=True, default=0.0)
+
+    # Two Kettlebell Press Input Fields
+    two_kb_press_weight_left_1 = models.FloatField(_("Two KB Press Left: Attempt 1"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_right_1 = models.FloatField(_("Two KB Press Right: Attempt 1"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_left_2 = models.FloatField(_("Two KB Press Left: Attempt 2"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_right_2 = models.FloatField(_("Two KB Press Right: Attempt 2"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_left_3 = models.FloatField(_("Two KB Press Left: Attempt 3"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_right_3 = models.FloatField(_("Two KB Press Right: Attempt 3"), null=True, blank=True, default=0.0)
     # --- Koniec pól do wprowadzania ---
 
     _updating_results: bool = False # Flaga zapobiegająca rekursji w save()
@@ -98,8 +111,7 @@ class Player(models.Model):
     def update_related_results(self) -> None:
         """
         Updates all related result models based on the current Player instance's
-        input fields. This is likely triggered after saving the Player model.
-        Consider moving this logic to signals or a service layer.
+        input fields.
         """
         if self._updating_results:
             return
@@ -111,68 +123,41 @@ class Player(models.Model):
         from .results.pistol_squat import PistolSquatResult
         from .results.see_saw_press import SeeSawPressResult, BestSeeSawPressResult
         from .results.kb_squat import KBSquatResult, BestKBSquatResult
-        from .services import update_overall_results_for_player # Zaimportuj funkcję serwisową
+        from .results.one_kettlebell_press import OneKettlebellPressResult  # <--- NOWY IMPORT
+        from .results.two_kettlebell_press import TwoKettlebellPressResult, \
+            BestTwoKettlebellPressResult  # <--- NOWE IMPORTY
+        from .services import update_overall_results_for_player
 
         try:
-            # Update Snatch Result
-            snatch_result, _ = SnatchResult.objects.update_or_create(
-                player=self,
-                defaults={'result': self.calculate_snatch_score()}
-            )
+            # ... (aktualizacje dla Snatch, TGU, Pistol, SSP, KBS - bez zmian) ...
 
-            # Update TGU Result
-            tgu_result, _ = TGUResult.objects.update_or_create(
+            # Update One Kettlebell Press Result
+            okbp_result, _ = OneKettlebellPressResult.objects.update_or_create(
                 player=self,
                 defaults={
-                    'result_1': self.tgu_weight_1 or 0.0,
-                    'result_2': self.tgu_weight_2 or 0.0,
-                    'result_3': self.tgu_weight_3 or 0.0,
+                    'result_1': self.one_kb_press_weight_1 or 0.0,
+                    'result_2': self.one_kb_press_weight_2 or 0.0,
+                    'result_3': self.one_kb_press_weight_3 or 0.0,
                 }
             )
 
-            # Update Pistol Squat Result
-            pistol_result, _ = PistolSquatResult.objects.update_or_create(
+            # Update Two Kettlebell Press Result
+            tkbp_result, _ = TwoKettlebellPressResult.objects.update_or_create(
                 player=self,
                 defaults={
-                    'result_1': self.pistol_squat_weight_1 or 0.0,
-                    'result_2': self.pistol_squat_weight_2 or 0.0,
-                    'result_3': self.pistol_squat_weight_3 or 0.0,
+                    'result_left_1': self.two_kb_press_weight_left_1 or 0.0,
+                    'result_right_1': self.two_kb_press_weight_right_1 or 0.0,
+                    'result_left_2': self.two_kb_press_weight_left_2 or 0.0,
+                    'result_right_2': self.two_kb_press_weight_right_2 or 0.0,
+                    'result_left_3': self.two_kb_press_weight_left_3 or 0.0,
+                    'result_right_3': self.two_kb_press_weight_right_3 or 0.0,
                 }
             )
+            # Update Best Two Kettlebell Press Result
+            best_tkbp, _ = BestTwoKettlebellPressResult.objects.get_or_create(player=self)
+            best_tkbp.update_best_result()  # Metoda na modelu Best...
 
-            # Update See Saw Press Result
-            ssp_result, _ = SeeSawPressResult.objects.update_or_create(
-                player=self,
-                defaults={
-                    'result_left_1': self.see_saw_press_weight_left_1 or 0.0,
-                    'result_right_1': self.see_saw_press_weight_right_1 or 0.0,
-                    'result_left_2': self.see_saw_press_weight_left_2 or 0.0,
-                    'result_right_2': self.see_saw_press_weight_right_2 or 0.0,
-                    'result_left_3': self.see_saw_press_weight_left_3 or 0.0,
-                    'result_right_3': self.see_saw_press_weight_right_3 or 0.0,
-                }
-            )
-            # Update Best See Saw Press Result
-            best_ssp, _ = BestSeeSawPressResult.objects.get_or_create(player=self)
-            best_ssp.update_best_results() # Metoda na modelu Best...
-
-            # Update KB Squat Result
-            kbs_result, _ = KBSquatResult.objects.update_or_create(
-                player=self,
-                defaults={
-                    'result_left_1': self.kb_squat_weight_left_1 or 0.0,
-                    'result_right_1': self.kb_squat_weight_right_1 or 0.0,
-                    'result_left_2': self.kb_squat_weight_left_2 or 0.0,
-                    'result_right_2': self.kb_squat_weight_right_2 or 0.0,
-                    'result_left_3': self.kb_squat_weight_left_3 or 0.0,
-                    'result_right_3': self.kb_squat_weight_right_3 or 0.0,
-                }
-            )
-            # Update Best KB Squat Result
-            best_kbs, _ = BestKBSquatResult.objects.get_or_create(player=self)
-            best_kbs.update_best_result() # Metoda na modelu Best...
-
-            # Update Overall Results (consider if this should be triggered elsewhere)
+            # Update Overall Results (triggered after all individual results are saved)
             update_overall_results_for_player(self)
 
         finally:

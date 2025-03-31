@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Models package for the application.
-
-Imports all models from their respective files and makes them available
-directly under app.models. Also exports constants.
+# ... (reszta docstring) ...
 """
 
 # Import constants first if they are needed by models during import
 from .constants import (
     AVAILABLE_DISCIPLINES,
     SNATCH, TGU, SEE_SAW_PRESS, KB_SQUAT, PISTOL_SQUAT,
+    ONE_KB_PRESS, TWO_KB_PRESS, # <--- NOWE STAŁE
     DISCIPLINE_NAMES
 )
 
@@ -24,6 +23,8 @@ from .results.tgu import TGUResult
 from .results.pistol_squat import PistolSquatResult
 from .results.see_saw_press import SeeSawPressResult, BestSeeSawPressResult
 from .results.kb_squat import KBSquatResult, BestKBSquatResult
+from .results.one_kettlebell_press import OneKettlebellPressResult # <--- NOWY MODEL
+from .results.two_kettlebell_press import TwoKettlebellPressResult, BestTwoKettlebellPressResult # <--- NOWE MODELE
 from .results.overall import OverallResult
 
 # Import service functions if they should be easily accessible (optional)
@@ -34,6 +35,7 @@ __all__ = [
     # Constants
     'AVAILABLE_DISCIPLINES', 'DISCIPLINE_NAMES',
     'SNATCH', 'TGU', 'SEE_SAW_PRESS', 'KB_SQUAT', 'PISTOL_SQUAT',
+    'ONE_KB_PRESS', 'TWO_KB_PRESS', # <--- NOWE STAŁE
 
     # Models
     'SportClub',
@@ -44,6 +46,8 @@ __all__ = [
     'PistolSquatResult',
     'SeeSawPressResult', 'BestSeeSawPressResult',
     'KBSquatResult', 'BestKBSquatResult',
+    'OneKettlebellPressResult', # <--- NOWY MODEL
+    'TwoKettlebellPressResult', 'BestTwoKettlebellPressResult', # <--- NOWE MODELE
     'OverallResult',
 
     # Services (optional)

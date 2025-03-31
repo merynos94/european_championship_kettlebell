@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
 from import_export.admin import ImportExportModelAdmin
-
+from typing import Optional
 # Importuj wszystko z nowego pakietu models
 from .models import (
     AVAILABLE_DISCIPLINES,
@@ -19,6 +19,9 @@ from .models import (
     SnatchResult,
     SportClub,
     TGUResult,
+    OneKettlebellPressResult,
+    TwoKettlebellPressResult,
+    BestTwoKettlebellPressResult,
     # Nie importuj DISCIPLINE_NAMES jeśli nie jest tu używane
 )
 
@@ -29,9 +32,9 @@ from .resources import PlayerExportResource, PlayerImportResource
 
 # --- Formularz dla Category Admin ---
 class CategoryAdminForm(forms.ModelForm):
-    # Używamy stałej zaimportowanej z models
+    # Używamy stałej zaimportowanej z models, która już zawiera nowe dyscypliny
     disciplines = forms.MultipleChoiceField(
-        choices=AVAILABLE_DISCIPLINES,
+        choices=AVAILABLE_DISCIPLINES, # Ta stała została zaktualizowana w constants.py
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label=_("Disciplines"),
@@ -76,6 +79,8 @@ class PlayerAdmin(ImportExportModelAdmin):
         "get_best_ssp_display",  # Pobierz best z BestSeeSawPressResult
         "get_best_kbs_display",  # Pobierz best z BestKBSquatResult
         "get_max_pistol_display",  # Pobierz max z PistolSquatResult
+        "get_one_kb_press_max_display", # <-- NOWE
+        "get_best_two_kb_press_display",# <-- NOWE
         "tiebreak",
     )
     list_filter = ("club", "categories", "tiebreak")
@@ -89,6 +94,16 @@ class PlayerAdmin(ImportExportModelAdmin):
         (_("Basic Info"), {"fields": ("name", "surname", "weight", "club", "categories", "tiebreak")}),
         (_("Snatch Input"), {"fields": ("snatch_kettlebell_weight", "snatch_repetitions")}),
         (_("TGU Input"), {"fields": ("tgu_weight_1", "tgu_weight_2", "tgu_weight_3")}),
+        (_("One Kettlebell Press Input"), {
+            "fields": ("one_kb_press_weight_1", "one_kb_press_weight_2", "one_kb_press_weight_3")
+        }),
+        (_("Two Kettlebell Press Input"), {
+            "fields": (
+                ("two_kb_press_weight_left_1", "two_kb_press_weight_right_1"),
+                ("two_kb_press_weight_left_2", "two_kb_press_weight_right_2"),
+                ("two_kb_press_weight_left_3", "two_kb_press_weight_right_3"),
+            )
+        }),
         (
             _("See Saw Press Input"),
             {
@@ -131,6 +146,8 @@ class PlayerAdmin(ImportExportModelAdmin):
                     "get_best_kbs_display",
                     "get_max_pistol_display",
                     "get_overall_score_display",
+                    'get_one_kb_press_max_display',  # <-- NOWE
+                    'get_best_two_kb_press_display',  # <-- NOWE
                 ),
             },
         ),
@@ -144,6 +161,8 @@ class PlayerAdmin(ImportExportModelAdmin):
         "get_best_kbs_display",
         "get_max_pistol_display",
         "get_overall_score_display",
+        'get_one_kb_press_max_display', # <-- NOWE
+        'get_best_two_kb_press_display',# <-- NOWE
     )
 
     # Metody do wyświetlania danych z powiązanych modeli
@@ -199,7 +218,19 @@ class PlayerAdmin(ImportExportModelAdmin):
         except OverallResult.DoesNotExist:
             return "---"
 
-    # Usunięto save_model - logika przeniesiona do Player.save() -> update_related_results()
+    @admin.display(description=_("One KB Press Max"))
+    def get_one_kb_press_max_display(self, obj: Player) -> str:
+        try:
+            return f"{obj.one_kettlebell_press_result.max_result:.1f}"
+        except OneKettlebellPressResult.DoesNotExist:
+            return "---"
+
+    @admin.display(description=_("Best Two KB Press"))
+    def get_best_two_kb_press_display(self, obj: Player) -> str:
+        try:
+            return f"{obj.best_two_kettlebell_press_result.best_result:.1f}"
+        except BestTwoKettlebellPressResult.DoesNotExist:
+            return "---"
 
     # Metody import/export bez zmian
     def get_import_resource_classes(self):
@@ -592,3 +623,119 @@ class BestKBSquatResultAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+@admin.register(OneKettlebellPressResult)
+class OneKettlebellPressResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link", "result_1", "result_2", "result_3",
+        "get_max_result_display", "get_bw_percentage_display", "position", "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position", "get_max_result_display", "get_bw_percentage_display")
+    list_select_related = ('player',)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: OneKettlebellPressResult):
+        # ... (kod linku jak w innych adminach) ...
+        from django.urls import reverse
+        from django.utils.html import format_html
+        link = reverse("admin:live_results_player_change", args=[obj.player.id]) # Zmień 'live_results' na nazwę Twojej aplikacji
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+
+    @admin.display(description=_("Max Result"), ordering='max_result')
+    def get_max_result_display(self, obj: OneKettlebellPressResult) -> str:
+       return f"{obj.max_result:.1f}"
+
+    @admin.display(description=_("%BW"))
+    def get_bw_percentage_display(self, obj: OneKettlebellPressResult) -> Optional[str]:
+       bw = obj.bw_percentage
+       return f"{bw:.2f}%" if bw is not None else "---"
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: OneKettlebellPressResult) -> str:
+       return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def get_queryset(self, request):
+       qs = super().get_queryset(request)
+       qs = qs.annotate(max_result=Greatest('result_1', 'result_2', 'result_3'))
+       return qs
+
+
+@admin.register(TwoKettlebellPressResult)
+class TwoKettlebellPressResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "player_link",
+        "get_attempt_1_display", "get_attempt_2_display", "get_attempt_3_display",
+        "get_max_score_display", "get_bw_percentage_display", "position", "get_player_categories",
+    )
+    list_filter = ("player__categories", "position")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "position", "get_max_score_display", "get_bw_percentage_display",
+                       "get_attempt_1_display", "get_attempt_2_display", "get_attempt_3_display")
+    list_select_related = ('player',)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: TwoKettlebellPressResult):
+         # ... (kod linku) ...
+        from django.urls import reverse
+        from django.utils.html import format_html
+        link = reverse("admin:live_results_player_change", args=[obj.player.id]) # Zmień 'live_results'
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Attempt 1 (L/R)"))
+    def get_attempt_1_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.result_left_1:.1f} / {obj.result_right_1:.1f}"
+
+    @admin.display(description=_("Attempt 2 (L/R)"))
+    def get_attempt_2_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.result_left_2:.1f} / {obj.result_right_2:.1f}"
+
+    @admin.display(description=_("Attempt 3 (L/R)"))
+    def get_attempt_3_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.result_left_3:.1f} / {obj.result_right_3:.1f}"
+
+    @admin.display(description=_("Max Score"), ordering='max_score')
+    def get_max_score_display(self, obj: TwoKettlebellPressResult) -> str:
+        return f"{obj.max_score:.1f}"
+
+    @admin.display(description=_("%BW"))
+    def get_bw_percentage_display(self, obj: TwoKettlebellPressResult) -> Optional[str]:
+        bw = obj.bw_percentage
+        return f"{bw:.2f}%" if bw is not None else "---"
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: TwoKettlebellPressResult) -> str:
+         return ", ".join([c.name for c in obj.player.categories.all()])
+
+    # def get_queryset(self, request):
+    #      qs = super().get_queryset(request)
+    #      # Dodaj adnotację max_score
+    #      # ...
+    #      return qs
+
+
+@admin.register(BestTwoKettlebellPressResult)
+class BestTwoKettlebellPressResultAdmin(admin.ModelAdmin):
+    list_display = ("player_link", "best_result", "get_player_categories")
+    search_fields = ("player__name", "player__surname")
+    readonly_fields = ("player_link", "best_result", "get_player_categories")
+    list_select_related = ('player',)
+
+    @admin.display(description=_("Player"), ordering="player__surname")
+    def player_link(self, obj: BestTwoKettlebellPressResult):
+        # ... (kod linku) ...
+        from django.urls import reverse
+        from django.utils.html import format_html
+        link = reverse("admin:live_results_player_change", args=[obj.player.id]) # Zmień 'live_results'
+        return format_html('<a href="{}">{}</a>', link, obj.player)
+
+    @admin.display(description=_("Categories"))
+    def get_player_categories(self, obj: BestTwoKettlebellPressResult) -> str:
+       return ", ".join([c.name for c in obj.player.categories.all()])
+
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
+

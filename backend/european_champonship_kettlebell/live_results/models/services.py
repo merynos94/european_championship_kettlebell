@@ -9,6 +9,11 @@ from django.utils.translation import gettext_lazy as _
 
 # Importuj stałe
 from .constants import SNATCH, TGU, SEE_SAW_PRESS, KB_SQUAT, PISTOL_SQUAT
+# Importuj stałe
+from .constants import (
+    SNATCH, TGU, SEE_SAW_PRESS, KB_SQUAT, PISTOL_SQUAT,
+    ONE_KB_PRESS, TWO_KB_PRESS # <--- NOWE STAŁE
+)
 
 # Importuj modele używając TYPE_CHECKING dla podpowiedzi typów
 if TYPE_CHECKING:
@@ -19,21 +24,25 @@ if TYPE_CHECKING:
     from .results.pistol_squat import PistolSquatResult
     from .results.see_saw_press import SeeSawPressResult
     from .results.kb_squat import KBSquatResult
+    from .results.one_kettlebell_press import OneKettlebellPressResult # <--- NOWY IMPORT
+    from .results.two_kettlebell_press import TwoKettlebellPressResult # <--- NOWY IMPORT
     from .results.overall import OverallResult
 
-
+# --- Funkcja update_discipline_positions ---
 def update_discipline_positions(category: 'Category') -> None:
     """
     Calculates and updates the position for each player within a category
     for every active discipline in that category.
     """
-    # Importuj modele tutaj, aby uniknąć problemów z importem kołowym na starcie
+    # Importuj modele tutaj
     from .player import Player
     from .results.snatch import SnatchResult
     from .results.tgu import TGUResult
     from .results.pistol_squat import PistolSquatResult
     from .results.see_saw_press import SeeSawPressResult
     from .results.kb_squat import KBSquatResult
+    from .results.one_kettlebell_press import OneKettlebellPressResult # <--- NOWY IMPORT
+    from .results.two_kettlebell_press import TwoKettlebellPressResult # <--- NOWY IMPORT
 
     players_in_category = Player.objects.filter(categories=category)
     disciplines = category.get_disciplines()
@@ -44,6 +53,8 @@ def update_discipline_positions(category: 'Category') -> None:
         SEE_SAW_PRESS: SeeSawPressResult,
         KB_SQUAT: KBSquatResult,
         PISTOL_SQUAT: PistolSquatResult,
+        ONE_KB_PRESS: OneKettlebellPressResult, # <--- NOWE
+        TWO_KB_PRESS: TwoKettlebellPressResult, # <--- NOWE
     }
 
     # Define scoring fields/annotations for ordering
@@ -51,8 +62,10 @@ def update_discipline_positions(category: 'Category') -> None:
         SNATCH: '-result',
         TGU: '-max_tgu_result', # Użyjemy adnotacji
         PISTOL_SQUAT: '-max_pistol_result', # Użyjemy adnotacji
-        SEE_SAW_PRESS: '-max_ssp_score', # Użyjemy adnotacji
-        KB_SQUAT: '-max_kbs_score', # Użyjemy adnotacji
+        ONE_KB_PRESS: '-max_okbp_result', # <--- NOWE
+        SEE_SAW_PRESS: '-max_ssp_score',
+        KB_SQUAT: '-max_kbs_score',
+        TWO_KB_PRESS: '-max_tkbp_score', # <--- NOWE
     }
 
     for discipline in disciplines:
@@ -86,7 +99,16 @@ def update_discipline_positions(category: 'Category') -> None:
                 kbs_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F('result_left_2') + F('result_right_2')), default=Value(0.0), output_field=FloatField()),
                 kbs_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F('result_left_3') + F('result_right_3')), default=Value(0.0), output_field=FloatField()),
             ).annotate(max_kbs_score=Greatest('kbs_score_1', 'kbs_score_2', 'kbs_score_3'))
-
+        elif discipline == ONE_KB_PRESS: # <--- NOWA ADNOTACJA
+            results_qs = results_qs.annotate(
+                max_okbp_result=Greatest('result_1', 'result_2', 'result_3')
+            )
+        elif discipline == TWO_KB_PRESS: # <--- NOWA ADNOTACJA
+             results_qs = results_qs.annotate(
+                 tkbp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F('result_left_1') + F('result_right_1')), default=Value(0.0), output_field=FloatField()),
+                 tkbp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F('result_left_2') + F('result_right_2')), default=Value(0.0), output_field=FloatField()),
+                 tkbp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F('result_left_3') + F('result_right_3')), default=Value(0.0), output_field=FloatField()),
+             ).annotate(max_tkbp_score=Greatest('tkbp_score_1', 'tkbp_score_2', 'tkbp_score_3'))
 
         # Order the results
         ordered_results = results_qs.order_by(order_by_field, 'player__surname', 'player__name') # Dodatkowe sortowanie dla remisów
@@ -102,8 +124,10 @@ def update_discipline_positions(category: 'Category') -> None:
             if discipline == SNATCH: score = result.result
             elif discipline == TGU: score = result.max_tgu_result
             elif discipline == PISTOL_SQUAT: score = result.max_pistol_result
+            elif discipline == ONE_KB_PRESS: score = result.max_okbp_result # <--- NOWE
             elif discipline == SEE_SAW_PRESS: score = result.max_ssp_score
             elif discipline == KB_SQUAT: score = result.max_kbs_score
+            elif discipline == TWO_KB_PRESS: score = result.max_tkbp_score # <--- NOWE
             else: score = None # Should not happen
 
             # Handle ties - assign same position for ties
@@ -132,10 +156,15 @@ def update_overall_results_for_category(category: 'Category') -> None:
     from .results.pistol_squat import PistolSquatResult
     from .results.see_saw_press import SeeSawPressResult
     from .results.kb_squat import KBSquatResult
+    from .results.one_kettlebell_press import OneKettlebellPressResult # <--- NOWY IMPORT
+    from .results.two_kettlebell_press import TwoKettlebellPressResult # <--- NOWY IMPORT
+
 
     players_in_category = Player.objects.filter(categories=category).prefetch_related(
         'snatch_result', 'tgu_result', 'pistol_squat_result',
-        'see_saw_press_result', 'kb_squat_result' # Prefetch related results
+        'see_saw_press_result', 'kb_squat_result', # Prefetch related results
+        'one_kettlebell_press_result',  # <--- NOWY PREFETCH`
+        'two_kettlebell_press_result'  # <--- NOWY PREFETCH
     )
     disciplines = category.get_disciplines()
 
@@ -143,6 +172,7 @@ def update_overall_results_for_category(category: 'Category') -> None:
 
     # 1. Calculate points based on position in each active discipline
     for player in players_in_category:
+        # ... (reszta logiki obliczania punktów bez zmian) ...
         overall_result, created = OverallResult.objects.get_or_create(player=player)
 
         # Reset points
@@ -151,35 +181,43 @@ def update_overall_results_for_category(category: 'Category') -> None:
         overall_result.see_saw_press_points = 0.0
         overall_result.kb_squat_points = 0.0
         overall_result.pistol_squat_points = 0.0
-        overall_result.tiebreak_points = -0.5 if player.tiebreak else 0.0 # Tiebreak points
+        overall_result.one_kb_press_points = 0.0
+        overall_result.two_kb_press_points = 0.0
+        overall_result.tiebreak_points = -0.5 if player.tiebreak else 0.0
 
-        # Assign points based on position (lower position = lower points/rank)
+        # Assign points based on position
+        # ... (przypisywanie punktów) ...
         if SNATCH in disciplines and hasattr(player, 'snatch_result') and player.snatch_result.position is not None:
-            overall_result.snatch_points = float(player.snatch_result.position)
+             overall_result.snatch_points = float(player.snatch_result.position)
         if TGU in disciplines and hasattr(player, 'tgu_result') and player.tgu_result.position is not None:
-            overall_result.tgu_points = float(player.tgu_result.position)
+             overall_result.tgu_points = float(player.tgu_result.position)
         if SEE_SAW_PRESS in disciplines and hasattr(player, 'see_saw_press_result') and player.see_saw_press_result.position is not None:
-            overall_result.see_saw_press_points = float(player.see_saw_press_result.position)
+             overall_result.see_saw_press_points = float(player.see_saw_press_result.position)
         if KB_SQUAT in disciplines and hasattr(player, 'kb_squat_result') and player.kb_squat_result.position is not None:
-            overall_result.kb_squat_points = float(player.kb_squat_result.position)
+             overall_result.kb_squat_points = float(player.kb_squat_result.position)
         if PISTOL_SQUAT in disciplines and hasattr(player, 'pistol_squat_result') and player.pistol_squat_result.position is not None:
-            overall_result.pistol_squat_points = float(player.pistol_squat_result.position)
+             overall_result.pistol_squat_points = float(player.pistol_squat_result.position)
+        if ONE_KB_PRESS in disciplines and hasattr(player, 'one_kettlebell_press_result') and player.one_kettlebell_press_result.position is not None:
+             overall_result.one_kb_press_points = float(player.one_kettlebell_press_result.position)
+        if TWO_KB_PRESS in disciplines and hasattr(player, 'two_kettlebell_press_result') and player.two_kettlebell_press_result.position is not None:
+             overall_result.two_kb_press_points = float(player.two_kettlebell_press_result.position)
 
-        # Calculate total points (lower is better)
-        overall_result.calculate_total_points() # Method on OverallResult model sums the points
+        overall_result.calculate_total_points()
         overall_updates.append(overall_result)
 
-    # Bulk update points before calculating final position
+    # Bulk update points
     if overall_updates:
         OverallResult.objects.bulk_update(
             overall_updates,
             ['snatch_points', 'tgu_points', 'see_saw_press_points', 'kb_squat_points',
-             'pistol_squat_points', 'tiebreak_points', 'total_points']
+             'pistol_squat_points', 'one_kb_press_points', 'two_kb_press_points',
+             'tiebreak_points', 'total_points']
         )
 
-    # 2. Determine final positions based on total points (lower is better)
+    # 2. Determine final positions
+    # ... (logika obliczania final_position bez zmian) ...
     final_results = OverallResult.objects.filter(player__in=players_in_category).order_by(
-        'total_points', 'player__surname', 'player__name' # Sort by points, then name for tie-breaking rank
+        'total_points', 'player__surname', 'player__name'
     )
 
     final_pos_updates = []
