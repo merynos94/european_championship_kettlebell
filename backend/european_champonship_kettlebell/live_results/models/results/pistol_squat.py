@@ -1,19 +1,22 @@
-# -*- coding: utf-8 -*-
 """Model definition for PistolSquatResult."""
-from typing import Optional, TYPE_CHECKING
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 if TYPE_CHECKING:
-    from ..player import Player # Dostosuj ścieżkę jeśli Player jest gdzie indziej
+    pass  # Dostosuj ścieżkę jeśli Player jest gdzie indziej
+
 
 class PistolSquatResult(models.Model):
     """Stores the results for the Pistol Squat discipline attempts."""
-    player = models.OneToOneField['Player'](
-        'Player', # Użyj stringa dla uniknięcia importów
+
+    player = models.OneToOneField["Player"](
+        "Player",  # Użyj stringa dla uniknięcia importów
         on_delete=models.CASCADE,
         verbose_name=_("Player"),
-        related_name="pistol_squat_result"
+        related_name="pistol_squat_result",
     )
     result_1 = models.FloatField(_("Attempt 1 Weight"), default=0.0)
     result_2 = models.FloatField(_("Attempt 2 Weight"), default=0.0)
@@ -23,7 +26,7 @@ class PistolSquatResult(models.Model):
     class Meta:
         verbose_name = _("Pistol Squat Result")
         verbose_name_plural = _("Pistol Squat Results")
-        ordering = ['player__categories', '-position'] # Sortowanie wg pozycji
+        ordering = ["player__categories", "-position"]  # Sortowanie wg pozycji
 
     def __str__(self) -> str:
         return f"{self.player} - Pistol Squat Attempts: {self.result_1}/{self.result_2}/{self.result_3}"
@@ -33,8 +36,15 @@ class PistolSquatResult(models.Model):
         """Returns the maximum weight lifted across attempts."""
         return max(self.result_1 or 0.0, self.result_2 or 0.0, self.result_3 or 0.0)
 
+    @max_result.setter
+    def max_result(self, value: float) -> None:
+        """Sets the maximum result by updating the first attempt."""
+        # You need to decide how setting max_result should behave
+        # This is one implementation - it sets result_1 to the provided value
+        self.result_1 = value
+
     @property
-    def bw_percentage(self) -> Optional[float]:
+    def bw_percentage(self) -> float | None:
         """Calculates the max result as a percentage of player's body weight."""
         # Upewnij się, że player.weight nie jest None i jest większe od 0
         if self.player.weight and self.player.weight > 0:
