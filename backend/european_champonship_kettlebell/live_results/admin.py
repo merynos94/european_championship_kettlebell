@@ -254,7 +254,7 @@ class SnatchResultAdmin(admin.ModelAdmin):
     readonly_fields = ("player_link", "position")  # Pozycja jest obliczana
     list_select_related = ("player",)  # Optymalizacja zapytania
 
-    @admin.display(description=_("Player"), ordering="player__surname")
+    @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def player_link(self, obj: SnatchResult):
         from django.urls import reverse
         from django.utils.html import format_html
@@ -262,7 +262,7 @@ class SnatchResultAdmin(admin.ModelAdmin):
         link = reverse("admin:live_results_player_change", args=[obj.player.id])  # Zmień 'twoja_aplikacja'
         return format_html('<a href="{}">{}</a>', link, obj.player)
 
-    @admin.display(description=_("Categories"))
+    @admin.display(description=_("Kategorie"))
     def get_player_categories(self, obj: SnatchResult) -> str:
         return ", ".join([c.name for c in obj.player.categories.all()])
 
@@ -293,7 +293,9 @@ class TGUResultAdmin(admin.ModelAdmin):
         link = reverse("admin:live_results_player_change", args=[obj.player.id])
         return format_html('<a href="{}">{}</a>', link, obj.player)
 
-    @admin.display(description=_("Max Result"), ordering="max_result")  # Zakładamy adnotację max_result w queryset
+    @admin.display(
+        description=_("Maksymlalny wynik"), ordering="max_result"
+    )  # Zakładamy adnotację max_result w queryset
     def get_max_result_display(self, obj: TGUResult) -> str:
         return f"{obj.max_result:.1f}"  # Użyj property z modelu
 
@@ -339,7 +341,7 @@ class PistolSquatResultAdmin(admin.ModelAdmin):
         link = reverse("admin:live_results_player_change", args=[obj.player.id])
         return format_html('<a href="{}">{}</a>', link, obj.player)
 
-    @admin.display(description=_("Max Result"), ordering="max_result")
+    @admin.display(description=_("Największy wynik"), ordering="max_result")
     def get_max_result_display(self, obj: PistolSquatResult) -> str:
         return f"{obj.max_result:.1f}"
 
