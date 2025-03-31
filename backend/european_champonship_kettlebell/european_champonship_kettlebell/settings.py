@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "live_results",
     "rest_framework",
+    "import_export",
 ]
 
 MIDDLEWARE = [
