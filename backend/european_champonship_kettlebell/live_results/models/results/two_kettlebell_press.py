@@ -21,11 +21,11 @@ class TwoKettlebellPressResult(models.Model):
     result_right_2 = models.FloatField(_("Right Attempt 2"), default=0.0)
     result_left_3 = models.FloatField(_("Left Attempt 3"), default=0.0)
     result_right_3 = models.FloatField(_("Right Attempt 3"), default=0.0)
-    position = models.IntegerField(_("Position in Category"), null=True, blank=True)
+    position = models.IntegerField(_("Pozycja w Kategorii"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("Two Kettlebell Press Result")
-        verbose_name_plural = _("Two Kettlebell Press Results")
+        verbose_name = _("Wyniki Two kettlebell Press")
+        verbose_name_plural = _("Wyniki Two Kettlebells Press")
         ordering = ['player__categories', '-position']
 
     def __str__(self) -> str:
@@ -66,8 +66,8 @@ class BestTwoKettlebellPressResult(models.Model):
     best_result = models.FloatField(_("Best Result (L+R)"), default=0.0)
 
     class Meta:
-        verbose_name = _("Best Two KB Press Result")
-        verbose_name_plural = _("Best Two KB Press Results")
+        verbose_name = _("Najlepszy Wynik Two Kettlebell Press")
+        verbose_name_plural = _("Najlepsze Wyniki Two Kettlebells Press")
 
     def update_best_result(self) -> bool:
         """

@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 
 class Player(models.Model):
     """Represents a competitor."""
-    name = models.CharField(_("Name"), max_length=50)
-    surname = models.CharField(_("Surname"), max_length=50)
-    weight = models.FloatField(_("Weight (kg)"), null=True, blank=True, default=0.0) # Lepszy label, default float
-    club = models.ForeignKey[Optional['SportClub']](
+    name = models.CharField(_("Imię"), max_length=50)
+    surname = models.CharField(_("Nazwisko"), max_length=50)
+    weight = models.FloatField(_("Waga (kg)"), null=True, blank=True, default=0.0) # Lepszy label, default float
+    club = models.ForeignKey[Optional['Klub']](
         'SportClub', # Użycie stringa zapobiega importom kołowym na starcie
         on_delete=models.SET_NULL, # Lepsze niż CASCADE? Co jeśli klub zniknie?
         null=True,
@@ -43,47 +43,47 @@ class Player(models.Model):
     # Zostawiam je na razie, jak w oryginale, ale to główny kandydat do refaktoryzacji.
 
     # Snatch Input Fields
-    snatch_kettlebell_weight = models.FloatField(_("Snatch: KB Weight"), null=True, blank=True, default=0.0)
-    snatch_repetitions = models.IntegerField(_("Snatch: Repetitions"), null=True, blank=True, default=0)
+    snatch_kettlebell_weight = models.FloatField(_("Snatch: Waga Kettlebell"), null=True, blank=True, default=0.0)
+    snatch_repetitions = models.IntegerField(_("Snatch: Ilość Powtórzeń"), null=True, blank=True, default=0)
 
     # TGU Input Fields
-    tgu_weight_1 = models.FloatField(_("TGU: Attempt 1 Weight"), null=True, blank=True, default=0.0)
-    tgu_weight_2 = models.FloatField(_("TGU: Attempt 2 Weight"), null=True, blank=True, default=0.0)
-    tgu_weight_3 = models.FloatField(_("TGU: Attempt 3 Weight"), null=True, blank=True, default=0.0)
+    tgu_weight_1 = models.FloatField(_("TGU: Próba I"), null=True, blank=True, default=0.0)
+    tgu_weight_2 = models.FloatField(_("TGU: Próba II"), null=True, blank=True, default=0.0)
+    tgu_weight_3 = models.FloatField(_("TGU: Próba III"), null=True, blank=True, default=0.0)
 
     # See Saw Press Input Fields
-    see_saw_press_weight_left_1 = models.FloatField(_("SSP Left: Attempt 1"), null=True, blank=True, default=0.0)
-    see_saw_press_weight_left_2 = models.FloatField(_("SSP Left: Attempt 2"), null=True, blank=True, default=0.0)
-    see_saw_press_weight_left_3 = models.FloatField(_("SSP Left: Attempt 3"), null=True, blank=True, default=0.0)
-    see_saw_press_weight_right_1 = models.FloatField(_("SSP Right: Attempt 1"), null=True, blank=True, default=0.0)
-    see_saw_press_weight_right_2 = models.FloatField(_("SSP Right: Attempt 2"), null=True, blank=True, default=0.0)
-    see_saw_press_weight_right_3 = models.FloatField(_("SSP Right: Attempt 3"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_left_1 = models.FloatField(_("SSP Próba I L"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_left_2 = models.FloatField(_("SSP Próba II L"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_left_3 = models.FloatField(_("SSP Próba III L"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_right_1 = models.FloatField(_("SSP Próba I R"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_right_2 = models.FloatField(_("SSP Próba II R"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_right_3 = models.FloatField(_("SSP Próba III R"), null=True, blank=True, default=0.0)
 
     # KB Squat Input Fields
-    kb_squat_weight_left_1 = models.FloatField(_("KBS Left: Attempt 1"), null=True, blank=True, default=0.0)
-    kb_squat_weight_left_2 = models.FloatField(_("KBS Left: Attempt 2"), null=True, blank=True, default=0.0)
-    kb_squat_weight_left_3 = models.FloatField(_("KBS Left: Attempt 3"), null=True, blank=True, default=0.0)
-    kb_squat_weight_right_1 = models.FloatField(_("KBS Right: Attempt 1"), null=True, blank=True, default=0.0)
-    kb_squat_weight_right_2 = models.FloatField(_("KBS Right: Attempt 2"), null=True, blank=True, default=0.0)
-    kb_squat_weight_right_3 = models.FloatField(_("KBS Right: Attempt 3"), null=True, blank=True, default=0.0)
+    kb_squat_weight_left_1 = models.FloatField(_("Kettlebell Squat: Próba I L"), null=True, blank=True, default=0.0)
+    kb_squat_weight_left_2 = models.FloatField(_("Kettlebell Squat: Próba II L"), null=True, blank=True, default=0.0)
+    kb_squat_weight_left_3 = models.FloatField(_("Kettlebell Squat: Próba III L"), null=True, blank=True, default=0.0)
+    kb_squat_weight_right_1 = models.FloatField(_("Kettlebell Squat: Próba I R"), null=True, blank=True, default=0.0)
+    kb_squat_weight_right_2 = models.FloatField(_("Kettlebell Squat: Próba II R"), null=True, blank=True, default=0.0)
+    kb_squat_weight_right_3 = models.FloatField(_("Kettlebell Squat: Próba III R"), null=True, blank=True, default=0.0)
 
     # Pistol Squat Input Fields
-    pistol_squat_weight_1 = models.FloatField(_("Pistol: Attempt 1"), null=True, blank=True, default=0.0)
-    pistol_squat_weight_2 = models.FloatField(_("Pistol: Attempt 2"), null=True, blank=True, default=0.0)
-    pistol_squat_weight_3 = models.FloatField(_("Pistol: Attempt 3"), null=True, blank=True, default=0.0)
+    pistol_squat_weight_1 = models.FloatField(_("Pistol Squat: Próba I"), null=True, blank=True, default=0.0)
+    pistol_squat_weight_2 = models.FloatField(_("Pistol Squat: Próba II"), null=True, blank=True, default=0.0)
+    pistol_squat_weight_3 = models.FloatField(_("Pistol Squat: Próba III"), null=True, blank=True, default=0.0)
 
     # One Kettlebell Press Input Fields
-    one_kb_press_weight_1 = models.FloatField(_("One KB Press: Attempt 1"), null=True, blank=True, default=0.0)
-    one_kb_press_weight_2 = models.FloatField(_("One KB Press: Attempt 2"), null=True, blank=True, default=0.0)
-    one_kb_press_weight_3 = models.FloatField(_("One KB Press: Attempt 3"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_1 = models.FloatField(_("One Kettllebell Press: Próba I"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_2 = models.FloatField(_("One Kettllebell Press: Próba II"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_3 = models.FloatField(_("One Kettllebell Press: Próba III"), null=True, blank=True, default=0.0)
 
     # Two Kettlebell Press Input Fields
-    two_kb_press_weight_left_1 = models.FloatField(_("Two KB Press Left: Attempt 1"), null=True, blank=True, default=0.0)
-    two_kb_press_weight_right_1 = models.FloatField(_("Two KB Press Right: Attempt 1"), null=True, blank=True, default=0.0)
-    two_kb_press_weight_left_2 = models.FloatField(_("Two KB Press Left: Attempt 2"), null=True, blank=True, default=0.0)
-    two_kb_press_weight_right_2 = models.FloatField(_("Two KB Press Right: Attempt 2"), null=True, blank=True, default=0.0)
-    two_kb_press_weight_left_3 = models.FloatField(_("Two KB Press Left: Attempt 3"), null=True, blank=True, default=0.0)
-    two_kb_press_weight_right_3 = models.FloatField(_("Two KB Press Right: Attempt 3"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_left_1 = models.FloatField(_("Two Kettlebell Press: Próba I L"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_right_1 = models.FloatField(_("Two Kettlebell Press: Próba I R"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_left_2 = models.FloatField(_("Two Kettlebell Press: Próba II L"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_right_2 = models.FloatField(_("Two Kettlebell Press: Próba II R"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_left_3 = models.FloatField(_("Two Kettlebell Press: Próba III L"), null=True, blank=True, default=0.0)
+    two_kb_press_weight_right_3 = models.FloatField(_("Two Kettlebell Press: Próba III R"), null=True, blank=True, default=0.0)
     # --- Koniec pól do wprowadzania ---
 
     _updating_results: bool = False # Flaga zapobiegająca rekursji w save()
@@ -131,7 +131,7 @@ class Player(models.Model):
         try:
             # ... (aktualizacje dla Snatch, TGU, Pistol, SSP, KBS - bez zmian) ...
 
-            # Update One Kettlebell Press Result
+            # Update Kettlebell Press Wyniki
             okbp_result, _ = OneKettlebellPressResult.objects.update_or_create(
                 player=self,
                 defaults={

@@ -21,11 +21,11 @@ class SeeSawPressResult(models.Model):
     result_right_2 = models.FloatField(_("Right Attempt 2"), default=0.0)
     result_left_3 = models.FloatField(_("Left Attempt 3"), default=0.0)
     result_right_3 = models.FloatField(_("Right Attempt 3"), default=0.0)
-    position = models.IntegerField(_("Position in Category"), null=True, blank=True)
+    position = models.IntegerField(_("Pozycja w Kategorii"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("See Saw Press Result")
-        verbose_name_plural = _("See Saw Press Results")
+        verbose_name = _("Wynik See Saw Press")
+        verbose_name_plural = _("Wyniki See Saw Press")
 
     def __str__(self) -> str:
         return f"{self.player} - See Saw Press Attempts"
@@ -60,8 +60,8 @@ class BestSeeSawPressResult(models.Model):
     best_right = models.FloatField(_("Best Right"), default=0.0)
 
     class Meta:
-        verbose_name = _("Best See Saw Press Result")
-        verbose_name_plural = _("Best See Saw Press Results")
+        verbose_name = _("Najlepszy Wynik See Saw Press")
+        verbose_name_plural = _("Najlepsze Wyniki See Saw Press")
 
     def update_best_results(self) -> bool:
         """Updates best lifts based on the associated SeeSawPressResult."""

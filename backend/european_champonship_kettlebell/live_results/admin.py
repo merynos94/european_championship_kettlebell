@@ -166,11 +166,11 @@ class PlayerAdmin(ImportExportModelAdmin):
     )
 
     # Metody do wyświetlania danych z powiązanych modeli
-    @admin.display(description=_("Categories"))
+    @admin.display(description=_("Kategorie"))
     def get_categories_display(self, obj: Player) -> str:
         return ", ".join([cat.name for cat in obj.categories.all()])
 
-    @admin.display(description=_("Snatch Score"))
+    @admin.display(description=_("Wynik Snatch"))
     def get_snatch_score_display(self, obj: Player) -> str | None:
         try:
             score = obj.snatch_result.result
@@ -193,7 +193,7 @@ class PlayerAdmin(ImportExportModelAdmin):
         except BestSeeSawPressResult.DoesNotExist:
             return "---"
 
-    @admin.display(description=_("Best KBS"))
+    @admin.display(description=_("Best Kettlebell Squat (L/R)"))
     def get_best_kbs_display(self, obj: Player) -> str:
         try:
             return f"{obj.best_kb_squat_result.best_result:.1f}"
