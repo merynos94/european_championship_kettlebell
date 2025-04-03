@@ -15,14 +15,14 @@ class OneKettlebellPressResult(models.Model):
         verbose_name=_("Player"),
         related_name="one_kettlebell_press_result"
     )
-    result_1 = models.FloatField(_("Attempt 1 Weight"), default=0.0)
-    result_2 = models.FloatField(_("Attempt 2 Weight"), default=0.0)
-    result_3 = models.FloatField(_("Attempt 3 Weight"), default=0.0)
-    position = models.IntegerField(_("Position in Category"), null=True, blank=True)
+    result_1 = models.FloatField(_("Próba I Kettlebell Press"), default=0.0)
+    result_2 = models.FloatField(_("Próba II Kettlebell Press"), default=0.0)
+    result_3 = models.FloatField(_("Próba III Kettlebell Press"), default=0.0)
+    position = models.IntegerField(_("Pozycja w Kategorii"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("One Kettlebell Press Result")
-        verbose_name_plural = _("One Kettlebell Press Results")
+        verbose_name = _("Wynik Kettlebell Press")
+        verbose_name_plural = _("Wyniki Kettlebell Press")
         ordering = ['player__categories', '-position'] # Sortowanie wg pozycji
 
     def __str__(self) -> str:

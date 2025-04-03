@@ -15,17 +15,17 @@ class KBSquatResult(models.Model):
         verbose_name=_("Player"),
         related_name="kb_squat_result"
     )
-    result_left_1 = models.FloatField(_("Left Attempt 1"), default=0.0)
-    result_right_1 = models.FloatField(_("Right Attempt 1"), default=0.0)
-    result_left_2 = models.FloatField(_("Left Attempt 2"), default=0.0)
-    result_right_2 = models.FloatField(_("Right Attempt 2"), default=0.0)
-    result_left_3 = models.FloatField(_("Left Attempt 3"), default=0.0)
-    result_right_3 = models.FloatField(_("Right Attempt 3"), default=0.0)
-    position = models.IntegerField(_("Position in Category"), null=True, blank=True)
+    result_left_1 = models.FloatField(_("Próba I L"), default=0.0)
+    result_right_1 = models.FloatField(_("Próba I R"), default=0.0)
+    result_left_2 = models.FloatField(_("Próba II L"), default=0.0)
+    result_right_2 = models.FloatField(_("Próba II R"), default=0.0)
+    result_left_3 = models.FloatField(_("Próba III L"), default=0.0)
+    result_right_3 = models.FloatField(_("Próba III R"), default=0.0)
+    position = models.IntegerField(_("Pozycja w kategorii"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("KB Squat Result")
-        verbose_name_plural = _("KB Squat Results")
+        verbose_name = _("Wynik Kettllebell Squat")
+        verbose_name_plural = _("Wyniki Kettlebell Squat")
         ordering = ['player__categories', '-position']
 
     def __str__(self) -> str:
@@ -62,8 +62,8 @@ class BestKBSquatResult(models.Model):
     best_result = models.FloatField(_("Best Result (L+R)"), default=0.0)
 
     class Meta:
-        verbose_name = _("Best KB Squat Result")
-        verbose_name_plural = _("Best KB Squat Results")
+        verbose_name = _("Najlepszy Wynik Kettlebell Squat")
+        verbose_name_plural = _("Najlepsze Wyniki Kettlebell Squat")
 
     def update_best_result(self) -> bool:
         """
@@ -89,4 +89,4 @@ class BestKBSquatResult(models.Model):
             return False
 
     def __str__(self) -> str:
-        return f"{self.player} - Best KBS: {self.best_result:.1f}"
+        return f"{self.player} - Najlepszy Kettllebel Squat: {self.best_result:.1f}"

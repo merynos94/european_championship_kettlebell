@@ -21,11 +21,11 @@ class PistolSquatResult(models.Model):
     result_1 = models.FloatField(_("Attempt 1 Weight"), default=0.0)
     result_2 = models.FloatField(_("Attempt 2 Weight"), default=0.0)
     result_3 = models.FloatField(_("Attempt 3 Weight"), default=0.0)
-    position = models.IntegerField(_("Position in Category"), null=True, blank=True)
+    position = models.IntegerField(_("Pozycja w Kategorii"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("Pistol Squat Result")
-        verbose_name_plural = _("Pistol Squat Results")
+        verbose_name = _("Wynik Pistol Squat")
+        verbose_name_plural = _("Wyniki Pistol Squat")
         ordering = ["player__categories", "-position"]  # Sortowanie wg pozycji
 
     def __str__(self) -> str:
