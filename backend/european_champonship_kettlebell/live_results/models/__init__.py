@@ -18,12 +18,12 @@ from .category import Category
 from .player import Player
 
 # Import result models (adjust path if using results/ subdirectory)
-from .results.snatch import SnatchResult
-from .results.tgu import TGUResult
-from .results.pistol_squat import PistolSquatResult
+from .results.snatch import SnatchResult, BestSnatchResult
+from .results.tgu import TGUResult, BestTGUResult
+from .results.pistol_squat import PistolSquatResult, BestPistolSquatResult
 from .results.see_saw_press import SeeSawPressResult, BestSeeSawPressResult
 from .results.kb_squat import KBSquatResult, BestKBSquatResult
-from .results.one_kettlebell_press import OneKettlebellPressResult # <--- NOWY MODEL
+from .results.one_kettlebell_press import OneKettlebellPressResult, BestOneKettlebellPressResult # <--- NOWY MODEL
 from .results.two_kettlebell_press import TwoKettlebellPressResult, BestTwoKettlebellPressResult # <--- NOWE MODELE
 from .results.overall import OverallResult
 

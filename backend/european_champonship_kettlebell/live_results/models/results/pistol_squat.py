@@ -50,3 +50,47 @@ class PistolSquatResult(models.Model):
         if self.player.weight and self.player.weight > 0:
             return round((self.max_result / self.player.weight) * 100, 2)
         return None
+
+
+from typing import TYPE_CHECKING
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+# Zaimportuj model PistolSquatResult
+from .pistol_squat import PistolSquatResult # Dostosuj ścieżkę
+
+if TYPE_CHECKING:
+    from ..player import Player # Dostosuj ścieżkę
+
+class BestPistolSquatResult(models.Model):
+    """Stores the best Pistol Squat result per player."""
+    player = models.OneToOneField['Player'](
+        'Player',
+        on_delete=models.CASCADE,
+        related_name='best_pistol_squat_result' # Ważne: unikalna related_name
+    )
+    best_result = models.FloatField(_("Best Pistol Squat Result"), default=0.0)
+
+    class Meta:
+        verbose_name = _("Najlepszy Wynik Pistol Squat")
+        verbose_name_plural = _("Najlepsze Wyniki Pistol Squat")
+
+    def update_best_result(self) -> bool:
+        """Updates the best result based on the associated PistolSquatResult's max_result."""
+        try:
+            pistol_result = self.player.pistol_squat_result # Użyj related_name z PistolSquatResult
+            new_best_result = pistol_result.max_result
+
+            if self.best_result != new_best_result:
+                self.best_result = new_best_result
+                self.save(update_fields=['best_result'])
+                return True
+            return False
+        except PistolSquatResult.DoesNotExist:
+            if self.best_result != 0.0:
+                self.best_result = 0.0
+                self.save(update_fields=['best_result'])
+                return True
+            return False
+
+    def __str__(self) -> str:
+        return f"{self.player} - Najlepszy Pistol Squat: {self.best_result:.1f}"
