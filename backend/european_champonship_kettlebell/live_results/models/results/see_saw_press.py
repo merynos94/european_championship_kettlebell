@@ -54,48 +54,61 @@ class BestSeeSawPressResult(models.Model):
 
     player = models.OneToOneField["Player"](
         "Player",
-        on_delete=models.SET_NULL,  # Zmień z CASCADE
-        null=True,  # DODAJ null=True
+        on_delete=models.SET_NULL,
+        null=True,
         related_name="best_see_saw_press_result",
     )
-    best_left = models.FloatField(_("Best Left"), default=0.0)
-    best_right = models.FloatField(_("Best Right"), default=0.0)
+    best_result = models.FloatField(_("Best Result (% of body weight)"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik See Saw Press")
         verbose_name_plural = _("Najlepsze Wyniki See Saw Press")
 
     def update_best_result(self) -> bool:
-        """Updates best lifts based on the associated SeeSawPressResult."""
+        """
+        Updates best_result, storing PERCENT of body weight (max_score / weight * 100).
+        Selects the best attempt based on total (L+R) from a single attempt.
+        """
+        print(f">>> BestSSP {self.pk}: START update_best_result (PERCENT calc) for player {self.player.id}")
         try:
-            # Używamy self.player.see_saw_press_result zamiast query
             ssp_result = self.player.see_saw_press_result
-            updated = False
-            new_best_left = max(
-                ssp_result.result_left_1 or 0.0, ssp_result.result_left_2 or 0.0, ssp_result.result_left_3 or 0.0
-            )
-            new_best_right = max(
-                ssp_result.result_right_1 or 0.0, ssp_result.result_right_2 or 0.0, ssp_result.result_right_3 or 0.0
-            )
+            max_score_val = ssp_result.max_score  # Use the existing property that calculates max score
+            player_weight = self.player.weight
+            print(f">>> BestSSP {self.pk}: max_score={max_score_val}, player_weight={player_weight}")
 
-            if self.best_left != new_best_left:
-                self.best_left = new_best_left
-                updated = True
-            if self.best_right != new_best_right:
-                self.best_right = new_best_right
-                updated = True
+            # Calculate new "best" result as PERCENT
+            new_best_value = 0.0  # Default to 0
+            if player_weight and player_weight > 0 and max_score_val is not None and max_score_val > 0:
+                # Calculate PERCENT with 2 decimal places
+                new_best_value = round((max_score_val / player_weight) * 100, 2)
+                print(f">>> BestSSP {self.pk}: Calculated percent: {new_best_value}%")
+            else:
+                print(f">>> BestSSP {self.pk}: Player weight={player_weight} or max_score={max_score_val} does not allow percent calculation. Setting to 0.0")
 
-            if updated:
-                self.save(update_fields=["best_left", "best_right"])
-            return updated
-        except SeeSawPressResult.DoesNotExist:
-            # Jeśli nie ma jeszcze wyniku SSP, resetujemy best
-            if self.best_left != 0.0 or self.best_right != 0.0:
-                self.best_left = 0.0
-                self.best_right = 0.0
-                self.save(update_fields=["best_left", "best_right"])
+            # Compare and save the new calculated PERCENT
+            current_best = self.best_result or 0.0
+            if abs(current_best - new_best_value) > 0.001:  # Compare floats
+                self.best_result = new_best_value
+                print(f">>> BestSSP {self.pk}: Executing save({self.best_result}) (percent)...")
+                self.save(update_fields=["best_result"])
+                print(f">>> BestSSP {self.pk}: Percent saved.")
                 return True
+
+            print(f">>> BestSSP {self.pk}: No changes in percent.")
+            return False
+        except (SeeSawPressResult.DoesNotExist, AttributeError) as e:
+            print(f">>> BestSSP {self.pk}: Cannot get SeeSawPressResult/player/weight ({e}). Resetting best_result to 0.0.")
+            current_best = self.best_result or 0.0
+            if abs(current_best - 0.0) > 0.001:  # Reset only if not already ~0.0
+                self.best_result = 0.0
+                self.save(update_fields=["best_result"])
+                return True
+            return False
+        except Exception as e_other:
+            print(f"!!!!!!!!! BestSSP {self.pk}: ERROR in update_best_result: {e_other} !!!!!!!!!")
+            import traceback
+            traceback.print_exc()
             return False
 
     def __str__(self) -> str:
-        return f"{self.player} - Best SSP: L {self.best_left}, R {self.best_right}"
+        return f"{self.player} - Best See Saw Press: {self.best_result:.1f}%"

@@ -632,15 +632,16 @@ class BestPistolSquatResultAdmin(BaseBestResultAdmin):
 
 @admin.register(BestSeeSawPressResult)
 class BestSeeSawPressResultAdmin(BaseBestResultAdmin):
-    # Potrzebuje własnego list_display dla L/R
-    list_display = ("player_link", "get_best_ssp_display", "get_player_categories")
-    # Pola L/R też powinny być tylko do odczytu
-    readonly_fields = ("player_link", "best_left", "best_right", "get_player_categories")
+    # Update list_display to use just best_result instead of L/R fields
+    list_display = ("player_link", "best_result", "get_player_categories")
 
-    @admin.display(description=_("Najlepszy Wynik SSP (L/R)"), ordering="best_left")  # Sortowanie wg lewej?
+    # Remove best_left and best_right from readonly_fields
+    readonly_fields = ("player_link", "best_result", "get_player_categories")
+
+    # Update or remove the display method that references L/R values
+    @admin.display(description=_("Najlepszy Wynik SSP (%)"), ordering="best_result")
     def get_best_ssp_display(self, obj: BestSeeSawPressResult) -> str:
-        return f"{obj.best_left:.1f} / {obj.best_right:.1f}"
-
+        return f"{obj.best_result:.1f}%"
 
 @admin.register(BestKBSquatResult)
 class BestKBSquatResultAdmin(BaseBestResultAdmin):
