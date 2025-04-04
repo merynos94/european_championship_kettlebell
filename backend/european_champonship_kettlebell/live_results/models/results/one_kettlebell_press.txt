@@ -45,60 +45,29 @@ class BestOneKettlebellPressResult(models.Model):
     """Stores the best One Kettlebell Press result per player."""
 
     player = models.OneToOneField("Player", on_delete=models.CASCADE, related_name="best_one_kettlebell_press_result")
-    best_result = models.FloatField(_("Najlepszy Kettlebell Press"), default=0.0)
+    best_result = models.FloatField(_("Best One KB Press Result"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik Kettlebell Press")
         verbose_name_plural = _("Najlepsze Wyniki Kettlebell Press")
 
     def update_best_result(self) -> bool:
-        """
-        Aktualizuje best_result, zapisując PROCENT masy ciała (max_result / waga * 100).
-        """
-        print(f">>> BestOKBP {self.pk}: START update_best_result (PERCENT calc) dla player {self.player.id}")
+        """Updates the best result based on the associated OneKettlebellPressResult's max_result."""
         try:
             press_result = self.player.one_kettlebell_press_result
-            max_res = press_result.max_result  # Maksymalny ciężar
-            player_weight = self.player.weight
-            print(f">>> BestOKBP {self.pk}: max_res={max_res}, player_weight={player_weight}")
+            # Get the calculated max_result from the property
+            new_best_result = press_result.max_result or 0.0
 
-            # Oblicz nowy "najlepszy" wynik jako PROCENT
-            new_best_value = 0.0  # Domyślnie 0
-            if player_weight and player_weight > 0 and max_res is not None and max_res > 0:
-                # Oblicz PROCENT, np. z 2 miejscami po przecinku
-                new_best_value = round((max_res / player_weight) * 100, 2)  # Mnożymy przez 100
-                print(f">>> BestOKBP {self.pk}: Obliczony procent: {new_best_value}%")
-            else:
-                print(
-                    f">>> BestOKBP {self.pk}: Waga gracza={player_weight} lub max_res={max_res} nie pozwala na obliczenie procentu. Ustawiam na 0.0"
-                )
-
-            # Porównaj i zapisz nowy obliczony PROCENT
-            current_best = self.best_result or 0.0
-            if abs(current_best - new_best_value) > 0.001:  # Porównanie float
-                self.best_result = new_best_value
-                print(f">>> BestOKBP {self.pk}: Wykonuję save({self.best_result}) (procent)...")
+            if self.best_result != new_best_result:
+                self.best_result = new_best_result
                 self.save(update_fields=["best_result"])
-                print(f">>> BestOKBP {self.pk}: Zapisano procent.")
                 return True
-
-            print(f">>> BestOKBP {self.pk}: Brak zmian w procencie.")
             return False
-        except (OneKettlebellPressResult.DoesNotExist, AttributeError) as e:
-            print(
-                f">>> BestOKBP {self.pk}: Nie można pobrać OKBPResult/gracza/wagi ({e}). Resetuję best_result do 0.0."
-            )
-            current_best = self.best_result or 0.0
-            if abs(current_best - 0.0) > 0.001:  # Resetuj tylko jeśli nie jest już ~0.0
+        except OneKettlebellPressResult.DoesNotExist:
+            if self.best_result != 0.0:
                 self.best_result = 0.0
                 self.save(update_fields=["best_result"])
                 return True
-            return False
-        except Exception as e_other:
-            print(f"!!!!!!!!! BestOKBP {self.pk}: BŁĄD w update_best_result: {e_other} !!!!!!!!!")
-            import traceback
-
-            traceback.print_exc()
             return False
 
     def __str__(self) -> str:
