@@ -459,16 +459,6 @@ class BaseResultLRAttemptAdmin(admin.ModelAdmin):
     def get_player_categories(self, obj) -> str:
         return get_player_categories_display(obj)
 
-    # Potrzebna adnotacja 'max_score' w get_queryset, jeśli chcemy sortować
-    # def get_queryset(self, request):
-    #     qs = super().get_queryset(request)
-    #     # Tutaj bardziej złożona adnotacja obliczająca max_score
-    #     # np. Case/When lub adnotacja zdefiniowana w modelu/managerze
-    #     return qs
-
-
-# --- Admin for Raw Results ---
-
 
 @admin.register(SnatchResult)
 class SnatchResultAdmin(admin.ModelAdmin):  # Snatch jest prostszy
@@ -567,90 +557,6 @@ class TwoKettlebellPressResultAdmin(BaseResultLRAttemptAdmin):
         "position",
         "get_player_categories",
     )
-
-
-# --- Base Admin for Best Results ---
-class BaseBestResultAdmin(admin.ModelAdmin):
-    """Klasa bazowa dla adminów najlepszych wyników."""
-
-    list_display = ("player_link", "best_result", "get_player_categories")
-    search_fields = ("player__name", "player__surname", "player__club__name")
-    list_filter = ("player__categories",)
-    # Wyniki najlepsze są obliczane, więc powinny być tylko do odczytu
-    readonly_fields = ("player_link", "best_result", "get_player_categories")
-    list_select_related = ("player", "player__club")  # Optymalizacja
-
-    @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def player_link(self, obj):
-        return player_link_display(obj)
-
-    @admin.display(description=_("Kategorie"))
-    def get_player_categories(self, obj) -> str:
-        return get_player_categories_display(obj)
-
-    # Blokujemy możliwość dodawania/zmiany/usuwania tych rekordów przez admina
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        # Pozwalamy tylko na przeglądanie (GET)
-        # return request.method == 'GET' # To może nie działać w nowszych Django
-        # Lepsze podejście to po prostu zablokować:
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return True
-
-
-# --- Admin for Best Results ---
-
-
-@admin.register(BestSnatchResult)
-class BestSnatchResultAdmin(BaseBestResultAdmin):
-    list_display = ("player_link", "get_best_result_display", "get_player_categories")
-
-    @admin.display(description=_("Najlepszy Wynik Snatch"), ordering="best_result")
-    def get_best_result_display(self, obj: BestSnatchResult) -> str:
-        # Obsługa None
-        return f"{obj.best_result:.1f}" if obj.best_result is not None else "---"
-
-
-@admin.register(BestTGUResult)
-class BestTGUResultAdmin(BaseBestResultAdmin):
-    pass  # Dziedziczy wszystko
-
-
-@admin.register(BestOneKettlebellPressResult)
-class BestOneKettlebellPressResultAdmin(BaseBestResultAdmin):
-    pass  # Dziedziczy wszystko
-
-
-@admin.register(BestPistolSquatResult)
-class BestPistolSquatResultAdmin(BaseBestResultAdmin):
-    pass  # Dziedziczy wszystko
-
-
-@admin.register(BestSeeSawPressResult)
-class BestSeeSawPressResultAdmin(BaseBestResultAdmin):
-    # Update list_display to use just best_result instead of L/R fields
-    list_display = ("player_link", "best_result", "get_player_categories")
-
-    # Remove best_left and best_right from readonly_fields
-    readonly_fields = ("player_link", "best_result", "get_player_categories")
-
-    # Update or remove the display method that references L/R values
-    @admin.display(description=_("Najlepszy Wynik SSP (%)"), ordering="best_result")
-    def get_best_ssp_display(self, obj: BestSeeSawPressResult) -> str:
-        return f"{obj.best_result:.1f}%"
-
-@admin.register(BestKBSquatResult)
-class BestKBSquatResultAdmin(BaseBestResultAdmin):
-    pass  # Dziedziczy wszystko
-
-
-@admin.register(BestTwoKettlebellPressResult)
-class BestTwoKettlebellPressResultAdmin(BaseBestResultAdmin):
-    pass  # Dziedziczy wszystko
 
 
 # --- Overall Result Admin ---
