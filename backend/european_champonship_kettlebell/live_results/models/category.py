@@ -9,7 +9,7 @@ from .constants import AVAILABLE_DISCIPLINES, DISCIPLINE_NAMES
 class Category(models.Model):
     """Represents a competition category with specific disciplines."""
 
-    name = models.CharField(_("Category Name"), max_length=100, unique=True)  # Dodano unique=True?
+    name = models.CharField(_("Nazwa Kategorii"), max_length=100, unique=True)  # Dodano unique=True?
     disciplines = models.JSONField(_("Disciplines"), default=list)
 
     class Meta:

@@ -23,25 +23,25 @@ class OverallResult(models.Model):
         related_name="overallresult",  # Django domyślnie użyje overallresult_set lub overallresult
     )
     # Punkty za pozycję w każdej dyscyplinie (niżej = lepiej)
-    snatch_points = models.FloatField(_("Snatch Points (Position)"), null=True, blank=True, default=0.0)
-    tgu_points = models.FloatField(_("TGU Points (Position)"), null=True, blank=True, default=0.0)
-    see_saw_press_points = models.FloatField(_("See Saw Press Points (Position)"), null=True, blank=True, default=0.0)
-    kb_squat_points = models.FloatField(_("KB Squat Points (Position)"), null=True, blank=True, default=0.0)
-    pistol_squat_points = models.FloatField(_("Pistol Squat Points (Position)"), null=True, blank=True, default=0.0)
-    one_kb_press_points = models.FloatField(_("One KB Press Points (Position)"), null=True, blank=True, default=0.0)
-    two_kb_press_points = models.FloatField(_("Two KB Press Points (Position)"), null=True, blank=True, default=0.0)
+    snatch_points = models.FloatField(_("Punkty Snatch"), null=True, blank=True, default=0.0)
+    tgu_points = models.FloatField(_("Punkty TGU)"), null=True, blank=True, default=0.0)
+    see_saw_press_points = models.FloatField(_("Punkty See Saw Press"), null=True, blank=True, default=0.0)
+    kb_squat_points = models.FloatField(_("Punkty Kettlebell Squat "), null=True, blank=True, default=0.0)
+    pistol_squat_points = models.FloatField(_("Punkty Pistol Squat)"), null=True, blank=True, default=0.0)
+    one_kb_press_points = models.FloatField(_("Punkty One Kettlebell Press"), null=True, blank=True, default=0.0)
+    two_kb_press_points = models.FloatField(_("Punkty Two Kettlebell Press"), null=True, blank=True, default=0.0)
 
     # Punkty karne za remis (np. -0.5)
-    tiebreak_points = models.FloatField(_("Tiebreak Points"), default=0.0)
+    tiebreak_points = models.FloatField(_("Dogrywka"), default=0.0)
 
     # Suma punktów (niżej = lepiej) - obliczana
     total_points = models.FloatField(
-        _("Total Points"), null=True, blank=True, default=0.0, db_index=True
+        _("Suma punktów"), null=True, blank=True, default=0.0, db_index=True
     )  # Indeks dla szybszego sortowania
 
     # Końcowa pozycja w kategorii (niżej = lepiej) - obliczana
     final_position = models.IntegerField(
-        _("Final Position"), null=True, blank=True, db_index=True
+        _("Pozycja Końcowa"), null=True, blank=True, db_index=True
     )  # Indeks dla szybszego sortowania
 
     class Meta:

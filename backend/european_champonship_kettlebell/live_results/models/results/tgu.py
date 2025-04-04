@@ -72,7 +72,7 @@ class BestTGUResult(models.Model):
         on_delete=models.CASCADE,
         related_name="best_tgu_result",  # Ważne: unikalna related_name
     )
-    best_result = models.FloatField(_("Best TGU Result"), default=0.0)
+    best_result = models.FloatField(_("Najlepszy Wynik TGU"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik Turkish Get-Up")

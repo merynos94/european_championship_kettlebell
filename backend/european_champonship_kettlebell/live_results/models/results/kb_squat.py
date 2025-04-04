@@ -65,7 +65,7 @@ class BestKBSquatResult(models.Model):
         related_name="best_kb_squat_result",
     )
     # Przechowuje najlepszy *wynik* (suma L+R), a nie osobno L i R
-    best_result = models.FloatField(_("Best Result (L+R)"), default=0.0)
+    best_result = models.FloatField(_("Najlepszy Wynik (L+R)"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik Kettlebell Squat")

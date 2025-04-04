@@ -45,7 +45,7 @@ class BestOneKettlebellPressResult(models.Model):
     """Stores the best One Kettlebell Press result per player."""
 
     player = models.OneToOneField("Player", on_delete=models.CASCADE, related_name="best_one_kettlebell_press_result")
-    best_result = models.FloatField(_("Best One KB Press Result"), default=0.0)
+    best_result = models.FloatField(_("Najlepszy Kettlebell Press"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik Kettlebell Press")

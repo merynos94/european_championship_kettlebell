@@ -69,7 +69,7 @@ class BestTwoKettlebellPressResult(models.Model):
         null=True,  # DODAJ null=True
         related_name="best_two_kettlebell_press_result",
     )
-    best_result = models.FloatField(_("Best Result (L+R)"), default=0.0)
+    best_result = models.FloatField(_("Najlepszy Wynik (L+R)"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik Two Kettlebell Press")

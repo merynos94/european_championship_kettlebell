@@ -123,14 +123,14 @@ class PlayerAdmin(ImportExportModelAdmin):
     # Pola wejściowe pozostają bez zmian
     fieldsets = (
         (_("Dane Podstawowe"), {"fields": ("name", "surname", "weight", "club", "categories", "tiebreak")}),
-        (_("Wprowadzanie - Snatch"), {"fields": ("snatch_kettlebell_weight", "snatch_repetitions")}),
-        (_("Wprowadzanie - TGU"), {"fields": ("tgu_weight_1", "tgu_weight_2", "tgu_weight_3")}),
+        (_("Snatch"), {"fields": ("snatch_kettlebell_weight", "snatch_repetitions")}),
+        (_("TGU"), {"fields": ("tgu_weight_1", "tgu_weight_2", "tgu_weight_3")}),
         (
-            _("Wprowadzanie - One Kettlebell Press"),
+            _("One Kettlebell Press"),
             {"fields": ("one_kb_press_weight_1", "one_kb_press_weight_2", "one_kb_press_weight_3")},
         ),
         (
-            _("Wprowadzanie - Two Kettlebell Press"),
+            _("Two Kettlebell Press"),
             {
                 "fields": (
                     ("two_kb_press_weight_left_1", "two_kb_press_weight_right_1"),
@@ -140,7 +140,7 @@ class PlayerAdmin(ImportExportModelAdmin):
             },
         ),
         (
-            _("Wprowadzanie - See Saw Press"),
+            _("See Saw Press"),
             {
                 "fields": (
                     ("see_saw_press_weight_left_1", "see_saw_press_weight_right_1"),
@@ -150,7 +150,7 @@ class PlayerAdmin(ImportExportModelAdmin):
             },
         ),
         (
-            _("Wprowadzanie - KB Squat"),
+            _("KB Squat"),
             {
                 "fields": (
                     ("kb_squat_weight_left_1", "kb_squat_weight_right_1"),
@@ -160,7 +160,7 @@ class PlayerAdmin(ImportExportModelAdmin):
             },
         ),
         (
-            _("Wprowadzanie - Pistol Squat"),
+            _("Pistol Squat"),
             {
                 "fields": (
                     "pistol_squat_weight_1",
