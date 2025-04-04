@@ -227,11 +227,11 @@ class Player(models.Model):
             )  # Użyj getattr, bo max_score to property
             best_ssp_obj, created_best = BestSeeSawPressResult.objects.get_or_create(player=self)
             print(
-                f"DEBUG SSP: get_or_create best: created={created_best}, current_best_result L/R={best_ssp_obj.best_left}/{best_ssp_obj.best_right}"
+                f"DEBUG SSP: get_or_create best: created={created_best}, current_best_result={best_ssp_obj.best_result}%"
             )
             updated_ssp = best_ssp_obj.update_best_result()
             print(
-                f"DEBUG SSP: update_best_result zwróciło: {updated_ssp}, new_best_result L/R={best_ssp_obj.best_left}/{best_ssp_obj.best_right}"
+                f"DEBUG SSP: update_best_result zwróciło: {updated_ssp}, new_best_result={best_ssp_obj.best_result}%"
             )
 
             print(f"\n--- DEBUG Player {self.id}: Przetwarzam KB Squat ---")

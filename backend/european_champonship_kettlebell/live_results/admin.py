@@ -227,12 +227,12 @@ class PlayerAdmin(ImportExportModelAdmin):
         except AttributeError:
             return "---"
 
-    @admin.display(description=_("Najlepszy SSP (L/R)"))
+    @admin.display(description=_("Najlepszy SSP (%)"))
     def get_best_ssp_display(self, obj: Player) -> str:
         try:
-            # Użyj related_name z BestSeeSawPressResult
+            # Updated to use best_result instead of best_left/best_right
             res = obj.best_see_saw_press_result
-            return f"{res.best_left:.1f} / {res.best_right:.1f}"
+            return f"{res.best_result:.1f}%" if res.best_result is not None else "---"
         except BestSeeSawPressResult.DoesNotExist:
             return "---"
         except AttributeError:
@@ -289,10 +289,10 @@ class PlayerAdmin(ImportExportModelAdmin):
             return "---"
 
     # Metody import/export bez zmian
-    def get_import_resource_classes(self):
+    def get_import_resource_classes(self, request):
         return [PlayerImportResource]
 
-    def get_export_resource_classes(self):
+    def get_export_resource_classes(self, request):
         return [PlayerExportResource]
 
     # W pliku admin.py

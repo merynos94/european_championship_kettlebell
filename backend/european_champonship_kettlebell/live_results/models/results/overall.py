@@ -68,11 +68,8 @@ class OverallResult(models.Model):
             + (self.see_saw_press_points or 0.0)
             + (self.kb_squat_points or 0.0)
             + (self.pistol_squat_points or 0.0)
-            + (self.one_kb_press_points or 0.0)  # <--- NOWE
-            + (self.two_kb_press_points or 0.0)  # <--- NOWE
+            + (self.one_kb_press_points or 0.0)
+            + (self.two_kb_press_points or 0.0)
             + (self.tiebreak_points or 0.0)
         )
-        self.total_points = round(total, 1)  # Zaokrąglenie do 1 miejsca po przecinku
-
-    # Celowo nie ma tu metody save(), aby uniknąć niekontrolowanych zapisów.
-    # Logika przypisywania punktów i pozycji końcowej znajduje się w `services.py`.
+        self.total_points = round(total, 1)
