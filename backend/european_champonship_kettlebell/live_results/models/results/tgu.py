@@ -15,9 +15,9 @@ class TGUResult(models.Model):
     player = models.OneToOneField["Player"](
         "Player", on_delete=models.CASCADE, verbose_name=_("Player"), related_name="tgu_result"
     )
-    result_1 = models.FloatField(_("Podejście 1"), default=0.0)
-    result_2 = models.FloatField(_("Podejście 2"), default=0.0)
-    result_3 = models.FloatField(_("Podejście 3"), default=0.0)
+    result_1 = models.FloatField(_("Próba I"), default=0.0)
+    result_2 = models.FloatField(_("Próba II"), default=0.0)
+    result_3 = models.FloatField(_("Próba III"), default=0.0)
     position = models.IntegerField(_("Miejsce w kategorii"), null=True, blank=True)
 
     class Meta:
