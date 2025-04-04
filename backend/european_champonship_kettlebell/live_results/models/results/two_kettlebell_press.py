@@ -27,7 +27,7 @@ class TwoKettlebellPressResult(models.Model):
     position = models.IntegerField(_("Pozycja w Kategorii"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("Wyniki Two kettlebell Press")
+        verbose_name = _("Wyniki Two Kettlebell Press")
         verbose_name_plural = _("Wyniki Two Kettlebells Press")
         ordering = ["player__categories", "-position"]
 
