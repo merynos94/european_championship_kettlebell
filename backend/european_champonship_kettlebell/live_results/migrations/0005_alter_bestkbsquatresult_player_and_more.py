@@ -5,20 +5,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0004_alter_besttwokettlebellpressresult_player'),
+        ("live_results", "0004_alter_besttwokettlebellpressresult_player"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='bestkbsquatresult',
-            name='player',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='best_kb_squat_result', to='live_results.player'),
+            model_name="bestkbsquatresult",
+            name="player",
+            field=models.OneToOneField(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="best_kb_squat_result",
+                to="live_results.player",
+            ),
         ),
         migrations.AlterField(
-            model_name='bestseesawpressresult',
-            name='player',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='best_see_saw_press_result', to='live_results.player'),
+            model_name="bestseesawpressresult",
+            name="player",
+            field=models.OneToOneField(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="best_see_saw_press_result",
+                to="live_results.player",
+            ),
         ),
     ]

@@ -13,14 +13,14 @@ if TYPE_CHECKING:
 
     from .results.snatch import BestSnatchResult, SnatchResult
     from .results.tgu import (
-        BestTGUResult, 
+        BestTGUResult,
         TGUResult,
     )
     from .results.two_kettlebell_press import (
         BestTwoKettlebellPressResult,
         TwoKettlebellPressResult,
     )
-    from .services import update_overall_results_for_player 
+    from .services import update_overall_results_for_player
 
 
 class Player(models.Model):

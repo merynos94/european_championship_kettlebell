@@ -1,19 +1,22 @@
-# -*- coding: utf-8 -*-
 """Models definition for Kettlebell Squat results."""
-from typing import Optional, TYPE_CHECKING
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 if TYPE_CHECKING:
-    from ..player import Player # Dostosuj ścieżkę jeśli Player jest gdzie indziej
+    pass  # Dostosuj ścieżkę jeśli Player jest gdzie indziej
+
 
 class KBSquatResult(models.Model):
     """Stores the results for the Kettlebell Squat discipline attempts."""
-    player = models.OneToOneField['Player'](
-        'Player', # Użyj stringa
+
+    player = models.OneToOneField["Player"](
+        "Player",  # Użyj stringa
         on_delete=models.CASCADE,
         verbose_name=_("Player"),
-        related_name="kb_squat_result"
+        related_name="kb_squat_result",
     )
     result_left_1 = models.FloatField(_("Próba I L"), default=0.0)
     result_right_1 = models.FloatField(_("Próba I R"), default=0.0)
@@ -26,7 +29,7 @@ class KBSquatResult(models.Model):
     class Meta:
         verbose_name = _("Wynik Kettllebell Squat")
         verbose_name_plural = _("Wyniki Kettlebell Squat")
-        ordering = ['player__categories', '-position']
+        ordering = ["player__categories", "-position"]
 
     def __str__(self) -> str:
         return f"{self.player} - KB Squat Attempts"
@@ -51,13 +54,15 @@ class KBSquatResult(models.Model):
         ]
         return max(scores)
 
+
 class BestKBSquatResult(models.Model):
     """Stores the best combined score for KB Squat per player."""
-    player = models.OneToOneField['Player'](
-        'Player', # Użyj stringa
+
+    player = models.OneToOneField["Player"](
+        "Player",  # Użyj stringa
         on_delete=models.SET_NULL,  # Zmień z CASCADE
         null=True,  # DODAJ null=True
-        related_name='best_kb_squat_result'
+        related_name="best_kb_squat_result",
     )
     # Przechowuje najlepszy *wynik* (suma L+R), a nie osobno L i R
     best_result = models.FloatField(_("Best Result (L+R)"), default=0.0)
@@ -73,40 +78,45 @@ class BestKBSquatResult(models.Model):
         print(f">>> BestKBS {self.pk}: START update_best_result (PERCENT calc) dla player {self.player.id}")
         try:
             kbs_result = self.player.kb_squat_result
-            max_score_val = kbs_result.max_score # Maksymalny wynik (suma L+R)
+            max_score_val = kbs_result.max_score  # Maksymalny wynik (suma L+R)
             player_weight = self.player.weight
             print(f">>> BestKBS {self.pk}: max_score={max_score_val}, player_weight={player_weight}")
 
             # Oblicz nowy "najlepszy" wynik jako PROCENT
             new_best_value = 0.0
             if player_weight and player_weight > 0 and max_score_val is not None and max_score_val > 0:
-                new_best_value = round((max_score_val / player_weight) * 100, 2) # Mnożymy przez 100
+                new_best_value = round((max_score_val / player_weight) * 100, 2)  # Mnożymy przez 100
                 print(f">>> BestKBS {self.pk}: Obliczony procent: {new_best_value}%")
             else:
-                print(f">>> BestKBS {self.pk}: Waga gracza={player_weight} lub max_score={max_score_val} nie pozwala na obliczenie procentu. Ustawiam na 0.0")
+                print(
+                    f">>> BestKBS {self.pk}: Waga gracza={player_weight} lub max_score={max_score_val} nie pozwala na obliczenie procentu. Ustawiam na 0.0"
+                )
 
             # Porównaj i zapisz nowy obliczony PROCENT
             current_best = self.best_result or 0.0
-            if abs(current_best - new_best_value) > 0.001 : # Porównanie float
+            if abs(current_best - new_best_value) > 0.001:  # Porównanie float
                 self.best_result = new_best_value
                 print(f">>> BestKBS {self.pk}: Wykonuję save({self.best_result}) (procent)...")
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 print(f">>> BestKBS {self.pk}: Zapisano procent.")
                 return True
 
             print(f">>> BestKBS {self.pk}: Brak zmian w procencie.")
             return False
         except (KBSquatResult.DoesNotExist, AttributeError) as e:
-             print(f">>> BestKBS {self.pk}: Nie można pobrać KBSquatResult/gracza/wagi ({e}). Resetuję best_result do 0.0.")
-             current_best = self.best_result or 0.0
-             if abs(current_best - 0.0) > 0.001:
+            print(
+                f">>> BestKBS {self.pk}: Nie można pobrać KBSquatResult/gracza/wagi ({e}). Resetuję best_result do 0.0."
+            )
+            current_best = self.best_result or 0.0
+            if abs(current_best - 0.0) > 0.001:
                 self.best_result = 0.0
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 return True
-             return False
+            return False
         except Exception as e_other:
             print(f"!!!!!!!!! BestKBS {self.pk}: BŁĄD w update_best_result: {e_other} !!!!!!!!!")
             import traceback
+
             traceback.print_exc()
             return False
 

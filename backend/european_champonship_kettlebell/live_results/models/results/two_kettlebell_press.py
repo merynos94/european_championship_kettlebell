@@ -1,19 +1,22 @@
-# -*- coding: utf-8 -*-
 """Models definition for Two Kettlebell Press results."""
-from typing import Optional, TYPE_CHECKING
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 if TYPE_CHECKING:
-    from ..player import Player # Dostosuj ścieżkę
+    pass  # Dostosuj ścieżkę
+
 
 class TwoKettlebellPressResult(models.Model):
     """Stores the results for the Two Kettlebell Press discipline attempts."""
-    player = models.OneToOneField['Player'](
-        'Player', # Użyj stringa
+
+    player = models.OneToOneField["Player"](
+        "Player",  # Użyj stringa
         on_delete=models.CASCADE,
         verbose_name=_("Player"),
-        related_name="two_kettlebell_press_result"
+        related_name="two_kettlebell_press_result",
     )
     result_left_1 = models.FloatField(_("Left Attempt 1"), default=0.0)
     result_right_1 = models.FloatField(_("Right Attempt 1"), default=0.0)
@@ -26,7 +29,7 @@ class TwoKettlebellPressResult(models.Model):
     class Meta:
         verbose_name = _("Wyniki Two kettlebell Press")
         verbose_name_plural = _("Wyniki Two Kettlebells Press")
-        ordering = ['player__categories', '-position']
+        ordering = ["player__categories", "-position"]
 
     def __str__(self) -> str:
         return f"{self.player} - Two KB Press Attempts"
@@ -49,20 +52,22 @@ class TwoKettlebellPressResult(models.Model):
         return max(scores)
 
     @property
-    def bw_percentage(self) -> Optional[float]:
+    def bw_percentage(self) -> float | None:
         """Calculates the max score as a percentage of player's body weight."""
         if self.player.weight and self.player.weight > 0:
             # Używamy max_score (suma L+R) do obliczenia %BW
             return round((self.max_score / self.player.weight) * 100, 2)
         return None
 
+
 class BestTwoKettlebellPressResult(models.Model):
     """Stores the best combined score (L+R) for Two Kettlebell Press per player."""
-    player = models.OneToOneField['Player'](
-        'Player', # Użyj stringa
+
+    player = models.OneToOneField["Player"](
+        "Player",  # Użyj stringa
         on_delete=models.SET_NULL,  # Zmień z CASCADE
         null=True,  # DODAJ null=True
-        related_name='best_two_kettlebell_press_result'
+        related_name="best_two_kettlebell_press_result",
     )
     best_result = models.FloatField(_("Best Result (L+R)"), default=0.0)
 
@@ -74,6 +79,7 @@ class BestTwoKettlebellPressResult(models.Model):
         # Wewnątrz klasy BestTwoKettlebellPressResult
 
         # ZASTĄP obecną metodę update_best_result poniższą:
+
     def update_best_result(self) -> bool:
         """
         Aktualizuje best_result, zapisując PROCENT masy ciała (max_score / waga * 100).
@@ -92,14 +98,15 @@ class BestTwoKettlebellPressResult(models.Model):
                 print(f">>> BestTKBP {self.pk}: Obliczony procent: {new_best_value}%")
             else:
                 print(
-                    f">>> BestTKBP {self.pk}: Waga gracza={player_weight} lub max_score={max_score_val} nie pozwala na obliczenie procentu. Ustawiam na 0.0")
+                    f">>> BestTKBP {self.pk}: Waga gracza={player_weight} lub max_score={max_score_val} nie pozwala na obliczenie procentu. Ustawiam na 0.0"
+                )
 
             # Porównaj i zapisz nowy obliczony PROCENT
             current_best = self.best_result or 0.0
             if abs(current_best - new_best_value) > 0.001:  # Porównanie float
                 self.best_result = new_best_value
                 print(f">>> BestTKBP {self.pk}: Wykonuję save({self.best_result}) (procent)...")
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 print(f">>> BestTKBP {self.pk}: Zapisano procent.")
                 return True
 
@@ -107,16 +114,18 @@ class BestTwoKettlebellPressResult(models.Model):
             return False
         except (TwoKettlebellPressResult.DoesNotExist, AttributeError) as e:
             print(
-                f">>> BestTKBP {self.pk}: Nie można pobrać TKBPResult/gracza/wagi ({e}). Resetuję best_result do 0.0.")
+                f">>> BestTKBP {self.pk}: Nie można pobrać TKBPResult/gracza/wagi ({e}). Resetuję best_result do 0.0."
+            )
             current_best = self.best_result or 0.0
             if abs(current_best - 0.0) > 0.001:
                 self.best_result = 0.0
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 return True
             return False
         except Exception as e_other:
             print(f"!!!!!!!!! BestTKBP {self.pk}: BŁĄD w update_best_result: {e_other} !!!!!!!!!")
             import traceback
+
             traceback.print_exc()
             return False
 

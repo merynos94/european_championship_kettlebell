@@ -301,5 +301,3 @@ def update_overall_results_for_player(player: "Player") -> None:
         update_discipline_positions(category)
         # Następnie zaktualizuj wyniki ogólne dla całej kategorii
         update_overall_results_for_category(category)
-
-

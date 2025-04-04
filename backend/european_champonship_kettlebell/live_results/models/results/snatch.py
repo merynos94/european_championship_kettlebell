@@ -27,21 +27,26 @@ class SnatchResult(models.Model):
         score = f"{self.result:.1f}" if self.result is not None else _("N/A")
         return f"{self.player} - Snatch: {score}"
 
-from typing import TYPE_CHECKING, Optional
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 # Zaimportuj model SnatchResult
-from .snatch import SnatchResult # Dostosuj ścieżkę
+from .snatch import SnatchResult  # Dostosuj ścieżkę
 
 if TYPE_CHECKING:
-    from ..player import Player # Dostosuj ścieżkę
+    pass  # Dostosuj ścieżkę
+
 
 class BestSnatchResult(models.Model):
     """Stores the best Snatch result per player."""
-    player = models.OneToOneField['Player'](
-        'Player',
+
+    player = models.OneToOneField["Player"](
+        "Player",
         on_delete=models.CASCADE,
-        related_name='best_snatch_result' # Ważne: unikalna related_name
+        related_name="best_snatch_result",  # Ważne: unikalna related_name
     )
     # Wynik Snatch jest jeden, więc po prostu go przechowujemy
     best_result = models.FloatField(_("Best Snatch Result"), default=0.0, null=True, blank=True)
@@ -53,21 +58,21 @@ class BestSnatchResult(models.Model):
     def update_best_result(self) -> bool:
         """Updates the best result based on the associated SnatchResult's result."""
         try:
-            snatch_result = self.player.snatch_result # Użyj related_name z SnatchResult
+            snatch_result = self.player.snatch_result  # Użyj related_name z SnatchResult
             # Wynik w SnatchResult może być None
             new_best_result = snatch_result.result or 0.0
 
             # Porównujemy, uwzględniając możliwość, że self.best_result też jest None
             current_best = self.best_result or 0.0
             if current_best != new_best_result:
-                self.best_result = new_best_result if new_best_result > 0 else None # Zapisz None jeśli wynik 0
-                self.save(update_fields=['best_result'])
+                self.best_result = new_best_result if new_best_result > 0 else None  # Zapisz None jeśli wynik 0
+                self.save(update_fields=["best_result"])
                 return True
             return False
         except SnatchResult.DoesNotExist:
             if self.best_result is not None:
                 self.best_result = None
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 return True
             return False
 

@@ -294,21 +294,24 @@ class PlayerAdmin(ImportExportModelAdmin):
 
     def get_export_resource_classes(self):
         return [PlayerExportResource]
-# W pliku admin.py
-# Wewnątrz klasy PlayerAdmin(ImportExportModelAdmin):
+
+    # W pliku admin.py
+    # Wewnątrz klasy PlayerAdmin(ImportExportModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """Nadpisana metoda zapisu modelu w adminie dla debugowania."""
-        print(f"==== PlayerAdmin: WYWOŁANO save_model dla gracza {obj} ====") # <-- DODAJ TEN PRINT
+        print(f"==== PlayerAdmin: WYWOŁANO save_model dla gracza {obj} ====")  # <-- DODAJ TEN PRINT
         try:
             # Wywołaj domyślne zachowanie (które powinno wywołać obj.save())
             super().save_model(request, obj, form, change)
-            print(f"==== PlayerAdmin: super().save_model() ZAKOŃCZONE dla gracza {obj} ====") # <-- DODAJ TEN PRINT
+            print(f"==== PlayerAdmin: super().save_model() ZAKOŃCZONE dla gracza {obj} ====")  # <-- DODAJ TEN PRINT
         except Exception as e:
             print(f"!!!!!!!!! PlayerAdmin: BŁĄD w super().save_model(): {e} !!!!!!!!!")
             import traceback
+
             traceback.print_exc()
-            raise # Rzuć błąd dalej, aby admin go obsłużył
+            raise  # Rzuć błąd dalej, aby admin go obsłużył
+
 
 # --- SportClub Admin ---
 @admin.register(SportClub)

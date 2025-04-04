@@ -1,8 +1,10 @@
 # W pliku services.py
 
 from typing import TYPE_CHECKING
-from django.db.models import Case, F, FloatField, Value, When # Upewnij się, że te importy są
-from django.db.models.functions import Greatest             # na górze pliku services.py
+
+from django.db.models import Case, F, FloatField, Value, When  # Upewnij się, że te importy są
+from django.db.models.functions import Greatest  # na górze pliku services.py
+
 # ... (inne importy na górze pliku) ...
 from .constants import KB_SQUAT, ONE_KB_PRESS, PISTOL_SQUAT, SEE_SAW_PRESS, SNATCH, TGU, TWO_KB_PRESS
 from .results.kb_squat import KBSquatResult
@@ -12,6 +14,7 @@ from .results.see_saw_press import SeeSawPressResult
 from .results.snatch import SnatchResult
 from .results.tgu import TGUResult
 from .results.two_kettlebell_press import TwoKettlebellPressResult
+
 # OverallResult nie jest tu potrzebny bezpośrednio
 
 if TYPE_CHECKING:
@@ -50,102 +53,162 @@ def update_discipline_positions(category: "Category") -> None:
     # Define scoring fields/annotations for ordering
     ordering_logic = {
         SNATCH: "-result",
-        TGU: "-tgu_bw_ratio",          # ZMIENIONO
-        PISTOL_SQUAT: "-max_pistol_result", # TODO: Zmień jeśli trzeba
-        ONE_KB_PRESS: "-okbp_bw_ratio", # ZMIENIONO
-        SEE_SAW_PRESS: "-max_ssp_score",    # Pozostaje bez zmian (chyba że chcesz %BW)
-        KB_SQUAT: "-kbs_bw_ratio",     # ZMIENIONO
+        TGU: "-tgu_bw_ratio",  # ZMIENIONO
+        PISTOL_SQUAT: "-max_pistol_result",  # TODO: Zmień jeśli trzeba
+        ONE_KB_PRESS: "-okbp_bw_ratio",  # ZMIENIONO
+        SEE_SAW_PRESS: "-max_ssp_score",  # Pozostaje bez zmian (chyba że chcesz %BW)
+        KB_SQUAT: "-kbs_bw_ratio",  # ZMIENIONO
         TWO_KB_PRESS: "-tkbp_bw_ratio",  # ZMIENIONO
     }
 
     print(f"INFO: Rozpoczynam aktualizację pozycji dla kategorii {category.id} ({category.name})")
     for discipline in disciplines:
         if discipline not in discipline_models_map:
-            print(f"OSTRZEŻENIE: Pominięto nieznaną dyscyplinę '{discipline}' w update_discipline_positions dla kategorii {category.id}")
+            print(
+                f"OSTRZEŻENIE: Pominięto nieznaną dyscyplinę '{discipline}' w update_discipline_positions dla kategorii {category.id}"
+            )
             continue
 
         model = discipline_models_map[discipline]
         order_by_field = ordering_logic.get(discipline)
 
         if not order_by_field:
-             print(f"OSTRZEŻENIE: Brak logiki sortowania dla dyscypliny '{discipline}' w update_discipline_positions dla kategorii {category.id}")
-             continue
+            print(
+                f"OSTRZEŻENIE: Brak logiki sortowania dla dyscypliny '{discipline}' w update_discipline_positions dla kategorii {category.id}"
+            )
+            continue
 
         print(f"--- INFO: Przetwarzam dyscyplinę: {discipline} dla kategorii {category.id} ---")
 
-        results_qs = model.objects.select_related('player').filter(player__in=players_in_category)
+        results_qs = model.objects.select_related("player").filter(player__in=players_in_category)
 
         # === Dodaj adnotacje ===
         if discipline == TGU:
-            results_qs = results_qs.annotate(
-                max_tgu_result=Greatest("result_1", "result_2", "result_3")
-            ).annotate(
+            results_qs = results_qs.annotate(max_tgu_result=Greatest("result_1", "result_2", "result_3")).annotate(
                 tgu_bw_ratio=Case(
-                    When(player__weight__isnull=False, player__weight__gt=0, then=(F('max_tgu_result') / F('player__weight'))),
-                    default=Value(0.0), output_field=FloatField()
+                    When(
+                        player__weight__isnull=False,
+                        player__weight__gt=0,
+                        then=(F("max_tgu_result") / F("player__weight")),
+                    ),
+                    default=Value(0.0),
+                    output_field=FloatField(),
                 )
             )
         elif discipline == PISTOL_SQUAT:
-             results_qs = results_qs.annotate(max_pistol_result=Greatest("result_1", "result_2", "result_3"))
-             # TODO: Dodaj adnotację %BW, jeśli potrzebne
+            results_qs = results_qs.annotate(max_pistol_result=Greatest("result_1", "result_2", "result_3"))
+            # TODO: Dodaj adnotację %BW, jeśli potrzebne
         elif discipline == ONE_KB_PRESS:
-             results_qs = results_qs.annotate(
-                 max_okbp_result=Greatest("result_1", "result_2", "result_3")
-             ).annotate(
-                 okbp_bw_ratio=Case(
-                     When(player__weight__isnull=False, player__weight__gt=0, then=(F('max_okbp_result') / F('player__weight'))),
-                     default=Value(0.0), output_field=FloatField()
-                 )
-             )
+            results_qs = results_qs.annotate(max_okbp_result=Greatest("result_1", "result_2", "result_3")).annotate(
+                okbp_bw_ratio=Case(
+                    When(
+                        player__weight__isnull=False,
+                        player__weight__gt=0,
+                        then=(F("max_okbp_result") / F("player__weight")),
+                    ),
+                    default=Value(0.0),
+                    output_field=FloatField(),
+                )
+            )
         elif discipline == SEE_SAW_PRESS:
             # Adnotacja dla max_ssp_score (suma L+R)
             results_qs = results_qs.annotate(
-                ssp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F('result_left_1') + F('result_right_1')), default=Value(0.0), output_field=FloatField()),
-                ssp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F('result_left_2') + F('result_right_2')), default=Value(0.0), output_field=FloatField()),
-                ssp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F('result_left_3') + F('result_right_3')), default=Value(0.0), output_field=FloatField()),
-            ).annotate(max_ssp_score=Greatest('ssp_score_1', 'ssp_score_2', 'ssp_score_3'))
+                ssp_score_1=Case(
+                    When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1") + F("result_right_1")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
+                ),
+                ssp_score_2=Case(
+                    When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2") + F("result_right_2")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
+                ),
+                ssp_score_3=Case(
+                    When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3") + F("result_right_3")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
+                ),
+            ).annotate(max_ssp_score=Greatest("ssp_score_1", "ssp_score_2", "ssp_score_3"))
             # TODO: Jeśli SSP też ma być wg %BW, dodaj tu adnotację 'ssp_bw_ratio' używając 'max_ssp_score'
         # V--- DODANO LOGIKĘ DLA KB SQUAT ---V
         elif discipline == KB_SQUAT:
-             # 1. Oblicz max_kbs_score (suma L+R)
-             results_qs = results_qs.annotate(
-                kbs_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F('result_left_1') + F('result_right_1')), default=Value(0.0), output_field=FloatField()),
-                kbs_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F('result_left_2') + F('result_right_2')), default=Value(0.0), output_field=FloatField()),
-                kbs_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F('result_left_3') + F('result_right_3')), default=Value(0.0), output_field=FloatField()),
-            ).annotate(
-                max_kbs_score=Greatest('kbs_score_1', 'kbs_score_2', 'kbs_score_3')
-            # 2. Oblicz kbs_bw_ratio
-            ).annotate(
-                 kbs_bw_ratio=Case(
-                     When(player__weight__isnull=False, player__weight__gt=0,
-                          then=(F('max_kbs_score') / F('player__weight'))),
-                     default=Value(0.0), output_field=FloatField()
-                 )
-             )
+            # 1. Oblicz max_kbs_score (suma L+R)
+            results_qs = (
+                results_qs.annotate(
+                    kbs_score_1=Case(
+                        When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1") + F("result_right_1")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    ),
+                    kbs_score_2=Case(
+                        When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2") + F("result_right_2")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    ),
+                    kbs_score_3=Case(
+                        When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3") + F("result_right_3")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    ),
+                )
+                .annotate(
+                    max_kbs_score=Greatest("kbs_score_1", "kbs_score_2", "kbs_score_3")
+                    # 2. Oblicz kbs_bw_ratio
+                )
+                .annotate(
+                    kbs_bw_ratio=Case(
+                        When(
+                            player__weight__isnull=False,
+                            player__weight__gt=0,
+                            then=(F("max_kbs_score") / F("player__weight")),
+                        ),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+            )
         # ^--- KONIEC LOGIKI DLA KB SQUAT ---^
         # V--- DODANO LOGIKĘ DLA TWO KB PRESS ---V
         elif discipline == TWO_KB_PRESS:
-             # 1. Oblicz max_tkbp_score (suma L+R)
-             results_qs = results_qs.annotate(
-                 tkbp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F('result_left_1') + F('result_right_1')), default=Value(0.0), output_field=FloatField()),
-                 tkbp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F('result_left_2') + F('result_right_2')), default=Value(0.0), output_field=FloatField()),
-                 tkbp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F('result_left_3') + F('result_right_3')), default=Value(0.0), output_field=FloatField()),
-             ).annotate(
-                 max_tkbp_score=Greatest('tkbp_score_1', 'tkbp_score_2', 'tkbp_score_3')
-             # 2. Oblicz tkbp_bw_ratio
-             ).annotate(
-                  tkbp_bw_ratio=Case(
-                     When(player__weight__isnull=False, player__weight__gt=0,
-                          then=(F('max_tkbp_score') / F('player__weight'))),
-                     default=Value(0.0), output_field=FloatField()
-                 )
-             )
+            # 1. Oblicz max_tkbp_score (suma L+R)
+            results_qs = (
+                results_qs.annotate(
+                    tkbp_score_1=Case(
+                        When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1") + F("result_right_1")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    ),
+                    tkbp_score_2=Case(
+                        When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2") + F("result_right_2")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    ),
+                    tkbp_score_3=Case(
+                        When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3") + F("result_right_3")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    ),
+                )
+                .annotate(
+                    max_tkbp_score=Greatest("tkbp_score_1", "tkbp_score_2", "tkbp_score_3")
+                    # 2. Oblicz tkbp_bw_ratio
+                )
+                .annotate(
+                    tkbp_bw_ratio=Case(
+                        When(
+                            player__weight__isnull=False,
+                            player__weight__gt=0,
+                            then=(F("max_tkbp_score") / F("player__weight")),
+                        ),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+            )
         # ^--- KONIEC LOGIKI DLA TWO KB PRESS ---^
 
         # Sortuj wyniki
-        ordered_results = results_qs.order_by(
-            order_by_field, "player__surname", "player__name"
-        )
+        ordered_results = results_qs.order_by(order_by_field, "player__surname", "player__name")
 
         # Zaktualizuj pozycje
         updates = []
@@ -156,25 +219,34 @@ def update_discipline_positions(category: "Category") -> None:
             rank_counter += 1
             score = None
             try:
-                if discipline == SNATCH: score = result.result
-                elif discipline == TGU: score = result.tgu_bw_ratio # Używamy ratio
-                elif discipline == PISTOL_SQUAT: score = result.max_pistol_result # TODO: Zmień na %BW jeśli trzeba
-                elif discipline == ONE_KB_PRESS: score = result.okbp_bw_ratio # Używamy ratio
-                elif discipline == SEE_SAW_PRESS: score = result.max_ssp_score # TODO: Zmień na %BW jeśli trzeba
+                if discipline == SNATCH:
+                    score = result.result
+                elif discipline == TGU:
+                    score = result.tgu_bw_ratio  # Używamy ratio
+                elif discipline == PISTOL_SQUAT:
+                    score = result.max_pistol_result  # TODO: Zmień na %BW jeśli trzeba
+                elif discipline == ONE_KB_PRESS:
+                    score = result.okbp_bw_ratio  # Używamy ratio
+                elif discipline == SEE_SAW_PRESS:
+                    score = result.max_ssp_score  # TODO: Zmień na %BW jeśli trzeba
                 # V--- ZMIANA TUTAJ ---V
-                elif discipline == KB_SQUAT: score = result.kbs_bw_ratio # Używamy ratio
-                elif discipline == TWO_KB_PRESS: score = result.tkbp_bw_ratio # Używamy ratio
+                elif discipline == KB_SQUAT:
+                    score = result.kbs_bw_ratio  # Używamy ratio
+                elif discipline == TWO_KB_PRESS:
+                    score = result.tkbp_bw_ratio  # Używamy ratio
                 # ^--- ZMIANA TUTAJ ---^
             except AttributeError as e:
-                print(f"OSTRZEŻENIE: Brak atrybutu wyniku dla {discipline} u gracza {getattr(result, 'player_id', 'N/A')} ({e}). Ustawiam score na None.")
+                print(
+                    f"OSTRZEŻENIE: Brak atrybutu wyniku dla {discipline} u gracza {getattr(result, 'player_id', 'N/A')} ({e}). Ustawiam score na None."
+                )
                 score = None
 
             score_for_comparison = score if score is not None else -99999.0
             last_score_for_comparison = last_score if last_score is not None else -99999.0
 
             if score_for_comparison != last_score_for_comparison:
-                 current_pos = rank_counter
-                 last_score = score
+                current_pos = rank_counter
+                last_score = score
 
             if result.position != current_pos:
                 result.position = current_pos
@@ -183,23 +255,28 @@ def update_discipline_positions(category: "Category") -> None:
         if updates:
             try:
                 model.objects.bulk_update(updates, ["position"])
-                print(f"INFO: Zaktualizowano {len(updates)} pozycji dla dyscypliny {discipline} w kategorii {category.id}")
+                print(
+                    f"INFO: Zaktualizowano {len(updates)} pozycji dla dyscypliny {discipline} w kategorii {category.id}"
+                )
             except Exception as e_bulk:
-                print(f"!!!!!!!!!! BŁĄD: Błąd podczas bulk_update pozycji dla {discipline} w kat. {category.id}: {e_bulk} !!!!!!!!!!!")
+                print(
+                    f"!!!!!!!!!! BŁĄD: Błąd podczas bulk_update pozycji dla {discipline} w kat. {category.id}: {e_bulk} !!!!!!!!!!!"
+                )
 
     print(f"INFO: Zakończono aktualizację pozycji dla kategorii {category.id} ({category.name})")
 
+
 # ... (reszta pliku services.py - update_overall_results_for_category i update_overall_results_for_player)
+
 
 def update_overall_results_for_category(category: "Category") -> None:
     """
     Calculates and updates overall scores and final positions for all players
     within a specific category based on their discipline positions.
     """
-    from .player import Player # Import Player do użycia w funkcji
-    from .results.overall import OverallResult # Import OverallResult do użycia w funkcji
+    from .player import Player  # Import Player do użycia w funkcji
+    from .results.overall import OverallResult  # Import OverallResult do użycia w funkcji
     # ^--- DODAJ TEN IMPORT ---^
-    from .player import Player # Ten import już tu prawdopodobnie jest lub powinien być
 
     players_in_category = Player.objects.filter(categories=category).prefetch_related(
         "snatch_result",

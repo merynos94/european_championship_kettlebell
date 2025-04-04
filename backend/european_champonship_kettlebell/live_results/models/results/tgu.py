@@ -6,7 +6,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 if TYPE_CHECKING:
-    from ..player import Player  # Adjust this import path to match your project structure
+    pass  # Adjust this import path to match your project structure
+
 
 class TGUResult(models.Model):
     """Stores the results for the Turkish Get-Up discipline attempts."""
@@ -53,6 +54,7 @@ class TGUResult(models.Model):
         """Calculates the max result as a percentage of player's body weight."""
         if TYPE_CHECKING:
             from ..player import Player
+
             player = cast(Player, self.player)
         else:
             player = self.player
@@ -61,12 +63,14 @@ class TGUResult(models.Model):
             return round((self.max_result / player.weight) * 100, 2)
         return None
 
+
 class BestTGUResult(models.Model):
     """Stores the best TGU result per player."""
-    player = models.OneToOneField['Player'](
-        'Player',
+
+    player = models.OneToOneField["Player"](
+        "Player",
         on_delete=models.CASCADE,
-        related_name='best_tgu_result'  # Ważne: unikalna related_name
+        related_name="best_tgu_result",  # Ważne: unikalna related_name
     )
     best_result = models.FloatField(_("Best TGU Result"), default=0.0)
 
@@ -81,42 +85,45 @@ class BestTGUResult(models.Model):
         print(f">>> BestTGU {self.pk}: START update_best_result (PERCENT calc) dla player {self.player.id}")
         try:
             tgu_result = self.player.tgu_result
-            max_res = tgu_result.max_result # Maksymalny ciężar
+            max_res = tgu_result.max_result  # Maksymalny ciężar
             player_weight = self.player.weight
             print(f">>> BestTGU {self.pk}: max_res={max_res}, player_weight={player_weight}")
 
             # Oblicz nowy "najlepszy" wynik jako PROCENT
-            new_best_value = 0.0 # Domyślnie 0
+            new_best_value = 0.0  # Domyślnie 0
             if player_weight and player_weight > 0 and max_res is not None and max_res > 0:
                 # Oblicz PROCENT, np. z 2 miejscami po przecinku
-                new_best_value = round((max_res / player_weight) * 100, 2) # Mnożymy przez 100
+                new_best_value = round((max_res / player_weight) * 100, 2)  # Mnożymy przez 100
                 print(f">>> BestTGU {self.pk}: Obliczony procent: {new_best_value}%")
             else:
-                print(f">>> BestTGU {self.pk}: Waga gracza={player_weight} lub max_res={max_res} nie pozwala na obliczenie procentu. Ustawiam na 0.0")
+                print(
+                    f">>> BestTGU {self.pk}: Waga gracza={player_weight} lub max_res={max_res} nie pozwala na obliczenie procentu. Ustawiam na 0.0"
+                )
 
             # Porównaj i zapisz nowy obliczony PROCENT
             current_best = self.best_result or 0.0
             # Używamy małej tolerancji dla porównań float
-            if abs(current_best - new_best_value) > 0.001 : # Porównanie float
+            if abs(current_best - new_best_value) > 0.001:  # Porównanie float
                 self.best_result = new_best_value
                 print(f">>> BestTGU {self.pk}: Wykonuję save({self.best_result}) (procent)...")
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 print(f">>> BestTGU {self.pk}: Zapisano procent.")
                 return True
 
             print(f">>> BestTGU {self.pk}: Brak zmian w procencie.")
             return False
         except (TGUResult.DoesNotExist, AttributeError) as e:
-             print(f">>> BestTGU {self.pk}: Nie można pobrać TGUResult/gracza/wagi ({e}). Resetuję best_result do 0.0.")
-             current_best = self.best_result or 0.0 # Sprawdź przed resetem
-             if abs(current_best - 0.0) > 0.001: # Resetuj tylko jeśli nie jest już ~0.0
+            print(f">>> BestTGU {self.pk}: Nie można pobrać TGUResult/gracza/wagi ({e}). Resetuję best_result do 0.0.")
+            current_best = self.best_result or 0.0  # Sprawdź przed resetem
+            if abs(current_best - 0.0) > 0.001:  # Resetuj tylko jeśli nie jest już ~0.0
                 self.best_result = 0.0
-                self.save(update_fields=['best_result'])
+                self.save(update_fields=["best_result"])
                 return True
-             return False
+            return False
         except Exception as e_other:
             print(f"!!!!!!!!! BestTGU {self.pk}: BŁĄD w update_best_result: {e_other} !!!!!!!!!")
             import traceback
+
             traceback.print_exc()
             return False
 
