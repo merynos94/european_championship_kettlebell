@@ -20,7 +20,7 @@ class Player(models.Model):
         on_delete=models.SET_NULL,  # Lepsze niż CASCADE? Co jeśli klub zniknie?
         null=True,
         blank=True,  # Czy klub jest wymagany? Jeśli tak, usuń null=True, blank=True
-        verbose_name=_("Sport Club"),
+        verbose_name=_("Klub"),
         related_name="players",
     )
     categories = models.ManyToManyField(
