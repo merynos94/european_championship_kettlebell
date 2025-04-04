@@ -18,9 +18,9 @@ class PistolSquatResult(models.Model):
         verbose_name=_("Player"),
         related_name="pistol_squat_result",
     )
-    result_1 = models.FloatField(_("Attempt 1 Weight"), default=0.0)
-    result_2 = models.FloatField(_("Attempt 2 Weight"), default=0.0)
-    result_3 = models.FloatField(_("Attempt 3 Weight"), default=0.0)
+    result_1 = models.FloatField(_("Próba I"), default=0.0)
+    result_2 = models.FloatField(_("Próba II"), default=0.0)
+    result_3 = models.FloatField(_("Próba III"), default=0.0)
     position = models.IntegerField(_("Pozycja w Kategorii"), null=True, blank=True)
 
     class Meta:
@@ -68,7 +68,7 @@ class BestPistolSquatResult(models.Model):
         on_delete=models.CASCADE,
         related_name='best_pistol_squat_result' # Ważne: unikalna related_name
     )
-    best_result = models.FloatField(_("Best Pistol Squat Result"), default=0.0)
+    best_result = models.FloatField(_("Najlepszy Wynik Pistol Squat"), default=0.0)
 
     class Meta:
         verbose_name = _("Najlepszy Wynik Pistol Squat")

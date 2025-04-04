@@ -11,7 +11,6 @@ from .one_kettlebell_press import (
 # Importuj wynik ogólny
 from .overall import OverallResult
 from .pistol_squat import (
-    BestPistolSquatResult,  # Dodano
     PistolSquatResult,
 )
 from .see_saw_press import (

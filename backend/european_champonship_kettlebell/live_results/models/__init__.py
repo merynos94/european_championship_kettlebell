@@ -20,7 +20,7 @@ from .player import Player
 from .results.kb_squat import BestKBSquatResult, KBSquatResult
 from .results.one_kettlebell_press import OneKettlebellPressResult  # <--- NOWY MODEL
 from .results.overall import OverallResult
-from .results.pistol_squat import BestPistolSquatResult, PistolSquatResult
+from .results.pistol_squat import PistolSquatResult
 from .results.see_saw_press import BestSeeSawPressResult, SeeSawPressResult
 
 # Import result models (adjust path if using results/ subdirectory)
