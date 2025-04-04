@@ -12,8 +12,8 @@ class Category(models.Model):
     disciplines = models.JSONField(_("Disciplines"), default=list)
 
     class Meta:
-        verbose_name = _("Category")
-        verbose_name_plural = _("Categories")
+        verbose_name = _("Kategoria")
+        verbose_name_plural = _("Kategorie")
         ordering = ["name"]
 
     def __str__(self) -> str:

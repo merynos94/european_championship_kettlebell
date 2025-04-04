@@ -53,7 +53,8 @@ class BestSeeSawPressResult(models.Model):
     """Stores the best left and right lifts for See Saw Press per player."""
     player = models.OneToOneField['Player'](
         'Player',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Zmień z CASCADE
+        null=True,  # DODAJ null=True
         related_name='best_see_saw_press_result'
     )
     best_left = models.FloatField(_("Best Left"), default=0.0)
@@ -63,7 +64,7 @@ class BestSeeSawPressResult(models.Model):
         verbose_name = _("Najlepszy Wynik See Saw Press")
         verbose_name_plural = _("Najlepsze Wyniki See Saw Press")
 
-    def update_best_results(self) -> bool:
+    def update_best_result(self) -> bool:
         """Updates best lifts based on the associated SeeSawPressResult."""
         try:
             # Używamy self.player.see_saw_press_result zamiast query

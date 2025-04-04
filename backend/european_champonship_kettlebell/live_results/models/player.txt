@@ -1,0 +1,264 @@
+"""Model definition for Player."""
+
+from typing import TYPE_CHECKING, Optional
+
+from django.db import models, transaction
+from django.utils.translation import gettext_lazy as _
+
+if TYPE_CHECKING:
+    from .results.kb_squat import BestKBSquatResult, KBSquatResult
+    from .results.one_kettlebell_press import BestOneKettlebellPressResult, OneKettlebellPressResult
+    from .results.pistol_squat import BestPistolSquatResult, PistolSquatResult
+    from .results.see_saw_press import BestSeeSawPressResult, SeeSawPressResult
+
+    from .results.snatch import BestSnatchResult, SnatchResult
+    from .results.tgu import (
+        BestTGUResult, 
+        TGUResult,
+    )
+    from .results.two_kettlebell_press import (
+        BestTwoKettlebellPressResult,
+        TwoKettlebellPressResult,
+    )
+    from .services import update_overall_results_for_player 
+
+
+class Player(models.Model):
+    """Represents a competitor."""
+
+    name = models.CharField(_("Imię"), max_length=50)
+    surname = models.CharField(_("Nazwisko"), max_length=50)
+    weight = models.FloatField(_("Waga (kg)"), null=True, blank=True, default=0.0)  # Lepszy label, default float
+    club = models.ForeignKey[Optional["Klub"]](
+        "SportClub",  # Użycie stringa zapobiega importom kołowym na starcie
+        on_delete=models.SET_NULL,  # Lepsze niż CASCADE? Co jeśli klub zniknie?
+        null=True,
+        blank=True,  # Czy klub jest wymagany? Jeśli tak, usuń null=True, blank=True
+        verbose_name=_("Sport Club"),
+        related_name="players",
+    )
+    categories = models.ManyToManyField(
+        "Category",  # Użycie stringa
+        verbose_name=_("Categories"),
+        related_name="players",
+        blank=True,  # Czy zawodnik musi mieć kategorię?
+    )
+    tiebreak = models.BooleanField(_("Tiebreak applied"), default=False)
+
+    # Snatch Input Fields
+    snatch_kettlebell_weight = models.FloatField(_("Snatch: Waga Kettlebell"), null=True, blank=True, default=0.0)
+    snatch_repetitions = models.IntegerField(_("Snatch: Ilość Powtórzeń"), null=True, blank=True, default=0)
+
+    # TGU Input Fields
+    tgu_weight_1 = models.FloatField(_("TGU: Próba I"), null=True, blank=True, default=0.0)
+    tgu_weight_2 = models.FloatField(_("TGU: Próba II"), null=True, blank=True, default=0.0)
+    tgu_weight_3 = models.FloatField(_("TGU: Próba III"), null=True, blank=True, default=0.0)
+
+    # See Saw Press Input Fields
+    see_saw_press_weight_left_1 = models.FloatField(_("SSP Próba I L"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_left_2 = models.FloatField(_("SSP Próba II L"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_left_3 = models.FloatField(_("SSP Próba III L"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_right_1 = models.FloatField(_("SSP Próba I R"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_right_2 = models.FloatField(_("SSP Próba II R"), null=True, blank=True, default=0.0)
+    see_saw_press_weight_right_3 = models.FloatField(_("SSP Próba III R"), null=True, blank=True, default=0.0)
+
+    # KB Squat Input Fields
+    kb_squat_weight_left_1 = models.FloatField(_("Kettlebell Squat: Próba I L"), null=True, blank=True, default=0.0)
+    kb_squat_weight_left_2 = models.FloatField(_("Kettlebell Squat: Próba II L"), null=True, blank=True, default=0.0)
+    kb_squat_weight_left_3 = models.FloatField(_("Kettlebell Squat: Próba III L"), null=True, blank=True, default=0.0)
+    kb_squat_weight_right_1 = models.FloatField(_("Kettlebell Squat: Próba I R"), null=True, blank=True, default=0.0)
+    kb_squat_weight_right_2 = models.FloatField(_("Kettlebell Squat: Próba II R"), null=True, blank=True, default=0.0)
+    kb_squat_weight_right_3 = models.FloatField(_("Kettlebell Squat: Próba III R"), null=True, blank=True, default=0.0)
+
+    # Pistol Squat Input Fields
+    pistol_squat_weight_1 = models.FloatField(_("Pistol Squat: Próba I"), null=True, blank=True, default=0.0)
+    pistol_squat_weight_2 = models.FloatField(_("Pistol Squat: Próba II"), null=True, blank=True, default=0.0)
+    pistol_squat_weight_3 = models.FloatField(_("Pistol Squat: Próba III"), null=True, blank=True, default=0.0)
+
+    # One Kettlebell Press Input Fields
+    one_kb_press_weight_1 = models.FloatField(_("One Kettllebell Press: Próba I"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_2 = models.FloatField(_("One Kettllebell Press: Próba II"), null=True, blank=True, default=0.0)
+    one_kb_press_weight_3 = models.FloatField(_("One Kettllebell Press: Próba III"), null=True, blank=True, default=0.0)
+
+    # Two Kettlebell Press Input Fields
+    two_kb_press_weight_left_1 = models.FloatField(
+        _("Two Kettlebell Press: Próba I L"), null=True, blank=True, default=0.0
+    )
+    two_kb_press_weight_right_1 = models.FloatField(
+        _("Two Kettlebell Press: Próba I R"), null=True, blank=True, default=0.0
+    )
+    two_kb_press_weight_left_2 = models.FloatField(
+        _("Two Kettlebell Press: Próba II L"), null=True, blank=True, default=0.0
+    )
+    two_kb_press_weight_right_2 = models.FloatField(
+        _("Two Kettlebell Press: Próba II R"), null=True, blank=True, default=0.0
+    )
+    two_kb_press_weight_left_3 = models.FloatField(
+        _("Two Kettlebell Press: Próba III L"), null=True, blank=True, default=0.0
+    )
+    two_kb_press_weight_right_3 = models.FloatField(
+        _("Two Kettlebell Press: Próba III R"), null=True, blank=True, default=0.0
+    )
+    # --- Koniec pól do wprowadzania ---
+
+    _updating_results: bool = False  # Flaga zapobiegająca rekursji w save()
+
+    class Meta:
+        verbose_name = _("Zawodnik")
+        verbose_name_plural = _("Zawodnicy")
+        ordering = ["surname", "name"]
+        unique_together = [("name", "surname", "club")]  # Czy zawodnik jest unikalny w ramach klubu?
+
+    def __str__(self) -> str:
+        return f"{self.name} {self.surname}"
+
+    @property
+    def full_name(self) -> str:
+        """Returns the player's full name."""
+        return f"{self.name} {self.surname}"
+
+
+    @transaction.atomic
+    def update_related_results(self) -> None:
+        """
+        Aktualizuje wszystkie powiązane modele wyników (surowych i najlepszych)
+        na podstawie pól wprowadzonych w bieżącej instancji Player.
+        """
+        # Flaga zapobiegająca rekursji, jeśli np. update_best_result wywoła save() na Player
+        if getattr(self, "_updating_results", False):
+            return
+        self._updating_results = True
+
+        try:
+            # --- Snatch ---
+            # Oblicz wynik snatch (można to też zrobić w SnatchResult.save)
+            snatch_score = None
+            if self.snatch_kettlebell_weight is not None and self.snatch_repetitions is not None:
+                # Użyj wartości z pól Player lub 0 jeśli są None
+                weight = self.snatch_kettlebell_weight or 0.0
+                reps = self.snatch_repetitions or 0
+                snatch_score = round(weight * reps, 1) if weight > 0 and reps > 0 else None  # Wynik None jeśli 0
+
+            SnatchResult.objects.update_or_create(player=self, defaults={"result": snatch_score})
+            best_snatch_obj, _ = BestSnatchResult.objects.get_or_create(player=self)
+            best_snatch_obj.update_best_result()  # Wywołaj aktualizację BestSnatchResult
+
+            # --- TGU ---
+            TGUResult.objects.update_or_create(
+                player=self,
+                defaults={
+                    "result_1": self.tgu_weight_1 or 0.0,
+                    "result_2": self.tgu_weight_2 or 0.0,
+                    "result_3": self.tgu_weight_3 or 0.0,
+                },
+            )
+            best_tgu_obj, _ = BestTGUResult.objects.get_or_create(player=self)
+            best_tgu_obj.update_best_result()  # Wywołaj aktualizację BestTGUResult
+
+            # --- Pistol Squat ---
+            PistolSquatResult.objects.update_or_create(
+                player=self,
+                defaults={
+                    "result_1": self.pistol_squat_weight_1 or 0.0,
+                    "result_2": self.pistol_squat_weight_2 or 0.0,
+                    "result_3": self.pistol_squat_weight_3 or 0.0,
+                },
+            )
+            best_pistol_obj, _ = BestPistolSquatResult.objects.get_or_create(player=self)
+            best_pistol_obj.update_best_result()  # Wywołaj aktualizację BestPistolSquatResult
+
+            # --- See Saw Press ---
+            SeeSawPressResult.objects.update_or_create(
+                player=self,
+                defaults={
+                    "result_left_1": self.see_saw_press_weight_left_1 or 0.0,
+                    "result_right_1": self.see_saw_press_weight_right_1 or 0.0,
+                    "result_left_2": self.see_saw_press_weight_left_2 or 0.0,
+                    "result_right_2": self.see_saw_press_weight_right_2 or 0.0,
+                    "result_left_3": self.see_saw_press_weight_left_3 or 0.0,
+                    "result_right_3": self.see_saw_press_weight_right_3 or 0.0,
+                },
+            )
+            best_ssp_obj, _ = BestSeeSawPressResult.objects.get_or_create(player=self)
+            best_ssp_obj.update_best_result()  # Wywołaj aktualizację BestSeeSawPressResult
+
+            # --- KB Squat ---
+            KBSquatResult.objects.update_or_create(
+                player=self,
+                defaults={
+                    "result_left_1": self.kb_squat_weight_left_1 or 0.0,
+                    "result_right_1": self.kb_squat_weight_right_1 or 0.0,
+                    "result_left_2": self.kb_squat_weight_left_2 or 0.0,
+                    "result_right_2": self.kb_squat_weight_right_2 or 0.0,
+                    "result_left_3": self.kb_squat_weight_left_3 or 0.0,
+                    "result_right_3": self.kb_squat_weight_right_3 or 0.0,
+                },
+            )
+            best_kbs_obj, _ = BestKBSquatResult.objects.get_or_create(player=self)
+            best_kbs_obj.update_best_result()  # Wywołaj aktualizację BestKBSquatResult
+
+            # --- One Kettlebell Press ---
+            OneKettlebellPressResult.objects.update_or_create(
+                player=self,
+                defaults={
+                    "result_1": self.one_kb_press_weight_1 or 0.0,
+                    "result_2": self.one_kb_press_weight_2 or 0.0,
+                    "result_3": self.one_kb_press_weight_3 or 0.0,
+                },
+            )
+            best_okbp_obj, _ = BestOneKettlebellPressResult.objects.get_or_create(player=self)
+            best_okbp_obj.update_best_result()  # Wywołaj aktualizację BestOneKettlebellPressResult
+
+            # --- Two Kettlebell Press ---
+            TwoKettlebellPressResult.objects.update_or_create(
+                player=self,
+                defaults={
+                    "result_left_1": self.two_kb_press_weight_left_1 or 0.0,
+                    "result_right_1": self.two_kb_press_weight_right_1 or 0.0,
+                    "result_left_2": self.two_kb_press_weight_left_2 or 0.0,
+                    "result_right_2": self.two_kb_press_weight_right_2 or 0.0,
+                    "result_left_3": self.two_kb_press_weight_left_3 or 0.0,
+                    "result_right_3": self.two_kb_press_weight_right_3 or 0.0,
+                },
+            )
+            best_tkbp_obj, _ = BestTwoKettlebellPressResult.objects.get_or_create(player=self)
+            best_tkbp_obj.update_best_result()  # Wywołaj aktualizację BestTwoKettlebellPressResult
+
+            # --- Na koniec zaktualizuj wyniki ogólne ---
+            # Ta funkcja powinna być wywołana PO zapisaniu wszystkich indywidualnych
+            # i najlepszych wyników, ponieważ może od nich zależeć.
+            update_overall_results_for_player(self)
+
+        except Exception as e:
+            # Dobrze jest logować błędy, które mogą tu wystąpić
+            print(f"Błąd podczas aktualizacji wyników dla gracza {self.id}: {e}")
+            # Możesz tu dodać logowanie do pliku lub systemu monitorowania
+        finally:
+            # Zawsze zwalniaj flagę, nawet jeśli wystąpił błąd
+            self._updating_results = False
+
+    def save(self, *args, **kwargs) -> None:
+        """Overrides save to trigger updates of related result models."""
+        super().save(*args, **kwargs)
+        # Wywołanie aktualizacji po zapisie - rozważ sygnały post_save
+        self.update_related_results()
+
+    # --- Metody obliczeniowe (properties mogą być lepsze) ---
+
+    def calculate_snatch_score(self) -> float | None:
+        """Calculates the snatch score (weight * reps)."""
+        if self.snatch_kettlebell_weight is not None and self.snatch_repetitions is not None:
+            return round(self.snatch_kettlebell_weight * self.snatch_repetitions, 1)
+        return None
+
+    def get_max_tgu_weight(self) -> float:
+        """Returns the maximum weight lifted in TGU across all attempts."""
+        return max(self.tgu_weight_1 or 0.0, self.tgu_weight_2 or 0.0, self.tgu_weight_3 or 0.0)
+
+    def get_max_pistol_squat_weight(self) -> float:
+        """Returns the maximum weight lifted in Pistol Squat across all attempts."""
+        return max(
+            self.pistol_squat_weight_1 or 0.0,
+            self.pistol_squat_weight_2 or 0.0,
+            self.pistol_squat_weight_3 or 0.0,
+        )

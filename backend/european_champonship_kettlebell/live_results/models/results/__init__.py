@@ -33,7 +33,6 @@ __all__ = [
     'KBSquatResult',
     'OneKettlebellPressResult',
     'TwoKettlebellPressResult',
-
     # Najlepsze wyniki
     'BestSnatchResult',
     'BestTGUResult',

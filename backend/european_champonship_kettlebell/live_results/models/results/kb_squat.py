@@ -55,7 +55,8 @@ class BestKBSquatResult(models.Model):
     """Stores the best combined score for KB Squat per player."""
     player = models.OneToOneField['Player'](
         'Player', # Użyj stringa
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Zmień z CASCADE
+        null=True,  # DODAJ null=True
         related_name='best_kb_squat_result'
     )
     # Przechowuje najlepszy *wynik* (suma L+R), a nie osobno L i R
@@ -67,25 +68,46 @@ class BestKBSquatResult(models.Model):
 
     def update_best_result(self) -> bool:
         """
-        Updates the best result based on the associated KBSquatResult's max_score.
-        Returns True if the best result was updated, False otherwise.
+        Aktualizuje best_result, zapisując PROCENT masy ciała (max_score / waga * 100).
         """
+        print(f">>> BestKBS {self.pk}: START update_best_result (PERCENT calc) dla player {self.player.id}")
         try:
-            # Pobierz powiązany wynik KB Squat
             kbs_result = self.player.kb_squat_result
-            new_best_result = kbs_result.max_score # Użyj obliczonej właściwości
+            max_score_val = kbs_result.max_score # Maksymalny wynik (suma L+R)
+            player_weight = self.player.weight
+            print(f">>> BestKBS {self.pk}: max_score={max_score_val}, player_weight={player_weight}")
 
-            if self.best_result != new_best_result:
-                self.best_result = new_best_result
+            # Oblicz nowy "najlepszy" wynik jako PROCENT
+            new_best_value = 0.0
+            if player_weight and player_weight > 0 and max_score_val is not None and max_score_val > 0:
+                new_best_value = round((max_score_val / player_weight) * 100, 2) # Mnożymy przez 100
+                print(f">>> BestKBS {self.pk}: Obliczony procent: {new_best_value}%")
+            else:
+                print(f">>> BestKBS {self.pk}: Waga gracza={player_weight} lub max_score={max_score_val} nie pozwala na obliczenie procentu. Ustawiam na 0.0")
+
+            # Porównaj i zapisz nowy obliczony PROCENT
+            current_best = self.best_result or 0.0
+            if abs(current_best - new_best_value) > 0.001 : # Porównanie float
+                self.best_result = new_best_value
+                print(f">>> BestKBS {self.pk}: Wykonuję save({self.best_result}) (procent)...")
                 self.save(update_fields=['best_result'])
+                print(f">>> BestKBS {self.pk}: Zapisano procent.")
                 return True
+
+            print(f">>> BestKBS {self.pk}: Brak zmian w procencie.")
             return False
-        except KBSquatResult.DoesNotExist:
-            # Jeśli nie ma jeszcze wyniku KBS, zresetuj best_result do 0
-            if self.best_result != 0.0:
+        except (KBSquatResult.DoesNotExist, AttributeError) as e:
+             print(f">>> BestKBS {self.pk}: Nie można pobrać KBSquatResult/gracza/wagi ({e}). Resetuję best_result do 0.0.")
+             current_best = self.best_result or 0.0
+             if abs(current_best - 0.0) > 0.001:
                 self.best_result = 0.0
                 self.save(update_fields=['best_result'])
                 return True
+             return False
+        except Exception as e_other:
+            print(f"!!!!!!!!! BestKBS {self.pk}: BŁĄD w update_best_result: {e_other} !!!!!!!!!")
+            import traceback
+            traceback.print_exc()
             return False
 
     def __str__(self) -> str:

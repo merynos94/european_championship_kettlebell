@@ -1,0 +1,76 @@
+"""Model definition for SnatchResult."""
+
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+
+class SnatchResult(models.Model):
+    """Stores the result for the Snatch discipline."""
+
+    player = models.OneToOneField["Player"](  # OneToOne jest bardziej odpowiednie jeśli jest tylko 1 wynik per gracz
+        "Player",  # Użyj stringa dla uniknięcia importów
+        on_delete=models.CASCADE,
+        verbose_name=_("Zawodnik"),
+        related_name="snatch_result",  # Zmieniono related_name
+    )
+    # Wynik jest teraz obliczany i zapisywany, nie potrzebujemy pól wejściowych tutaj
+    result = models.FloatField(_("Wynik Snatch (Waga*Powt.)"), null=True, blank=True)
+    position = models.IntegerField(_("Pozycja w konkurencji"), null=True, blank=True)  # Pozycja w ramach kategorii
+
+    class Meta:
+        verbose_name = _("Wynik Snatch")
+        verbose_name_plural = _("Wyniki Snatch")
+        # Sortowanie wg wyniku malejąco domyślnie?
+        ordering = ["player__categories", "-result"]  # Przykład sortowania
+
+    def __str__(self) -> str:
+        score = f"{self.result:.1f}" if self.result is not None else _("N/A")
+        return f"{self.player} - Snatch: {score}"
+
+from typing import TYPE_CHECKING, Optional
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+# Zaimportuj model SnatchResult
+from .snatch import SnatchResult # Dostosuj ścieżkę
+
+if TYPE_CHECKING:
+    from ..player import Player # Dostosuj ścieżkę
+
+class BestSnatchResult(models.Model):
+    """Stores the best Snatch result per player."""
+    player = models.OneToOneField['Player'](
+        'Player',
+        on_delete=models.CASCADE,
+        related_name='best_snatch_result' # Ważne: unikalna related_name
+    )
+    # Wynik Snatch jest jeden, więc po prostu go przechowujemy
+    best_result = models.FloatField(_("Best Snatch Result"), default=0.0, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Najlepszy Wynik Snatch")
+        verbose_name_plural = _("Najlepsze Wyniki Snatch")
+
+    def update_best_result(self) -> bool:
+        """Updates the best result based on the associated SnatchResult's result."""
+        try:
+            snatch_result = self.player.snatch_result # Użyj related_name z SnatchResult
+            # Wynik w SnatchResult może być None
+            new_best_result = snatch_result.result or 0.0
+
+            # Porównujemy, uwzględniając możliwość, że self.best_result też jest None
+            current_best = self.best_result or 0.0
+            if current_best != new_best_result:
+                self.best_result = new_best_result if new_best_result > 0 else None # Zapisz None jeśli wynik 0
+                self.save(update_fields=['best_result'])
+                return True
+            return False
+        except SnatchResult.DoesNotExist:
+            if self.best_result is not None:
+                self.best_result = None
+                self.save(update_fields=['best_result'])
+                return True
+            return False
+
+    def __str__(self) -> str:
+        score = f"{self.best_result:.1f}" if self.best_result is not None else _("N/A")
+        return f"{self.player} - Najlepszy Snatch: {score}"

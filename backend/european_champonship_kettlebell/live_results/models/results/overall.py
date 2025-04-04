@@ -25,8 +25,8 @@ class OverallResult(models.Model):
     see_saw_press_points = models.FloatField(_("See Saw Press Points (Position)"), null=True, blank=True, default=0.0)
     kb_squat_points = models.FloatField(_("KB Squat Points (Position)"), null=True, blank=True, default=0.0)
     pistol_squat_points = models.FloatField(_("Pistol Squat Points (Position)"), null=True, blank=True, default=0.0)
-    one_kb_press_points = models.FloatField(_("One KB Press Points (Position)"), null=True, blank=True, default=0.0) # <--- NOWE
-    two_kb_press_points = models.FloatField(_("Two KB Press Points (Position)"), null=True, blank=True, default=0.0) # <--- NOWE
+    one_kb_press_points = models.FloatField(_("One KB Press Points (Position)"), null=True, blank=True, default=0.0)
+    two_kb_press_points = models.FloatField(_("Two KB Press Points (Position)"), null=True, blank=True, default=0.0)
 
 
     # Punkty karne za remis (np. -0.5)
@@ -39,8 +39,8 @@ class OverallResult(models.Model):
     final_position = models.IntegerField(_("Final Position"), null=True, blank=True, db_index=True) # Indeks dla szybszego sortowania
 
     class Meta:
-        verbose_name = _("Overall Result")
-        verbose_name_plural = _("Overall Results")
+        verbose_name = _("Podsumowanie Wyników")
+        verbose_name_plural = _("Podsumowania Wyników")
         # Domyślne sortowanie wg pozycji końcowej, potem wg sumy punktów
         ordering = ['final_position', 'total_points', 'player__surname']
 

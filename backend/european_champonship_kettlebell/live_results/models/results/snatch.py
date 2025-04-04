@@ -72,5 +72,5 @@ class BestSnatchResult(models.Model):
             return False
 
     def __str__(self) -> str:
-        score = f"{self.best_result:.1f}" if self.best_result is not None else _("N/A")
+        score = f"{self.best_result:.1f}" if self.best_result is not None else _(0.0)
         return f"{self.player} - Najlepszy Snatch: {score}"

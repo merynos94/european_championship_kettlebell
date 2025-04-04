@@ -8,8 +8,8 @@ class SportClub(models.Model):
     name = models.CharField(_("Club Name"), max_length=100, unique=True) # Dodano unique=True?
 
     class Meta:
-        verbose_name = _("Sport Club")
-        verbose_name_plural = _("Sport Clubs")
+        verbose_name = _("Klub")
+        verbose_name_plural = _("Kluby")
         ordering = ["name"] # Dobra praktyka - domyślne sortowanie
 
     def __str__(self) -> str:
