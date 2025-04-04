@@ -4,7 +4,7 @@ from .kb_squat import (
     KBSquatResult,
 )
 from .one_kettlebell_press import (
-    BestOneKettlebellPressResult,  # Dodano
+    # Dodano
     OneKettlebellPressResult,  # Dodano
 )
 
@@ -26,7 +26,7 @@ from .snatch import (
     SnatchResult,
 )
 from .tgu import (
-    BestTGUResult,  # Dodano
+    # Dodano
     TGUResult,
 )
 from .two_kettlebell_press import (
@@ -46,11 +46,9 @@ __all__ = [
     "TwoKettlebellPressResult",
     # Najlepsze wyniki
     "BestSnatchResult",
-    "BestTGUResult",
     "BestPistolSquatResult",
     "BestSeeSawPressResult",
     "BestKBSquatResult",
-    "BestOneKettlebellPressResult",
     "BestTwoKettlebellPressResult",
     # Wynik ogólny
     "OverallResult",
