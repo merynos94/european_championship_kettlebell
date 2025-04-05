@@ -6,6 +6,8 @@ Django==5.2
 django-import-export==4.3.7
 django-jazzmin==3.0.1
 djangorestframework==3.16.0
+factory_boy==3.3.3
+Faker==37.1.0
 filelock==3.18.0
 gunicorn==23.0.0
 identify==2.6.9
@@ -19,4 +21,5 @@ python-dotenv==1.1.0
 PyYAML==6.0.2
 sqlparse==0.5.3
 tablib==3.8.0
+tzdata==2025.2
 virtualenv==20.29.3

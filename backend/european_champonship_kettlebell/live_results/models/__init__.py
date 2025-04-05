@@ -1,6 +1,5 @@
 """
 Models package for the application.
-# ... (reszta docstring) ...
 """
 
 # Import constants first if they are needed by models during import
@@ -18,7 +17,7 @@ from .constants import (
 )
 from .player import Player
 from .results.kb_squat import KBSquatResult
-from .results.one_kettlebell_press import OneKettlebellPressResult  # <--- NOWY MODEL
+from .results.one_kettlebell_press import OneKettlebellPressResult
 from .results.overall import OverallResult
 from .results.pistol_squat import PistolSquatResult
 from .results.see_saw_press import SeeSawPressResult
@@ -26,15 +25,12 @@ from .results.see_saw_press import SeeSawPressResult
 # Import result models (adjust path if using results/ subdirectory)
 from .results.snatch import SnatchResult
 from .results.tgu import TGUResult
-from .results.two_kettlebell_press import TwoKettlebellPressResult  # <--- NOWE MODELE
+from .results.two_kettlebell_press import TwoKettlebellPressResult
 
 # Import models
 from .sport_club import SportClub
 
-# Import service functions if they should be easily accessible (optional)
-# from .services import update_discipline_positions, update_overall_results_for_category
 
-# Define __all__ for explicit public interface of this package
 __all__ = [
     # Constants
     "AVAILABLE_DISCIPLINES",
@@ -45,7 +41,7 @@ __all__ = [
     "KB_SQUAT",
     "PISTOL_SQUAT",
     "ONE_KB_PRESS",
-    "TWO_KB_PRESS",  # <--- NOWE STAŁE
+    "TWO_KB_PRESS",
     # Models
     "SportClub",
     "Category",
@@ -54,14 +50,8 @@ __all__ = [
     "TGUResult",
     "PistolSquatResult",
     "SeeSawPressResult",
-    "BestSeeSawPressResult",
     "KBSquatResult",
-    "BestKBSquatResult",
-    "OneKettlebellPressResult",  # <--- NOWY MODEL
+    "OneKettlebellPressResult",
     "TwoKettlebellPressResult",
-    "BestTwoKettlebellPressResult",  # <--- NOWE MODELE
     "OverallResult",
-    # Services (optional)
-    # 'update_discipline_positions',
-    # 'update_overall_results_for_category',
 ]
