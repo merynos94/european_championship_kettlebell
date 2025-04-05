@@ -1,0 +1,89 @@
+{% load results_extras %} {# Upewnij się, że ten plik istnieje i zawiera get_item, getattribute #}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Szczegółowe Wyniki - {{ category.name }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 10px; font-size: 0.9em;}
+        h1 { text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: center; vertical-align: middle;}
+        th { background-color: #f2f2f2; font-weight: bold; white-space: nowrap; }
+        tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        tbody tr:hover { background-color: #e8f4f8; }
+        .player-name { text-align: left; white-space: nowrap;}
+        .club-name { text-align: left; font-size: 0.9em; color: #555; white-space: nowrap;}
+        .points { font-weight: bold; }
+        .no-result { color: #aaa; font-style: italic;}
+        .discipline-detail { font-size: 0.9em; line-height: 1.3; } /* Styl dla komórek wyników */
+        .position-in-discipline { font-size: 0.8em; color: #777; display: block; margin-top: 2px;}
+    </style>
+</head>
+<body>
+
+    <h1>Szczegółowe Wyniki dla kategorii: {{ category.name }}</h1>
+
+    {% if table_rows %}
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">Miejsce<br>(kat.)</th>
+                <th rowspan="2">Zawodnik</th>
+                <th rowspan="2">Klub</th>
+                {% comment %} Generuj nagłówki dla dyscyplin {% endcomment %}
+                {% for col_info in discipline_columns %}
+                    <th>{{ col_info.header }}</th>
+                {% endfor %}
+                <th rowspan="2">Suma Pkt<br>(kat.)</th>
+            </tr>
+             {% comment %} Można dodać drugi wiersz nagłówka, jeśli potrzeba więcej opisów {% endcomment %}
+             <tr>
+                {% for col_info in discipline_columns %}
+                    <th><small>(poz. w dysc.)</small></th>
+                 {% endfor %}
+             </tr>
+        </thead>
+        <tbody>
+            {% for row in table_rows %}
+            <tr>
+                <td>{{ row.position|default:"-" }}</td>
+                <td class="player-name">{{ row.player.full_name }}</td>
+                <td class="club-name">{{ row.club_name }}</td>
+
+                {% comment %} Wyświetl szczegółowe wyniki dla każdej dyscypliny {% endcomment %}
+                {% for col_info in discipline_columns %}
+                    <td>
+                        {% with result_obj=row.discipline_results|get_item:col_info.code %}
+                            {% if result_obj %}
+                                {% comment %} Sprawdź, czy użyć snippeta, czy wyświetlić prosto {% endcomment %}
+                                {% if col_info.template_snippet %}
+                                    {% include col_info.template_snippet with result=result_obj %}
+                                {% else %}
+                                    {% comment %} Domyślne wyświetlanie, jeśli nie ma snippeta (można dostosować) {% endcomment %}
+                                    {% for attr_name in col_info.attributes %}
+                                        {% with attr_val=result_obj|getattribute:attr_name %}
+                                            {{ attr_name }}: {% if attr_val is not None %}{{ attr_val }}{% else %}-{% endif %}<br>
+                                        {% endwith %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% else %}
+                                <span class="no-result">-</span> {# Brak obiektu wyniku dla tej dyscypliny #}
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                {% endfor %}
+
+                <td class="points">{% if row.total_points is not None %}{{ row.total_points|floatformat:"1" }}{% else %}<span class="no-result">-</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>Brak wyników do wyświetlenia dla tej kategorii.</p>
+    {% endif %}
+
+    <p style="margin-top: 30px; font-size: 0.8em; text-align: center;">Wygenerowano: {% now "Y-m-d H:i:s" %}</p>
+
+</body>
+</html>

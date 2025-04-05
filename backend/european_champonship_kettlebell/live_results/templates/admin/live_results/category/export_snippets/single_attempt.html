@@ -1,0 +1,12 @@
+{% load results_extras %}
+<div class="discipline-detail">
+{% with max_res=result.max_result|default:0 bw_perc=result.bw_percentage|default:None %}
+    Max: <strong>{{ max_res|floatformat:"1" }}kg</strong><br>
+    {% if bw_perc is not None %}
+    ({{ bw_perc|floatformat:"2" }}% BW)
+    {% endif %}
+    {% if result.position %}
+    <span class="position-in-discipline">({{ result.position }}. miejsce)</span>
+    {% endif %}
+{% endwith %}
+</div>
