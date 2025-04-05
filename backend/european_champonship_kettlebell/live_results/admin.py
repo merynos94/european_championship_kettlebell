@@ -10,11 +10,11 @@ from django.utils.translation import gettext_lazy as _
 from import_export.admin import ImportExportModelAdmin
 
 # === Import Models ===
-# Zakładamy, że Category i SportClub są w swoich aplikacjach
+# Zakładamy, że modele są w podkatalogu 'models' aplikacji 'live_results'
 from .models.category import Category
 from .models.sport_club import SportClub
 from .models.player import Player
-# Importuj modele wyników z aplikacji results (zakładając __init__.py)
+# Zakładamy, że __init__.py w models/results/ eksportuje te modele
 from .models.results import (
     KBSquatResult,
     OneKettlebellPressResult,
@@ -27,13 +27,14 @@ from .models.results import (
 )
 # Importuj stałe dyscyplin
 from .models.constants import AVAILABLE_DISCIPLINES
+
 # === Import Resources ===
-# Zakładamy, że te pliki istnieją w bieżącej aplikacji
 from .resources import PlayerExportResource, PlayerImportResource
 
+
 # === Helper Functions ===
-def player_link_display(obj, app_name="players"): # Zaktualizowana domyślna app_name
-    # Używamy getattr, aby bezpiecznie uzyskać dostęp do 'player'
+# Ta funkcja nadal jest potrzebna dla OverallResultAdmin
+def player_link_display(obj, app_name="live_results"):
     player = getattr(obj, "player", None)
     player_instance = None
 
@@ -57,7 +58,6 @@ def get_player_categories_display(obj) -> str:
 
 # === Forms ===
 class CategoryAdminForm(forms.ModelForm):
-    # Zakładamy, że AVAILABLE_DISCIPLINES jest poprawnie zdefiniowane
     disciplines = forms.MultipleChoiceField(
         choices=AVAILABLE_DISCIPLINES,
         widget=forms.CheckboxSelectMultiple,
@@ -81,417 +81,292 @@ class CategoryAdminForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        # Zakładamy, że model Category ma metodę set_disciplines
         if hasattr(instance, 'set_disciplines'):
              instance.set_disciplines(self.cleaned_data.get("disciplines", []))
         else:
-             # Jeśli nie ma metody, ustaw pole bezpośrednio (jeśli to np. JSONField)
              instance.disciplines = self.cleaned_data.get("disciplines", [])
-
         if commit:
             instance.save()
-            # Jeśli set_disciplines wymagało m2m, może być potrzebne form.save_m2m()
-            # super().save_m2m() # - tylko jeśli formularz ma pola M2M
         return instance
 
 
 # === Model Admins ===
 
-# --- Player Admin (znacznie uproszczony) ---
 @admin.register(Player)
 class PlayerAdmin(ImportExportModelAdmin):
     resource_classes = [PlayerImportResource]
     export_resource_classes = [PlayerExportResource]
-
     list_display = (
-        "full_name",
-        "weight",
-        "club",
-        "get_categories_for_player",
-        "get_snatch_score_display", # Metody display zostają
-        "get_tgu_bw_percentage_display",
-        "get_ssp_bw_percentage_display",
-        "get_kbs_bw_percentage_display",
-        "get_pistol_bw_percentage_display",
-        "get_okbp_bw_percentage_display",
-        "get_tkbp_bw_percentage_display",
-        "tiebreak",
-        "get_overall_score_display", # Dodany link do wyniku ogólnego
+        "full_name", "weight", "club", "get_categories_for_player",
+        "get_snatch_score_display", "get_tgu_bw_percentage_display",
+        "get_ssp_bw_percentage_display", "get_kbs_bw_percentage_display",
+        "get_pistol_bw_percentage_display", "get_okbp_bw_percentage_display",
+        "get_tkbp_bw_percentage_display", "tiebreak", "get_overall_score_display",
     )
     list_filter = ("club", "categories", "tiebreak", ("weight", admin.EmptyFieldListFilter))
-    search_fields = ("name", "surname", "club__name", "categories__name")
-    list_select_related = ('club',) # Optymalizacja
+    search_fields = ("name", "surname", "club__name", "categories__name") # Potrzebne dla autocomplete
+    list_select_related = ('club',)
     list_prefetch_related = ('categories', 'snatch_result', 'tgu_result',
                              'see_saw_press_result', 'kb_squat_result',
                              'pistol_squat_result', 'one_kettlebell_press_result',
-                             'two_kettlebell_press_result', 'overallresult') # Preload dla display
-
-    # Podstawowe pola gracza
+                             'two_kettlebell_press_result', 'overallresult')
     fieldsets = (
         (_("Dane Podstawowe"), {"fields": ("name", "surname", "weight", "club", "categories", "tiebreak")}),
-         (_("Wyniki Obliczone (Tylko do odczytu)"), {
-             "classes": ("collapse",),
-             "fields": (
-                 "get_snatch_score_display",
-                 "get_tgu_bw_percentage_display",
-                 "get_ssp_bw_percentage_display",
-                 "get_kbs_bw_percentage_display",
-                 "get_pistol_bw_percentage_display",
-                 "get_okbp_bw_percentage_display",
-                 "get_tkbp_bw_percentage_display",
-                 "get_overall_score_display",
+        (_("Wyniki Obliczone (Tylko do odczytu)"), {
+            "classes": ("collapse",),
+            "fields": (
+                "get_snatch_score_display", "get_tgu_bw_percentage_display",
+                "get_ssp_bw_percentage_display", "get_kbs_bw_percentage_display",
+                "get_pistol_bw_percentage_display", "get_okbp_bw_percentage_display",
+                "get_tkbp_bw_percentage_display", "get_overall_score_display",
             ),
-         }),
+        }),
     )
-
-    # Usunięto fieldsets dla wyników dyscyplin - zarządzane w osobnych adminach!
-
     readonly_fields = (
-        "get_snatch_score_display",
-        "get_tgu_bw_percentage_display",
-        "get_ssp_bw_percentage_display",
-        "get_kbs_bw_percentage_display",
-        "get_pistol_bw_percentage_display",
-        "get_okbp_bw_percentage_display",
-        "get_tkbp_bw_percentage_display",
-        "get_overall_score_display",
+        "get_snatch_score_display", "get_tgu_bw_percentage_display",
+        "get_ssp_bw_percentage_display", "get_kbs_bw_percentage_display",
+        "get_pistol_bw_percentage_display", "get_okbp_bw_percentage_display",
+        "get_tkbp_bw_percentage_display", "get_overall_score_display",
     )
 
-    # --- Metody Display dla PlayerAdmin (używają related objects) ---
+    # Metody display dla PlayerAdmin pozostają bez zmian
     @admin.display(description=_("Kategorie"))
-    def get_categories_for_player(self, obj: Player) -> str:
-        return get_player_categories_display(obj)
-
-    # Poniższe metody display są już poprawne - używają related objects
+    def get_categories_for_player(self, obj: Player) -> str: return get_player_categories_display(obj)
     @admin.display(description=_("Snatch Score"), ordering="snatch_result__result")
     def get_snatch_score_display(self, obj: Player) -> str:
-        res = getattr(obj, "snatch_result", None)
-        score = getattr(res, "result", None) # Używamy property result
+        res = getattr(obj, "snatch_result", None); score = getattr(res, "result", None)
         return f"{score:.1f}" if score is not None else "---"
-
-    # W display używamy property z modelu Result
     @admin.display(description=_("TGU (%BW)"))
     def get_tgu_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "tgu_result", None)
-        bw = getattr(res, "bw_percentage", None)
+        res = getattr(obj, "tgu_result", None); bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
-
     @admin.display(description=_("SSP (%BW)"))
     def get_ssp_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "see_saw_press_result", None)
-        bw = getattr(res, "bw_percentage", None)
+        res = getattr(obj, "see_saw_press_result", None); bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
-
     @admin.display(description=_("KBS (%BW)"))
     def get_kbs_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "kb_squat_result", None)
-        bw = getattr(res, "bw_percentage", None)
+        res = getattr(obj, "kb_squat_result", None); bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
-
     @admin.display(description=_("Pistol (%BW)"))
     def get_pistol_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "pistol_squat_result", None)
-        bw = getattr(res, "bw_percentage", None)
+        res = getattr(obj, "pistol_squat_result", None); bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
-
     @admin.display(description=_("OKBP (%BW)"))
     def get_okbp_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "one_kettlebell_press_result", None)
-        bw = getattr(res, "bw_percentage", None)
+        res = getattr(obj, "one_kettlebell_press_result", None); bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
-
     @admin.display(description=_("TKBP (%BW)"))
     def get_tkbp_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "two_kettlebell_press_result", None)
-        bw = getattr(res, "bw_percentage", None)
+        res = getattr(obj, "two_kettlebell_press_result", None); bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
-
     @admin.display(description=_("Wynik Ogólny"), ordering="overallresult__total_points")
     def get_overall_score_display(self, obj: Player) -> str:
-        overall = getattr(obj, "overallresult", None)
-        total = getattr(overall, "total_points", None)
+        overall = getattr(obj, "overallresult", None); total = getattr(overall, "total_points", None)
         return f"{total:.1f}" if total is not None else "---"
+    def get_import_resource_classes(self, request=None): return [PlayerImportResource]
+    def get_export_resource_classes(self, request=None): return [PlayerExportResource]
+    def save_model(self, request, obj, form, change): super().save_model(request, obj, form, change)
 
-    def get_import_resource_classes(self, request=None): # Dodany request=None dla kompatybilności
-        return [PlayerImportResource]
-
-    def get_export_resource_classes(self, request=None): # Dodany request=None dla kompatybilności
-        return [PlayerExportResource]
-
-    def save_model(self, request, obj, form, change):
-        # Usunięto logikę związaną z update_related_results
-        super().save_model(request, obj, form, change)
-
-
-# --- SportClub Admin ---
 @admin.register(SportClub)
 class SportClubAdmin(admin.ModelAdmin):
     list_display = ("name", "player_count_display")
     search_fields = ("name",)
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.annotate(player_count_annotation=models.Count("players"))
-        return qs
-
+    def get_queryset(self, request): return super().get_queryset(request).annotate(player_count_annotation=models.Count("players"))
     @admin.display(description=_("Liczba Zawodników"), ordering="player_count_annotation")
-    def player_count_display(self, obj: SportClub) -> int:
-        return getattr(obj, "player_count_annotation", 0)
+    def player_count_display(self, obj: SportClub) -> int: return getattr(obj, "player_count_annotation", 0)
 
-
-# --- Category Admin ---
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     form = CategoryAdminForm
     list_display = ("name", "get_disciplines_list_display")
     search_fields = ("name",)
-
     @admin.display(description=_("Dyscypliny"))
     def get_disciplines_list_display(self, obj: Category) -> str:
-        # Zakładamy, że model Category ma metodę get_disciplines lub pole disciplines
         disciplines = getattr(obj, "get_disciplines", getattr(obj, "disciplines", None))
-        if callable(disciplines): disciplines = disciplines() # Wywołaj jeśli metoda
+        if callable(disciplines): disciplines = disciplines()
         return ", ".join(disciplines) if isinstance(disciplines, list) else "N/A"
-
 
 # --- Base Admin for Single Attempt Results ---
 class BaseSingleResultAdmin(admin.ModelAdmin):
-    """Klasa bazowa dla adminów wyników z 3 pojedynczymi próbami."""
-    list_display_links = ('player_link',) # Klikalny link gracza
+    # Zmieniono 'player_link' na 'get_player_name'
+    list_display = ('get_player_name', 'result_1', 'result_2', 'result_3',
+                    'get_max_result_display', 'get_bw_percentage_display',
+                    'position', 'get_player_categories')
+    # Zmieniono link na kolumnę z nazwą gracza
+    list_display_links = ('get_player_name',) # <--- ZMIANA TUTAJ
     list_filter = ("player__categories", "position", ("player__weight", admin.EmptyFieldListFilter))
     search_fields = ("player__name", "player__surname", "player__club__name")
-    readonly_fields = (
-        "player_link",
-        "position",
-        "get_max_result_display",
-        "get_bw_percentage_display",
-        "get_player_categories",
-    )
+    readonly_fields = ("position", "get_max_result_display", "get_bw_percentage_display", "get_player_categories")
     list_select_related = ("player", "player__club")
-    # Pola do edycji (same próby)
-    fields = ('player_link', 'result_1', 'result_2', 'result_3', 'position',
+    fields = ('player', 'result_1', 'result_2', 'result_3', 'position',
               'get_max_result_display', 'get_bw_percentage_display', 'get_player_categories')
+    autocomplete_fields = ('player',)
 
+    # NOWA METODA: Wyświetla tylko nazwę, bez linku HTML
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def player_link(self, obj):
-        return player_link_display(obj, app_name="players")
+    def get_player_name(self, obj):
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
 
-    @admin.display(description=_("Max Wynik")) # Usunięto ordering, bo zależy od property
+    # Stare metody display (get_max_result_display, etc.) bez zmian
+    @admin.display(description=_("Max Wynik"))
     def get_max_result_display(self, obj) -> str:
-        # Używamy property z modelu
-        max_res = getattr(obj, "max_result", None)
-        return f"{max_res:.1f}" if max_res is not None else "---"
-
+        max_res = getattr(obj, "max_result", None); return f"{max_res:.1f}" if max_res is not None else "---"
     @admin.display(description=_("% Masy Ciała"))
     def get_bw_percentage_display(self, obj) -> str:
-        # Używamy property z modelu
-        bw = getattr(obj, "bw_percentage", None)
-        return f"{bw:.2f}%" if bw is not None else "---"
-
+        bw = getattr(obj, "bw_percentage", None); return f"{bw:.2f}%" if bw is not None else "---"
     @admin.display(description=_("Kategorie"))
-    def get_player_categories(self, obj) -> str:
-        return get_player_categories_display(obj)
-
-    # Usunięto get_queryset z adnotacją, bo sortowanie po property nie działa w DB
+    def get_player_categories(self, obj) -> str: return get_player_categories_display(obj)
 
 
 # --- Base Admin for Double Attempt Results ---
-# Zmieniono nazwę dla spójności z modelem
 class BaseDoubleResultAdmin(admin.ModelAdmin):
-    """Klasa bazowa dla adminów wyników z 3 próbami L/R."""
-    list_display_links = ('player_link',)
+    # Zmieniono 'player_link' na 'get_player_name'
+    list_display = ('get_player_name', 'get_attempt_1_score_display',
+                    'get_attempt_2_score_display', 'get_attempt_3_score_display',
+                    'get_max_score_display', 'get_bw_percentage_display',
+                    'position', 'get_player_categories')
+    # Zmieniono link na kolumnę z nazwą gracza
+    list_display_links = ('get_player_name',) # <--- ZMIANA TUTAJ
     list_filter = ("player__categories", "position", ("player__weight", admin.EmptyFieldListFilter))
     search_fields = ("player__name", "player__surname", "player__club__name")
-    readonly_fields = (
-        "player_link",
-        "position",
-        "get_max_score_display",
-        "get_attempt_1_score_display", # Pokaż sumy prób
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-        "get_bw_percentage_display",
-        "get_player_categories",
-    )
+    readonly_fields = ("position", "get_max_score_display", "get_attempt_1_score_display",
+                       "get_attempt_2_score_display", "get_attempt_3_score_display",
+                       "get_bw_percentage_display", "get_player_categories")
     list_select_related = ("player", "player__club")
-    # Pola do edycji
-    fields = ('player_link',
-              ('result_left_1', 'result_right_1'),
-              ('result_left_2', 'result_right_2'),
-              ('result_left_3', 'result_right_3'),
-              'position', 'get_max_score_display', 'get_bw_percentage_display',
-              'get_player_categories',
-              'get_attempt_1_score_display', 'get_attempt_2_score_display', 'get_attempt_3_score_display')
+    fields = ('player', ('result_left_1', 'result_right_1'), ('result_left_2', 'result_right_2'),
+              ('result_left_3', 'result_right_3'), 'position', 'get_max_score_display',
+              'get_bw_percentage_display', 'get_player_categories', 'get_attempt_1_score_display',
+              'get_attempt_2_score_display', 'get_attempt_3_score_display')
+    autocomplete_fields = ('player',)
 
-
+    # NOWA METODA: Wyświetla tylko nazwę, bez linku HTML
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def player_link(self, obj):
-        return player_link_display(obj, app_name="players")
+    def get_player_name(self, obj):
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
 
-    # Metody display dla poszczególnych prób (opcjonalnie, mogą być w list_display)
+    # Stare metody display (get_attempt_score_display, etc.) bez zmian
     @admin.display(description=_("Wynik Próby 1"))
     def get_attempt_1_score_display(self, obj) -> str:
-        score = obj.get_attempt_score(1)
-        return f"{score:.1f}" if score is not None else "---"
-
+        score = obj.get_attempt_score(1); return f"{score:.1f}" if score is not None else "---"
     @admin.display(description=_("Wynik Próby 2"))
     def get_attempt_2_score_display(self, obj) -> str:
-        score = obj.get_attempt_score(2)
-        return f"{score:.1f}" if score is not None else "---"
-
+        score = obj.get_attempt_score(2); return f"{score:.1f}" if score is not None else "---"
     @admin.display(description=_("Wynik Próby 3"))
     def get_attempt_3_score_display(self, obj) -> str:
-        score = obj.get_attempt_score(3)
-        return f"{score:.1f}" if score is not None else "---"
-
+        score = obj.get_attempt_score(3); return f"{score:.1f}" if score is not None else "---"
     @admin.display(description=_("Max Wynik (Suma)"))
     def get_max_score_display(self, obj) -> str:
-        # Używamy property z modelu
-        max_s = getattr(obj, "max_score", None)
-        return f"{max_s:.1f}" if max_s is not None else "---"
-
+        max_s = getattr(obj, "max_score", None); return f"{max_s:.1f}" if max_s is not None else "---"
     @admin.display(description=_("% Masy Ciała"))
     def get_bw_percentage_display(self, obj) -> str:
-        # Używamy property z modelu
-        bw = getattr(obj, "bw_percentage", None)
-        return f"{bw:.2f}%" if bw is not None else "---"
-
+        bw = getattr(obj, "bw_percentage", None); return f"{bw:.2f}%" if bw is not None else "---"
     @admin.display(description=_("Kategorie"))
-    def get_player_categories(self, obj) -> str:
-        return get_player_categories_display(obj)
-
-    # Usunięto get_queryset z adnotacją
+    def get_player_categories(self, obj) -> str: return get_player_categories_display(obj)
 
 
 # --- Indywidualne Adminy Wyników ---
 @admin.register(SnatchResult)
 class SnatchResultAdmin(admin.ModelAdmin):
-    list_display = ("player_link", "kettlebell_weight", "repetitions", "get_snatch_score_admin", "position", "get_player_categories")
-    list_display_links = ('player_link',)
+    # Zmieniono 'player_link' na 'get_player_name'
+    list_display = ('get_player_name', "kettlebell_weight", "repetitions", "get_snatch_score_admin", "position", "get_player_categories")
+    # Zmieniono link na kolumnę z nazwą gracza
+    list_display_links = ('get_player_name',) # <--- ZMIANA TUTAJ
     list_filter = ("player__categories", "position", ("kettlebell_weight", admin.AllValuesFieldListFilter))
     search_fields = ("player__name", "player__surname", "player__club__name")
-    readonly_fields = ("player_link", "position", "get_player_categories", "get_snatch_score_admin")
-    fields = ('player_link', 'kettlebell_weight', 'repetitions', 'position', 'get_snatch_score_admin', 'get_player_categories')
+    readonly_fields = ("position", "get_player_categories", "get_snatch_score_admin")
+    fields = ('player', 'kettlebell_weight', 'repetitions', 'position',
+              'get_snatch_score_admin', 'get_player_categories')
     list_select_related = ("player", "player__club")
+    autocomplete_fields = ('player',)
 
+    # NOWA METODA: Wyświetla tylko nazwę, bez linku HTML
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def player_link(self, obj: SnatchResult):
-        return player_link_display(obj, app_name="players")
+    def get_player_name(self, obj: SnatchResult):
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
 
+    # Stare metody display (get_player_categories, get_snatch_score_admin) bez zmian
     @admin.display(description=_("Kategorie"))
-    def get_player_categories(self, obj: SnatchResult) -> str:
-        return get_player_categories_display(obj)
-
-    @admin.display(description=_("Wynik (obl.)"), ordering='calculated_snatch_score') # Używamy adnotacji do sortowania
+    def get_player_categories(self, obj: SnatchResult) -> str: return get_player_categories_display(obj)
+    @admin.display(description=_("Wynik (obl.)"), ordering='calculated_snatch_score')
     def get_snatch_score_admin(self, obj: SnatchResult) -> str:
-        # Używamy property z modelu do wyświetlania
-        score = getattr(obj, "result", None)
-        return f"{score:.1f}" if score is not None else "---"
-
+        score = getattr(obj, "result", None); return f"{score:.1f}" if score is not None else "---"
     def get_queryset(self, request):
-        # Adnotacja tylko do sortowania w panelu admina
         qs = super().get_queryset(request)
-        qs = qs.annotate(
-            calculated_snatch_score=Case(
-                When(kettlebell_weight__gt=0, repetitions__gt=0, then=F('kettlebell_weight') * F('repetitions')),
-                default=Value(0.0), output_field=FloatField()
-            )
-        )
+        qs = qs.annotate(calculated_snatch_score=Case(
+            When(kettlebell_weight__gt=0, repetitions__gt=0, then=F('kettlebell_weight') * F('repetitions')),
+            default=Value(0.0), output_field=FloatField()
+        ))
         return qs
 
 
+# Klasy dziedziczące - teraz odziedziczą poprawny list_display_links i metodę get_player_name
 @admin.register(TGUResult)
-class TGUResultAdmin(BaseSingleResultAdmin): # Dziedziczy z BaseSingleResultAdmin
-    list_display = (
-        "player_link",
-        "result_1", "result_2", "result_3", # Poszczególne próby
-        "get_max_result_display", "get_bw_percentage_display",
-        "position", "get_player_categories",
-    )
-
+class TGUResultAdmin(BaseSingleResultAdmin): pass
 
 @admin.register(OneKettlebellPressResult)
-class OneKettlebellPressResultAdmin(BaseSingleResultAdmin): # Dziedziczy
-    list_display = (
-        "player_link",
-        "result_1", "result_2", "result_3",
-        "get_max_result_display", "get_bw_percentage_display",
-        "position", "get_player_categories",
-    )
-
+class OneKettlebellPressResultAdmin(BaseSingleResultAdmin): pass
 
 @admin.register(PistolSquatResult)
-class PistolSquatResultAdmin(BaseSingleResultAdmin): # Dziedziczy
-    list_display = (
-        "player_link",
-        "result_1", "result_2", "result_3",
-        "get_max_result_display", "get_bw_percentage_display",
-        "position", "get_player_categories",
-    )
-
+class PistolSquatResultAdmin(BaseSingleResultAdmin): pass
 
 @admin.register(SeeSawPressResult)
-class SeeSawPressResultAdmin(BaseDoubleResultAdmin): # Dziedziczy z BaseDoubleResultAdmin
-    list_display = (
-        "player_link",
-        "get_attempt_1_score_display", # Wyniki prób
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-        "get_max_score_display", "get_bw_percentage_display",
-        "position", "get_player_categories",
-    )
-
+class SeeSawPressResultAdmin(BaseDoubleResultAdmin): pass
 
 @admin.register(KBSquatResult)
-class KBSquatResultAdmin(BaseDoubleResultAdmin): # Dziedziczy
-    list_display = (
-        "player_link",
-        "get_attempt_1_score_display",
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-        "get_max_score_display", "get_bw_percentage_display",
-        "position", "get_player_categories",
-    )
-
+class KBSquatResultAdmin(BaseDoubleResultAdmin): pass
 
 @admin.register(TwoKettlebellPressResult)
-class TwoKettlebellPressResultAdmin(BaseDoubleResultAdmin): # Dziedziczy
-    list_display = (
-        "player_link",
-        "get_attempt_1_score_display",
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-        "get_max_score_display", "get_bw_percentage_display",
-        "position", "get_player_categories",
-    )
+class TwoKettlebellPressResultAdmin(BaseDoubleResultAdmin): pass
 
 
-# --- Overall Result Admin ---
+# admin.py
+# ... (importy i inne klasy Admin bez zmian) ...
+
 @admin.register(OverallResult)
 class OverallResultAdmin(admin.ModelAdmin):
     list_display = (
-        "player_link", "get_player_categories",
-        "snatch_points", "tgu_points", "see_saw_press_points", "kb_squat_points",
-        "pistol_squat_points", "one_kb_press_points", "two_kb_press_points",
-        "tiebreak_points", "total_points", "final_position",
+        "player_link", # Używamy helpera, który tworzy link do gracza
+        "get_player_categories", # Używamy helpera
+        "snatch_points",
+        "tgu_points",
+        "see_saw_press_points",
+        "kb_squat_points",
+        "pistol_squat_points",
+        "one_kb_press_points",
+        "two_kb_press_points",
+        "tiebreak_points",
+        "total_points",
+        "final_position",
     )
-    list_display_links = ('player_link',)
-    ordering = ("final_position", "total_points") # Utrzymane sortowanie
-    readonly_fields = ( # Wszystkie pola tylko do odczytu, obliczane przez services
-        "player_link", "get_player_categories",
-        "snatch_points", "tgu_points", "see_saw_press_points", "kb_squat_points",
+    # Ustawiamy list_display_links na None, aby lista sama w sobie nie była klikalna
+    # do edycji OverallResult (co nie ma sensu, bo jest obliczany)
+    list_display_links = None
+    ordering = ("final_position", "total_points") # Sortowanie wg pozycji, potem punktów
+
+    # readonly_fields powinny pozostać, aby uniemożliwić ręczną edycję obliczonych pól
+    # w widoku szczegółowym (jeśli ktoś miałby do niego dostęp)
+    readonly_fields = (
+        "player_link", "get_player_categories", "snatch_points",
+        "tgu_points", "see_saw_press_points", "kb_squat_points",
         "pistol_squat_points", "one_kb_press_points", "two_kb_press_points",
         "tiebreak_points", "total_points", "final_position",
     )
     list_select_related = ("player", "player__club")
     list_prefetch_related = ("player__categories",)
-    list_filter = ('player__categories', 'final_position') # Filtrowanie po kategorii gracza
+    list_filter = ('player__categories', 'final_position')
     search_fields = ("player__name", "player__surname", "player__club__name")
 
 
+    # Metody display pozostają, player_link nadal prowadzi do ZAWODNIKA
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def player_link(self, obj: OverallResult):
-        return player_link_display(obj, app_name="players")
+        # Ta metoda nadal generuje link do strony edycji gracza
+        return player_link_display(obj.player) # Przekazujemy obiekt Player
 
     @admin.display(description=_("Kategorie"))
     def get_player_categories(self, obj: OverallResult) -> str:
-        return get_player_categories_display(obj.player) # Przekazujemy obiekt Player
+        return get_player_categories_display(obj.player)
