@@ -5,202 +5,362 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Category',
+            name="Category",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True, verbose_name='Category Name')),
-                ('disciplines', models.JSONField(default=list, verbose_name='Disciplines')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100, unique=True, verbose_name="Category Name")),
+                ("disciplines", models.JSONField(default=list, verbose_name="Disciplines")),
             ],
             options={
-                'verbose_name': 'Category',
-                'verbose_name_plural': 'Categories',
-                'ordering': ['name'],
+                "verbose_name": "Category",
+                "verbose_name_plural": "Categories",
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='SportClub',
+            name="SportClub",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True, verbose_name='Club Name')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100, unique=True, verbose_name="Club Name")),
             ],
             options={
-                'verbose_name': 'Sport Club',
-                'verbose_name_plural': 'Sport Clubs',
-                'ordering': ['name'],
+                "verbose_name": "Sport Club",
+                "verbose_name_plural": "Sport Clubs",
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='Player',
+            name="Player",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50, verbose_name='Name')),
-                ('surname', models.CharField(max_length=50, verbose_name='Surname')),
-                ('weight', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Weight (kg)')),
-                ('tiebreak', models.BooleanField(default=False, verbose_name='Tiebreak applied')),
-                ('snatch_kettlebell_weight', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Snatch: KB Weight')),
-                ('snatch_repetitions', models.IntegerField(blank=True, default=0, null=True, verbose_name='Snatch: Repetitions')),
-                ('tgu_weight_1', models.FloatField(blank=True, default=0.0, null=True, verbose_name='TGU: Attempt 1 Weight')),
-                ('tgu_weight_2', models.FloatField(blank=True, default=0.0, null=True, verbose_name='TGU: Attempt 2 Weight')),
-                ('tgu_weight_3', models.FloatField(blank=True, default=0.0, null=True, verbose_name='TGU: Attempt 3 Weight')),
-                ('see_saw_press_weight_left_1', models.FloatField(blank=True, default=0.0, null=True, verbose_name='SSP Left: Attempt 1')),
-                ('see_saw_press_weight_left_2', models.FloatField(blank=True, default=0.0, null=True, verbose_name='SSP Left: Attempt 2')),
-                ('see_saw_press_weight_left_3', models.FloatField(blank=True, default=0.0, null=True, verbose_name='SSP Left: Attempt 3')),
-                ('see_saw_press_weight_right_1', models.FloatField(blank=True, default=0.0, null=True, verbose_name='SSP Right: Attempt 1')),
-                ('see_saw_press_weight_right_2', models.FloatField(blank=True, default=0.0, null=True, verbose_name='SSP Right: Attempt 2')),
-                ('see_saw_press_weight_right_3', models.FloatField(blank=True, default=0.0, null=True, verbose_name='SSP Right: Attempt 3')),
-                ('kb_squat_weight_left_1', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KBS Left: Attempt 1')),
-                ('kb_squat_weight_left_2', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KBS Left: Attempt 2')),
-                ('kb_squat_weight_left_3', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KBS Left: Attempt 3')),
-                ('kb_squat_weight_right_1', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KBS Right: Attempt 1')),
-                ('kb_squat_weight_right_2', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KBS Right: Attempt 2')),
-                ('kb_squat_weight_right_3', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KBS Right: Attempt 3')),
-                ('pistol_squat_weight_1', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Pistol: Attempt 1')),
-                ('pistol_squat_weight_2', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Pistol: Attempt 2')),
-                ('pistol_squat_weight_3', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Pistol: Attempt 3')),
-                ('categories', models.ManyToManyField(blank=True, related_name='players', to='live_results.category', verbose_name='Categories')),
-                ('club', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='players', to='live_results.sportclub', verbose_name='Sport Club')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=50, verbose_name="Name")),
+                ("surname", models.CharField(max_length=50, verbose_name="Surname")),
+                ("weight", models.FloatField(blank=True, default=0.0, null=True, verbose_name="Weight (kg)")),
+                ("tiebreak", models.BooleanField(default=False, verbose_name="Tiebreak applied")),
+                (
+                    "snatch_kettlebell_weight",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="Snatch: KB Weight"),
+                ),
+                (
+                    "snatch_repetitions",
+                    models.IntegerField(blank=True, default=0, null=True, verbose_name="Snatch: Repetitions"),
+                ),
+                (
+                    "tgu_weight_1",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="TGU: Attempt 1 Weight"),
+                ),
+                (
+                    "tgu_weight_2",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="TGU: Attempt 2 Weight"),
+                ),
+                (
+                    "tgu_weight_3",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="TGU: Attempt 3 Weight"),
+                ),
+                (
+                    "see_saw_press_weight_left_1",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="SSP Left: Attempt 1"),
+                ),
+                (
+                    "see_saw_press_weight_left_2",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="SSP Left: Attempt 2"),
+                ),
+                (
+                    "see_saw_press_weight_left_3",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="SSP Left: Attempt 3"),
+                ),
+                (
+                    "see_saw_press_weight_right_1",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="SSP Right: Attempt 1"),
+                ),
+                (
+                    "see_saw_press_weight_right_2",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="SSP Right: Attempt 2"),
+                ),
+                (
+                    "see_saw_press_weight_right_3",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="SSP Right: Attempt 3"),
+                ),
+                (
+                    "kb_squat_weight_left_1",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KBS Left: Attempt 1"),
+                ),
+                (
+                    "kb_squat_weight_left_2",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KBS Left: Attempt 2"),
+                ),
+                (
+                    "kb_squat_weight_left_3",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KBS Left: Attempt 3"),
+                ),
+                (
+                    "kb_squat_weight_right_1",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KBS Right: Attempt 1"),
+                ),
+                (
+                    "kb_squat_weight_right_2",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KBS Right: Attempt 2"),
+                ),
+                (
+                    "kb_squat_weight_right_3",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KBS Right: Attempt 3"),
+                ),
+                (
+                    "pistol_squat_weight_1",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="Pistol: Attempt 1"),
+                ),
+                (
+                    "pistol_squat_weight_2",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="Pistol: Attempt 2"),
+                ),
+                (
+                    "pistol_squat_weight_3",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="Pistol: Attempt 3"),
+                ),
+                (
+                    "categories",
+                    models.ManyToManyField(
+                        blank=True, related_name="players", to="live_results.category", verbose_name="Categories"
+                    ),
+                ),
+                (
+                    "club",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="players",
+                        to="live_results.sportclub",
+                        verbose_name="Sport Club",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Player',
-                'verbose_name_plural': 'Players',
-                'ordering': ['surname', 'name'],
-                'unique_together': {('name', 'surname', 'club')},
+                "verbose_name": "Player",
+                "verbose_name_plural": "Players",
+                "ordering": ["surname", "name"],
+                "unique_together": {("name", "surname", "club")},
             },
         ),
         migrations.CreateModel(
-            name='PistolSquatResult',
+            name="PistolSquatResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('result_1', models.FloatField(default=0.0, verbose_name='Attempt 1 Weight')),
-                ('result_2', models.FloatField(default=0.0, verbose_name='Attempt 2 Weight')),
-                ('result_3', models.FloatField(default=0.0, verbose_name='Attempt 3 Weight')),
-                ('position', models.IntegerField(blank=True, null=True, verbose_name='Position in Category')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='pistol_squat_result', to='live_results.player', verbose_name='Player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("result_1", models.FloatField(default=0.0, verbose_name="Attempt 1 Weight")),
+                ("result_2", models.FloatField(default=0.0, verbose_name="Attempt 2 Weight")),
+                ("result_3", models.FloatField(default=0.0, verbose_name="Attempt 3 Weight")),
+                ("position", models.IntegerField(blank=True, null=True, verbose_name="Position in Category")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="pistol_squat_result",
+                        to="live_results.player",
+                        verbose_name="Player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Pistol Squat Result',
-                'verbose_name_plural': 'Pistol Squat Results',
-                'ordering': ['player__categories', '-position'],
+                "verbose_name": "Pistol Squat Result",
+                "verbose_name_plural": "Pistol Squat Results",
+                "ordering": ["player__categories", "-position"],
             },
         ),
         migrations.CreateModel(
-            name='OverallResult',
+            name="OverallResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('snatch_points', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Snatch Points (Position)')),
-                ('tgu_points', models.FloatField(blank=True, default=0.0, null=True, verbose_name='TGU Points (Position)')),
-                ('see_saw_press_points', models.FloatField(blank=True, default=0.0, null=True, verbose_name='See Saw Press Points (Position)')),
-                ('kb_squat_points', models.FloatField(blank=True, default=0.0, null=True, verbose_name='KB Squat Points (Position)')),
-                ('pistol_squat_points', models.FloatField(blank=True, default=0.0, null=True, verbose_name='Pistol Squat Points (Position)')),
-                ('tiebreak_points', models.FloatField(default=0.0, verbose_name='Tiebreak Points')),
-                ('total_points', models.FloatField(blank=True, db_index=True, default=0.0, null=True, verbose_name='Total Points')),
-                ('final_position', models.IntegerField(blank=True, db_index=True, null=True, verbose_name='Final Position')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='overallresult', to='live_results.player', verbose_name='Player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "snatch_points",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="Snatch Points (Position)"),
+                ),
+                (
+                    "tgu_points",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="TGU Points (Position)"),
+                ),
+                (
+                    "see_saw_press_points",
+                    models.FloatField(
+                        blank=True, default=0.0, null=True, verbose_name="See Saw Press Points (Position)"
+                    ),
+                ),
+                (
+                    "kb_squat_points",
+                    models.FloatField(blank=True, default=0.0, null=True, verbose_name="KB Squat Points (Position)"),
+                ),
+                (
+                    "pistol_squat_points",
+                    models.FloatField(
+                        blank=True, default=0.0, null=True, verbose_name="Pistol Squat Points (Position)"
+                    ),
+                ),
+                ("tiebreak_points", models.FloatField(default=0.0, verbose_name="Tiebreak Points")),
+                (
+                    "total_points",
+                    models.FloatField(blank=True, db_index=True, default=0.0, null=True, verbose_name="Total Points"),
+                ),
+                (
+                    "final_position",
+                    models.IntegerField(blank=True, db_index=True, null=True, verbose_name="Final Position"),
+                ),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="overallresult",
+                        to="live_results.player",
+                        verbose_name="Player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Overall Result',
-                'verbose_name_plural': 'Overall Results',
-                'ordering': ['final_position', 'total_points', 'player__surname'],
+                "verbose_name": "Overall Result",
+                "verbose_name_plural": "Overall Results",
+                "ordering": ["final_position", "total_points", "player__surname"],
             },
         ),
         migrations.CreateModel(
-            name='KBSquatResult',
+            name="KBSquatResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('result_left_1', models.FloatField(default=0.0, verbose_name='Left Attempt 1')),
-                ('result_right_1', models.FloatField(default=0.0, verbose_name='Right Attempt 1')),
-                ('result_left_2', models.FloatField(default=0.0, verbose_name='Left Attempt 2')),
-                ('result_right_2', models.FloatField(default=0.0, verbose_name='Right Attempt 2')),
-                ('result_left_3', models.FloatField(default=0.0, verbose_name='Left Attempt 3')),
-                ('result_right_3', models.FloatField(default=0.0, verbose_name='Right Attempt 3')),
-                ('position', models.IntegerField(blank=True, null=True, verbose_name='Position in Category')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='kb_squat_result', to='live_results.player', verbose_name='Player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("result_left_1", models.FloatField(default=0.0, verbose_name="Left Attempt 1")),
+                ("result_right_1", models.FloatField(default=0.0, verbose_name="Right Attempt 1")),
+                ("result_left_2", models.FloatField(default=0.0, verbose_name="Left Attempt 2")),
+                ("result_right_2", models.FloatField(default=0.0, verbose_name="Right Attempt 2")),
+                ("result_left_3", models.FloatField(default=0.0, verbose_name="Left Attempt 3")),
+                ("result_right_3", models.FloatField(default=0.0, verbose_name="Right Attempt 3")),
+                ("position", models.IntegerField(blank=True, null=True, verbose_name="Position in Category")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="kb_squat_result",
+                        to="live_results.player",
+                        verbose_name="Player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'KB Squat Result',
-                'verbose_name_plural': 'KB Squat Results',
-                'ordering': ['player__categories', '-position'],
+                "verbose_name": "KB Squat Result",
+                "verbose_name_plural": "KB Squat Results",
+                "ordering": ["player__categories", "-position"],
             },
         ),
         migrations.CreateModel(
-            name='BestSeeSawPressResult',
+            name="BestSeeSawPressResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('best_left', models.FloatField(default=0.0, verbose_name='Best Left')),
-                ('best_right', models.FloatField(default=0.0, verbose_name='Best Right')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='best_see_saw_press_result', to='live_results.player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("best_left", models.FloatField(default=0.0, verbose_name="Best Left")),
+                ("best_right", models.FloatField(default=0.0, verbose_name="Best Right")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="best_see_saw_press_result",
+                        to="live_results.player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Best See Saw Press Result',
-                'verbose_name_plural': 'Best See Saw Press Results',
+                "verbose_name": "Best See Saw Press Result",
+                "verbose_name_plural": "Best See Saw Press Results",
             },
         ),
         migrations.CreateModel(
-            name='BestKBSquatResult',
+            name="BestKBSquatResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('best_result', models.FloatField(default=0.0, verbose_name='Best Result (L+R)')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='best_kb_squat_result', to='live_results.player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("best_result", models.FloatField(default=0.0, verbose_name="Best Result (L+R)")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="best_kb_squat_result",
+                        to="live_results.player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Best KB Squat Result',
-                'verbose_name_plural': 'Best KB Squat Results',
+                "verbose_name": "Best KB Squat Result",
+                "verbose_name_plural": "Best KB Squat Results",
             },
         ),
         migrations.CreateModel(
-            name='SeeSawPressResult',
+            name="SeeSawPressResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('result_left_1', models.FloatField(default=0.0, verbose_name='Left Attempt 1')),
-                ('result_right_1', models.FloatField(default=0.0, verbose_name='Right Attempt 1')),
-                ('result_left_2', models.FloatField(default=0.0, verbose_name='Left Attempt 2')),
-                ('result_right_2', models.FloatField(default=0.0, verbose_name='Right Attempt 2')),
-                ('result_left_3', models.FloatField(default=0.0, verbose_name='Left Attempt 3')),
-                ('result_right_3', models.FloatField(default=0.0, verbose_name='Right Attempt 3')),
-                ('position', models.IntegerField(blank=True, null=True, verbose_name='Position in Category')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='see_saw_press_result', to='live_results.player', verbose_name='Player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("result_left_1", models.FloatField(default=0.0, verbose_name="Left Attempt 1")),
+                ("result_right_1", models.FloatField(default=0.0, verbose_name="Right Attempt 1")),
+                ("result_left_2", models.FloatField(default=0.0, verbose_name="Left Attempt 2")),
+                ("result_right_2", models.FloatField(default=0.0, verbose_name="Right Attempt 2")),
+                ("result_left_3", models.FloatField(default=0.0, verbose_name="Left Attempt 3")),
+                ("result_right_3", models.FloatField(default=0.0, verbose_name="Right Attempt 3")),
+                ("position", models.IntegerField(blank=True, null=True, verbose_name="Position in Category")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="see_saw_press_result",
+                        to="live_results.player",
+                        verbose_name="Player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'See Saw Press Result',
-                'verbose_name_plural': 'See Saw Press Results',
+                "verbose_name": "See Saw Press Result",
+                "verbose_name_plural": "See Saw Press Results",
             },
         ),
         migrations.CreateModel(
-            name='SnatchResult',
+            name="SnatchResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('result', models.FloatField(blank=True, null=True, verbose_name='Snatch Score (Weight*Reps)')),
-                ('position', models.IntegerField(blank=True, null=True, verbose_name='Position in Category')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='snatch_result', to='live_results.player', verbose_name='Player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("result", models.FloatField(blank=True, null=True, verbose_name="Snatch Score (Weight*Reps)")),
+                ("position", models.IntegerField(blank=True, null=True, verbose_name="Position in Category")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="snatch_result",
+                        to="live_results.player",
+                        verbose_name="Player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Snatch Result',
-                'verbose_name_plural': 'Snatch Results',
-                'ordering': ['player__categories', '-result'],
+                "verbose_name": "Snatch Result",
+                "verbose_name_plural": "Snatch Results",
+                "ordering": ["player__categories", "-result"],
             },
         ),
         migrations.CreateModel(
-            name='TGUResult',
+            name="TGUResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('result_1', models.FloatField(default=0.0, verbose_name='Attempt 1 Weight')),
-                ('result_2', models.FloatField(default=0.0, verbose_name='Attempt 2 Weight')),
-                ('result_3', models.FloatField(default=0.0, verbose_name='Attempt 3 Weight')),
-                ('position', models.IntegerField(blank=True, null=True, verbose_name='Position in Category')),
-                ('player', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='tgu_result', to='live_results.player', verbose_name='Player')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("result_1", models.FloatField(default=0.0, verbose_name="Attempt 1 Weight")),
+                ("result_2", models.FloatField(default=0.0, verbose_name="Attempt 2 Weight")),
+                ("result_3", models.FloatField(default=0.0, verbose_name="Attempt 3 Weight")),
+                ("position", models.IntegerField(blank=True, null=True, verbose_name="Position in Category")),
+                (
+                    "player",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="tgu_result",
+                        to="live_results.player",
+                        verbose_name="Player",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'TGU Result',
-                'verbose_name_plural': 'TGU Results',
-                'ordering': ['player__categories', '-position'],
+                "verbose_name": "TGU Result",
+                "verbose_name_plural": "TGU Results",
+                "ordering": ["player__categories", "-position"],
             },
         ),
     ]

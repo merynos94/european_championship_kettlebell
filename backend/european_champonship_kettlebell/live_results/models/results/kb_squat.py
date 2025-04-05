@@ -1,9 +1,7 @@
 """Models definition for Kettlebell Squat results."""
 
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 
 
 class KBSquatResult(models.Model):
@@ -51,11 +49,10 @@ class KBSquatResult(models.Model):
     def bw_percentage(self) -> float | None:
         """Calculates the max score (L+R) as a percentage of player's body weight."""
         player = getattr(self, "player", None)
-        if not player: return None
+        if not player:
+            return None
         player_weight = getattr(player, "weight", None)
         max_s = self.max_score
         if player_weight and player_weight > 0 and max_s > 0:
             return round((max_s / player_weight) * 100, 2)
         return None
-
-

@@ -5,23 +5,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0011_alter_pistolsquatresult_result_1_and_more'),
+        ("live_results", "0011_alter_pistolsquatresult_result_1_and_more"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='category',
-            options={'ordering': ['name'], 'verbose_name': 'Kategorie', 'verbose_name_plural': 'Kategorie'},
+            name="category",
+            options={"ordering": ["name"], "verbose_name": "Kategorie", "verbose_name_plural": "Kategorie"},
         ),
         migrations.AlterModelOptions(
-            name='twokettlebellpressresult',
-            options={'ordering': ['player__categories', '-position'], 'verbose_name': 'Wyniki Two Kettlebell Press', 'verbose_name_plural': 'Wyniki Two Kettlebells Press'},
+            name="twokettlebellpressresult",
+            options={
+                "ordering": ["player__categories", "-position"],
+                "verbose_name": "Wyniki Two Kettlebell Press",
+                "verbose_name_plural": "Wyniki Two Kettlebells Press",
+            },
         ),
         migrations.AlterField(
-            model_name='player',
-            name='club',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='players', to='live_results.sportclub', verbose_name='Klub'),
+            model_name="player",
+            name="club",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="players",
+                to="live_results.sportclub",
+                verbose_name="Klub",
+            ),
         ),
     ]

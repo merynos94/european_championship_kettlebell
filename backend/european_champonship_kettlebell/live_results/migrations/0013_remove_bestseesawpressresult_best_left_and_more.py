@@ -4,23 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0012_alter_category_options_and_more'),
+        ("live_results", "0012_alter_category_options_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='bestseesawpressresult',
-            name='best_left',
+            model_name="bestseesawpressresult",
+            name="best_left",
         ),
         migrations.RemoveField(
-            model_name='bestseesawpressresult',
-            name='best_right',
+            model_name="bestseesawpressresult",
+            name="best_right",
         ),
         migrations.AddField(
-            model_name='bestseesawpressresult',
-            name='best_result',
-            field=models.FloatField(default=0.0, verbose_name='Best Result (% of body weight)'),
+            model_name="bestseesawpressresult",
+            name="best_result",
+            field=models.FloatField(default=0.0, verbose_name="Best Result (% of body weight)"),
         ),
     ]

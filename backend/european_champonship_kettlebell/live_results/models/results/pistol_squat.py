@@ -1,9 +1,7 @@
 """Model definition for PistolSquatResult."""
 
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 
 
 class PistolSquatResult(models.Model):

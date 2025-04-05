@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0008_alter_sportclub_name'),
+        ("live_results", "0008_alter_sportclub_name"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='bestkbsquatresult',
-            name='best_result',
-            field=models.FloatField(default=0.0, verbose_name='Najlepszy Wynik (L+R)'),
+            model_name="bestkbsquatresult",
+            name="best_result",
+            field=models.FloatField(default=0.0, verbose_name="Najlepszy Wynik (L+R)"),
         ),
         migrations.AlterField(
-            model_name='bestonekettlebellpressresult',
-            name='best_result',
-            field=models.FloatField(default=0.0, verbose_name='Najlepszy Kettlebell Press'),
+            model_name="bestonekettlebellpressresult",
+            name="best_result",
+            field=models.FloatField(default=0.0, verbose_name="Najlepszy Kettlebell Press"),
         ),
         migrations.AlterField(
-            model_name='besttwokettlebellpressresult',
-            name='best_result',
-            field=models.FloatField(default=0.0, verbose_name='Najlepszy Wynik (L+R)'),
+            model_name="besttwokettlebellpressresult",
+            name="best_result",
+            field=models.FloatField(default=0.0, verbose_name="Najlepszy Wynik (L+R)"),
         ),
     ]

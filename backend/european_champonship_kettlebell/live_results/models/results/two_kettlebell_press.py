@@ -1,10 +1,7 @@
 """Models definition for Two Kettlebell Press results."""
 
-from typing import TYPE_CHECKING, cast
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 
 
 class TwoKettlebellPressResult(models.Model):
@@ -30,7 +27,7 @@ class TwoKettlebellPressResult(models.Model):
         ordering = ["player__categories", "-position"]
 
     def __str__(self) -> str:
-       return f"{self.player} - Two KB Press Attempts"
+        return f"{self.player} - Two KB Press Attempts"
 
     def get_attempt_score(self, attempt_number: int) -> float:
         """Calculates the score for a specific attempt (sum of L+R if both > 0)."""
@@ -52,7 +49,8 @@ class TwoKettlebellPressResult(models.Model):
     def bw_percentage(self) -> float | None:
         """Calculates the max score as a percentage of player's body weight."""
         player = getattr(self, "player", None)
-        if not player: return None
+        if not player:
+            return None
         player_weight = getattr(player, "weight", None)
         max_s = self.max_score
         if player_weight and player_weight > 0 and max_s > 0:

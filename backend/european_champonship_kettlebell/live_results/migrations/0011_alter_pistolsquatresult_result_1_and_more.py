@@ -4,40 +4,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0010_alter_bestpistolsquatresult_best_result_and_more'),
+        ("live_results", "0010_alter_bestpistolsquatresult_best_result_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='pistolsquatresult',
-            name='result_1',
-            field=models.FloatField(default=0.0, verbose_name='Próba I'),
+            model_name="pistolsquatresult",
+            name="result_1",
+            field=models.FloatField(default=0.0, verbose_name="Próba I"),
         ),
         migrations.AlterField(
-            model_name='pistolsquatresult',
-            name='result_2',
-            field=models.FloatField(default=0.0, verbose_name='Próba II'),
+            model_name="pistolsquatresult",
+            name="result_2",
+            field=models.FloatField(default=0.0, verbose_name="Próba II"),
         ),
         migrations.AlterField(
-            model_name='pistolsquatresult',
-            name='result_3',
-            field=models.FloatField(default=0.0, verbose_name='Próba III'),
+            model_name="pistolsquatresult",
+            name="result_3",
+            field=models.FloatField(default=0.0, verbose_name="Próba III"),
         ),
         migrations.AlterField(
-            model_name='tguresult',
-            name='result_1',
-            field=models.FloatField(default=0.0, verbose_name='Próba I'),
+            model_name="tguresult",
+            name="result_1",
+            field=models.FloatField(default=0.0, verbose_name="Próba I"),
         ),
         migrations.AlterField(
-            model_name='tguresult',
-            name='result_2',
-            field=models.FloatField(default=0.0, verbose_name='Próba II'),
+            model_name="tguresult",
+            name="result_2",
+            field=models.FloatField(default=0.0, verbose_name="Próba II"),
         ),
         migrations.AlterField(
-            model_name='tguresult',
-            name='result_3',
-            field=models.FloatField(default=0.0, verbose_name='Próba III'),
+            model_name="tguresult",
+            name="result_3",
+            field=models.FloatField(default=0.0, verbose_name="Próba III"),
         ),
     ]

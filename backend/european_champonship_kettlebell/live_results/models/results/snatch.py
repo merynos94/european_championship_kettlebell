@@ -1,9 +1,7 @@
 """Model definition for SnatchResult."""
 
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 
 
 class SnatchResult(models.Model):
@@ -13,7 +11,7 @@ class SnatchResult(models.Model):
         "Player",
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
-        related_name="snatch_result", # Ważny related_name
+        related_name="snatch_result",  # Ważny related_name
     )
     result = models.FloatField(_("Wynik Snatch (Waga*Powt.)"), null=True, blank=True)
     position = models.IntegerField(_("Pozycja w konkurencji"), null=True, blank=True)
@@ -26,6 +24,5 @@ class SnatchResult(models.Model):
 
     def __str__(self) -> str:
         score = f"{self.result:.1f}" if self.result is not None else _("N/A")
-        player_name = getattr(self.player, 'full_name', 'N/A')
+        player_name = getattr(self.player, "full_name", "N/A")
         return f"{player_name} - Snatch: {score}"
-

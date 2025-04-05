@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0006_alter_category_options_alter_overallresult_options_and_more'),
+        ("live_results", "0006_alter_category_options_alter_overallresult_options_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='category',
-            name='name',
-            field=models.CharField(max_length=100, unique=True, verbose_name='Nazwa Kategorii'),
+            model_name="category",
+            name="name",
+            field=models.CharField(max_length=100, unique=True, verbose_name="Nazwa Kategorii"),
         ),
     ]
