@@ -1,13 +1,11 @@
 # see_saw_press.py
 """Models definition for SeeSawPress results."""
 
-from typing import TYPE_CHECKING, cast
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    from ..player import Player
+
 
 
 class SeeSawPressResult(models.Model):
@@ -59,4 +57,3 @@ class SeeSawPressResult(models.Model):
             return round((max_s / player_weight) * 100, 2)
         return None
 
-# Model BestSeeSawPressResult został usunięty

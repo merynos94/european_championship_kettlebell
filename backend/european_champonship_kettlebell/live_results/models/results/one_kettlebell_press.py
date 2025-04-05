@@ -1,12 +1,11 @@
 """Model definition for OneKettlebellPressResult."""
 
-from typing import TYPE_CHECKING
+
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    pass
+
 
 
 class OneKettlebellPressResult(models.Model):

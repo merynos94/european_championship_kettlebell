@@ -24,7 +24,6 @@ class Category(models.Model):
         """Sets the list of disciplines, ensuring they are valid."""
         valid_disciplines = [d[0] for d in AVAILABLE_DISCIPLINES]
         self.disciplines = sorted([d for d in disciplines if d in valid_disciplines])  # Sortowanie dla spójności
-        # Usunięto self.save() - powinno być wywoływane z zewnątrz, np. w save() formularza/modelu
 
     def get_disciplines(self) -> list[str]:
         """Returns the list of disciplines for this category."""
@@ -33,10 +32,3 @@ class Category(models.Model):
     def get_disciplines_display(self) -> str:
         """Returns a comma-separated string of human-readable discipline names."""
         return ", ".join(DISCIPLINE_NAMES.get(d, d) for d in self.disciplines)
-
-    # Można rozważyć dodanie walidacji do clean() metody, jeśli używane w ModelForms
-    # def clean(self):
-    #     super().clean()
-    #     valid_disciplines = [d[0] for d in AVAILABLE_DISCIPLINES]
-    #     if not all(d in valid_disciplines for d in self.disciplines):
-    #         raise ValidationError(_("Invalid discipline selected."))

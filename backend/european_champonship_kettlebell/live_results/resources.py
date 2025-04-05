@@ -7,16 +7,15 @@ from import_export.widgets import ForeignKeyWidget, ManyToManyWidget
 from .models import Player, SportClub, Category
 
 class PlayerResource(resources.ModelResource):
-    # Definiujemy jak obsługiwać relacje ForeignKey i ManyToMany
     club = fields.Field(
         column_name='club',
         attribute='club',
-        widget=ForeignKeyWidget(SportClub, 'name') # Zakładamy, że klub identyfikujemy po nazwie
+        widget=ForeignKeyWidget(SportClub, 'name')
     )
     categories = fields.Field(
         column_name='categories',
         attribute='categories',
-        widget=ManyToManyWidget(Category, separator=',', field='name') # Zakładamy identyfikację kategorii po nazwie, rozdzielone przecinkiem
+        widget=ManyToManyWidget(Category, separator=',', field='name')
     )
 
     class Meta:

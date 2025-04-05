@@ -1,14 +1,9 @@
-# pistol_squat.py
 """Model definition for PistolSquatResult."""
 
-from typing import TYPE_CHECKING, cast
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    # Dostosuj ścieżkę jeśli Player jest gdzie indziej
-    from ..player import Player
 
 
 class PistolSquatResult(models.Model):
@@ -20,7 +15,6 @@ class PistolSquatResult(models.Model):
         verbose_name=_("Player"),
         related_name="pistol_squat_result",
     )
-    # Zmieniono na null=True, blank=True, aby pozwolić na brak próby
     result_1 = models.FloatField(_("Próba I"), default=0.0, null=True, blank=True)
     result_2 = models.FloatField(_("Próba II"), default=0.0, null=True, blank=True)
     result_3 = models.FloatField(_("Próba III"), default=0.0, null=True, blank=True)
@@ -38,7 +32,6 @@ class PistolSquatResult(models.Model):
     @property
     def max_result(self) -> float:
         """Returns the maximum weight lifted across attempts."""
-        # Zwraca 0.0 jeśli wszystkie próby są None lub 0.0
         return max(self.result_1 or 0.0, self.result_2 or 0.0, self.result_3 or 0.0)
 
     @property

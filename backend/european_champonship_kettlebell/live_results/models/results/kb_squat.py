@@ -1,13 +1,9 @@
-# kb_squat.py
 """Models definition for Kettlebell Squat results."""
 
-from typing import TYPE_CHECKING, cast
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    from ..player import Player
 
 
 class KBSquatResult(models.Model):
@@ -62,4 +58,4 @@ class KBSquatResult(models.Model):
             return round((max_s / player_weight) * 100, 2)
         return None
 
-# Model BestKBSquatResult został usunięty
+

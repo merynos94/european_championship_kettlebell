@@ -1,4 +1,3 @@
-# two_kettlebell_press.py
 """Models definition for Two Kettlebell Press results."""
 
 from typing import TYPE_CHECKING, cast
@@ -6,8 +5,6 @@ from typing import TYPE_CHECKING, cast
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    from ..player import Player
 
 
 class TwoKettlebellPressResult(models.Model):
@@ -61,5 +58,3 @@ class TwoKettlebellPressResult(models.Model):
         if player_weight and player_weight > 0 and max_s > 0:
             return round((max_s / player_weight) * 100, 2)
         return None
-
-# Model BestTwoKettlebellPressResult został usunięty

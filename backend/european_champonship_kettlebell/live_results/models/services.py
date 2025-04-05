@@ -5,12 +5,11 @@ from django.db.models import Case, F, FloatField, Value, When
 from django.db.models.functions import Greatest
 
 from .constants import KB_SQUAT, ONE_KB_PRESS, PISTOL_SQUAT, SEE_SAW_PRESS, SNATCH, TGU, TWO_KB_PRESS
-# Importujemy tylko modele wyników surowych (oprócz Snatch)
 from .results.kb_squat import KBSquatResult
 from .results.one_kettlebell_press import OneKettlebellPressResult
 from .results.pistol_squat import PistolSquatResult
 from .results.see_saw_press import SeeSawPressResult
-from .results.snatch import SnatchResult # Zakładamy, że BestSnatchResult nadal istnieje
+from .results.snatch import SnatchResult
 from .results.tgu import TGUResult
 from .results.two_kettlebell_press import TwoKettlebellPressResult
 
@@ -39,15 +38,11 @@ def update_discipline_positions(category: "Category") -> None:
         ONE_KB_PRESS: OneKettlebellPressResult, TWO_KB_PRESS: TwoKettlebellPressResult,
     }
 
-    # Logika rankingu - wszystkie oparte na %BW oprócz Snatch
     ordering_logic = {
-        SNATCH: "-result", # Snatch wg wyniku
-        TGU: "-tgu_bw_ratio",
-        PISTOL_SQUAT: "-pistol_bw_ratio",
-        ONE_KB_PRESS: "-okbp_bw_ratio",
-        SEE_SAW_PRESS: "-ssp_bw_ratio", # Zmienione na %BW
-        KB_SQUAT: "-kbs_bw_ratio",
-        TWO_KB_PRESS: "-tkbp_bw_ratio",
+        SNATCH: "-result", # Snatch wg wyniku - bez zmian
+        TGU: "-tgu_bw_ratio", PISTOL_SQUAT: "-pistol_bw_ratio",
+        ONE_KB_PRESS: "-okbp_bw_ratio", SEE_SAW_PRESS: "-ssp_bw_ratio",
+        KB_SQUAT: "-kbs_bw_ratio", TWO_KB_PRESS: "-tkbp_bw_ratio",
     }
 
     for discipline in disciplines:
@@ -58,77 +53,31 @@ def update_discipline_positions(category: "Category") -> None:
 
         results_qs = model.objects.select_related("player").filter(player__in=players_in_category)
 
-        # === Dodaj adnotacje %BW tam, gdzie to potrzebne ===
-        # (Zakładamy, że gracze bez wagi lub z wynikiem 0 mają ratio 0)
         if discipline == TGU:
-             results_qs = results_qs.annotate(
-                 max_tgu_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0))
-             ).annotate(
-                 tgu_bw_ratio=Case(When(player__weight__gt=0, max_tgu_result__gt=0, then=F("max_tgu_result")/F("player__weight")), default=Value(0.0), output_field=FloatField())
-             )
+             results_qs = results_qs.annotate(max_tgu_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0))).annotate(tgu_bw_ratio=Case(When(player__weight__gt=0, max_tgu_result__gt=0, then=F("max_tgu_result")/F("player__weight")), default=Value(0.0), output_field=FloatField()))
         elif discipline == PISTOL_SQUAT:
-            results_qs = results_qs.annotate(
-                max_pistol_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0))
-            ).annotate(
-                pistol_bw_ratio=Case(When(player__weight__gt=0, max_pistol_result__gt=0, then=F("max_pistol_result")/F("player__weight")), default=Value(0.0), output_field=FloatField())
-            )
+            results_qs = results_qs.annotate(max_pistol_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0))).annotate(pistol_bw_ratio=Case(When(player__weight__gt=0, max_pistol_result__gt=0, then=F("max_pistol_result")/F("player__weight")), default=Value(0.0), output_field=FloatField()))
         elif discipline == ONE_KB_PRESS:
-            results_qs = results_qs.annotate(
-                max_okbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0))
-            ).annotate(
-                okbp_bw_ratio=Case(When(player__weight__gt=0, max_okbp_result__gt=0, then=F("max_okbp_result")/F("player__weight")), default=Value(0.0), output_field=FloatField())
-            )
+            results_qs = results_qs.annotate(max_okbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0))).annotate(okbp_bw_ratio=Case(When(player__weight__gt=0, max_okbp_result__gt=0, then=F("max_okbp_result")/F("player__weight")), default=Value(0.0), output_field=FloatField()))
         elif discipline == SEE_SAW_PRESS:
-            # Oblicz max_ssp_score (suma L+R) i ssp_bw_ratio
-            results_qs = results_qs.annotate(
-                ssp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1")+F("result_right_1")), default=Value(0.0), output_field=FloatField()),
-                ssp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2")+F("result_right_2")), default=Value(0.0), output_field=FloatField()),
-                ssp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3")+F("result_right_3")), default=Value(0.0), output_field=FloatField()),
-            ).annotate(
-                max_ssp_score=Greatest("ssp_score_1", "ssp_score_2", "ssp_score_3")
-            ).annotate(
-                ssp_bw_ratio=Case(When(player__weight__gt=0, max_ssp_score__gt=0, then=F("max_ssp_score")/F("player__weight")), default=Value(0.0), output_field=FloatField())
-            )
+            results_qs = results_qs.annotate(ssp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1")+F("result_right_1")), default=Value(0.0), output_field=FloatField()), ssp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2")+F("result_right_2")), default=Value(0.0), output_field=FloatField()), ssp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3")+F("result_right_3")), default=Value(0.0), output_field=FloatField()),).annotate(max_ssp_score=Greatest("ssp_score_1", "ssp_score_2", "ssp_score_3")).annotate(ssp_bw_ratio=Case(When(player__weight__gt=0, max_ssp_score__gt=0, then=F("max_ssp_score")/F("player__weight")), default=Value(0.0), output_field=FloatField()))
         elif discipline == KB_SQUAT:
-            # Oblicz max_kbs_score (suma L+R) i kbs_bw_ratio
-            results_qs = (
-                results_qs.annotate(
-                    kbs_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1")+F("result_right_1")), default=Value(0.0), output_field=FloatField()),
-                    kbs_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2")+F("result_right_2")), default=Value(0.0), output_field=FloatField()),
-                    kbs_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3")+F("result_right_3")), default=Value(0.0), output_field=FloatField()),
-                ).annotate(
-                    max_kbs_score=Greatest("kbs_score_1", "kbs_score_2", "kbs_score_3")
-                ).annotate(
-                    kbs_bw_ratio=Case(When(player__weight__gt=0, max_kbs_score__gt=0, then=F("max_kbs_score")/F("player__weight")), default=Value(0.0), output_field=FloatField())
-                )
-            )
+            results_qs = results_qs.annotate(kbs_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1")+F("result_right_1")), default=Value(0.0), output_field=FloatField()), kbs_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2")+F("result_right_2")), default=Value(0.0), output_field=FloatField()), kbs_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3")+F("result_right_3")), default=Value(0.0), output_field=FloatField()),).annotate(max_kbs_score=Greatest("kbs_score_1", "kbs_score_2", "kbs_score_3")).annotate(kbs_bw_ratio=Case(When(player__weight__gt=0, max_kbs_score__gt=0, then=F("max_kbs_score")/F("player__weight")), default=Value(0.0), output_field=FloatField()))
         elif discipline == TWO_KB_PRESS:
-             # Oblicz max_tkbp_score (suma L+R) i tkbp_bw_ratio
-            results_qs = (
-                results_qs.annotate(
-                    tkbp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1")+F("result_right_1")), default=Value(0.0), output_field=FloatField()),
-                    tkbp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2")+F("result_right_2")), default=Value(0.0), output_field=FloatField()),
-                    tkbp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3")+F("result_right_3")), default=Value(0.0), output_field=FloatField()),
-                ).annotate(
-                    max_tkbp_score=Greatest("tkbp_score_1", "tkbp_score_2", "tkbp_score_3")
-                ).annotate(
-                    tkbp_bw_ratio=Case(When(player__weight__gt=0, max_tkbp_score__gt=0, then=F("max_tkbp_score")/F("player__weight")), default=Value(0.0), output_field=FloatField())
-                )
-            )
+            results_qs = results_qs.annotate(tkbp_score_1=Case(When(result_left_1__gt=0, result_right_1__gt=0, then=F("result_left_1")+F("result_right_1")), default=Value(0.0), output_field=FloatField()), tkbp_score_2=Case(When(result_left_2__gt=0, result_right_2__gt=0, then=F("result_left_2")+F("result_right_2")), default=Value(0.0), output_field=FloatField()), tkbp_score_3=Case(When(result_left_3__gt=0, result_right_3__gt=0, then=F("result_left_3")+F("result_right_3")), default=Value(0.0), output_field=FloatField()),).annotate(max_tkbp_score=Greatest("tkbp_score_1", "tkbp_score_2", "tkbp_score_3")).annotate(tkbp_bw_ratio=Case(When(player__weight__gt=0, max_tkbp_score__gt=0, then=F("max_tkbp_score")/F("player__weight")), default=Value(0.0), output_field=FloatField()))
 
         # Sortowanie
         ordered_results = results_qs.order_by(order_by_field, "player__surname", "player__name")
 
-        # === Aktualizacja pozycji ===
         updates = []; current_pos = 0; last_score = None; rank_counter = 0; epsilon = 1e-6
         for result in ordered_results:
             rank_counter += 1; score = 0.0
-            try: # Pobierz odpowiedni wynik/ratio do rankingu
-                if discipline == SNATCH: score = result.result or 0.0
+            try: # Pobierz wynik/ratio
+                if discipline == SNATCH: score = result.result or 0.0 # Snatch używa 'result'
                 elif discipline == TGU: score = result.tgu_bw_ratio or 0.0
                 elif discipline == PISTOL_SQUAT: score = result.pistol_bw_ratio or 0.0
                 elif discipline == ONE_KB_PRESS: score = result.okbp_bw_ratio or 0.0
-                elif discipline == SEE_SAW_PRESS: score = result.ssp_bw_ratio or 0.0 # Używamy ratio
+                elif discipline == SEE_SAW_PRESS: score = result.ssp_bw_ratio or 0.0
                 elif discipline == KB_SQUAT: score = result.kbs_bw_ratio or 0.0
                 elif discipline == TWO_KB_PRESS: score = result.tkbp_bw_ratio or 0.0
             except AttributeError: pass
@@ -145,7 +94,7 @@ def update_discipline_positions(category: "Category") -> None:
 
 
 def update_overall_results_for_category(category: "Category") -> None:
-    # Bez zmian - ta funkcja używa tylko pola 'position'
+    # Bez zmian
     from .player import Player
     from .results.overall import OverallResult
     players_in_category = Player.objects.filter(categories=category).prefetch_related( "snatch_result", "tgu_result", "pistol_squat_result", "see_saw_press_result", "kb_squat_result", "one_kettlebell_press_result", "two_kettlebell_press_result")

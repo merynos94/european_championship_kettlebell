@@ -24,7 +24,7 @@ from .results.pistol_squat import PistolSquatResult
 from .results.see_saw_press import SeeSawPressResult
 
 # Import result models (adjust path if using results/ subdirectory)
-from .results.snatch import BestSnatchResult, SnatchResult
+from .results.snatch import SnatchResult
 from .results.tgu import TGUResult
 from .results.two_kettlebell_press import TwoKettlebellPressResult  # <--- NOWE MODELE
 

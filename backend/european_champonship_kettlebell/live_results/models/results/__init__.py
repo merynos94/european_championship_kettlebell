@@ -19,7 +19,6 @@ from .see_saw_press import (
 # Importuj najlepsze wyniki (zakładając, że są w osobnych plikach lub w tych samych co surowe)
 # Dostosuj ścieżki, jeśli Best* są w tych samych plikach co surowe wyniki
 from .snatch import (
-    BestSnatchResult,  # Dodano
     SnatchResult,
 )
 from .tgu import (

@@ -12,7 +12,7 @@ from import_export.admin import ImportExportModelAdmin
 # === Import Models ===
 from .models import (
     AVAILABLE_DISCIPLINES,
-    BestSnatchResult, # Pozostaje tylko Snatch
+    # BestSnatchResult, # Zakładamy, że usunięty
     Category,
     KBSquatResult, OneKettlebellPressResult, PistolSquatResult, SeeSawPressResult,
     SnatchResult, TGUResult, TwoKettlebellPressResult,
@@ -39,9 +39,38 @@ def get_player_categories_display(obj) -> str:
 # === Forms ===
 class CategoryAdminForm(forms.ModelForm):
     disciplines = forms.MultipleChoiceField(choices=AVAILABLE_DISCIPLINES, widget=forms.CheckboxSelectMultiple, required=False, label=_("Dyscypliny"), help_text=_("Wybierz dyscypliny dla tej kategorii."))
-    class Meta: model = Category; fields = ["name", "disciplines"]
-    def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs); inst=self.instance; dis_f=self.fields["disciplines"]; dis_f.initial=inst.get_disciplines() if inst and inst.pk else []
-    def save(self, commit=True): inst=super().save(commit=False); inst.set_disciplines(self.cleaned_data["disciplines"]); inst.save(commit=commit); return inst
+
+    class Meta:
+        model = Category
+        fields = ["name", "disciplines"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Poprawka inicjalizacji, aby uniknąć błędu, gdy instancja nie istnieje
+        inst = self.instance
+        if inst and inst.pk:
+            # Użyj getattr dla bezpieczeństwa, chociaż JSONField powinien zwrócić listę
+            initial_disciplines = getattr(inst, 'disciplines', [])
+            self.fields["disciplines"].initial = initial_disciplines if isinstance(initial_disciplines, list) else []
+        else:
+            self.fields["disciplines"].initial = []
+
+    # ===== POPRAWIONA METODA SAVE PONIŻEJ =====
+    def save(self, commit=True):
+        # Wywołaj save formularza nadrzędnego (np. ModelForm.save)
+        # commit=False zwraca instancję bez zapisu do bazy
+        instance = super().save(commit=False)
+
+        # Ustaw zdyscypliny na instancji modelu
+        instance.set_disciplines(self.cleaned_data.get("disciplines", [])) # Użyj .get dla bezpieczeństwa
+
+        # Jeśli commit=True, zapisz instancję modelu do bazy
+        if commit:
+            instance.save() # Wywołaj save() modelu BEZ argumentu commit
+
+        # Zwróć instancję (zapisaną lub nie, zależnie od commit)
+        return instance
+    # =========================================
 
 # === Model Admins ===
 
@@ -53,14 +82,10 @@ class PlayerAdmin(ImportExportModelAdmin):
 
     list_display = (
         "full_name", "weight", "club", "get_categories_for_player",
-        "get_best_snatch_display", # Best Snatch
-        "get_tgu_bw_percentage_display", # Pozostałe %BW
-        "get_ssp_bw_percentage_display",
-        "get_kbs_bw_percentage_display",
-        "get_pistol_bw_percentage_display",
-        "get_okbp_bw_percentage_display",
-        "get_tkbp_bw_percentage_display",
-        "tiebreak",
+        "get_snatch_score_display", "get_tgu_bw_percentage_display",
+        "get_ssp_bw_percentage_display", "get_kbs_bw_percentage_display",
+        "get_pistol_bw_percentage_display", "get_okbp_bw_percentage_display",
+        "get_tkbp_bw_percentage_display", "tiebreak",
     )
     list_filter = ("club", "categories", "tiebreak", ("weight", admin.EmptyFieldListFilter))
     search_fields = ("name", "surname", "club__name", "categories__name")
@@ -78,21 +103,17 @@ class PlayerAdmin(ImportExportModelAdmin):
             _("Wyniki Obliczone (%BW / Score) (Tylko do odczytu)"),
             {   "classes": ("collapse",),
                 "fields": (
-                    "get_best_snatch_display", # Snatch
-                    "get_tgu_bw_percentage_display", # %BW dla pozostałych
-                    "get_ssp_bw_percentage_display",
-                    "get_kbs_bw_percentage_display",
-                    "get_pistol_bw_percentage_display",
-                    "get_okbp_bw_percentage_display",
-                    "get_tkbp_bw_percentage_display",
-                    "get_overall_score_display", # Overall
+                    "get_snatch_score_display", "get_tgu_bw_percentage_display",
+                    "get_ssp_bw_percentage_display", "get_kbs_bw_percentage_display",
+                    "get_pistol_bw_percentage_display", "get_okbp_bw_percentage_display",
+                    "get_tkbp_bw_percentage_display", "get_overall_score_display",
                 ),
             },
         ),
     )
 
     readonly_fields = (
-        "get_best_snatch_display", "get_tgu_bw_percentage_display",
+        "get_snatch_score_display", "get_tgu_bw_percentage_display",
         "get_ssp_bw_percentage_display", "get_kbs_bw_percentage_display",
         "get_pistol_bw_percentage_display", "get_okbp_bw_percentage_display",
         "get_tkbp_bw_percentage_display", "get_overall_score_display",
@@ -102,48 +123,41 @@ class PlayerAdmin(ImportExportModelAdmin):
     @admin.display(description=_("Kategorie"))
     def get_categories_for_player(self, obj: Player) -> str: return get_player_categories_display(obj)
 
-    @admin.display(description=_("Najlepszy Snatch"))
-    def get_best_snatch_display(self, obj: Player) -> str:
-        try: res=obj.best_snatch_result; score=res.best_result; return f"{score:.1f}" if score is not None else "---"
-        except BestSnatchResult.DoesNotExist: return "---"
+    @admin.display(description=_("Snatch Score"))
+    def get_snatch_score_display(self, obj: Player) -> str:
+        try: res=obj.snatch_result; score=res.result; return f"{score:.1f}" if score is not None else "---"
+        except SnatchResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("TGU (%BW)"))
     def get_tgu_bw_percentage_display(self, obj: Player) -> str:
         try: res=obj.tgu_result; bw=res.bw_percentage; return f"{bw:.2f}%" if bw is not None else "---"
         except TGUResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("SSP (%BW)"))
     def get_ssp_bw_percentage_display(self, obj: Player) -> str:
         try: res=obj.see_saw_press_result; bw=res.bw_percentage; return f"{bw:.2f}%" if bw is not None else "---"
         except SeeSawPressResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("KBS (%BW)"))
     def get_kbs_bw_percentage_display(self, obj: Player) -> str:
         try: res=obj.kb_squat_result; bw=res.bw_percentage; return f"{bw:.2f}%" if bw is not None else "---"
         except KBSquatResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("Pistol (%BW)"))
     def get_pistol_bw_percentage_display(self, obj: Player) -> str:
         try: res=obj.pistol_squat_result; bw=res.bw_percentage; return f"{bw:.2f}%" if bw is not None else "---"
         except PistolSquatResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("OKBP (%BW)"))
     def get_okbp_bw_percentage_display(self, obj: Player) -> str:
         try: res=obj.one_kettlebell_press_result; bw=res.bw_percentage; return f"{bw:.2f}%" if bw is not None else "---"
         except OneKettlebellPressResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("TKBP (%BW)"))
     def get_tkbp_bw_percentage_display(self, obj: Player) -> str:
         try: res=obj.two_kettlebell_press_result; bw=res.bw_percentage; return f"{bw:.2f}%" if bw is not None else "---"
         except TwoKettlebellPressResult.DoesNotExist: return "---"
         except AttributeError: return "---"
-
     @admin.display(description=_("Wynik Ogólny"))
     def get_overall_score_display(self, obj: Player) -> str:
         try: overall=getattr(obj,'overallresult',None); return f"{overall.total_points:.1f}" if overall and overall.total_points is not None else "---"
@@ -167,41 +181,53 @@ class SportClubAdmin(admin.ModelAdmin):
 # --- Category Admin ---
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    form = CategoryAdminForm; list_display = ("name", "get_disciplines_list_display"); search_fields = ("name",)
+    # Używamy poprawionego CategoryAdminForm
+    form = CategoryAdminForm
+    list_display = ("name", "get_disciplines_list_display")
+    search_fields = ("name",)
+
     @admin.display(description=_("Dyscypliny"))
-    def get_disciplines_list_display(self, obj: Category) -> str: return obj.get_disciplines_display()
+    def get_disciplines_list_display(self, obj: Category) -> str:
+        # Zakładamy, że model Category ma metodę get_disciplines_display
+        return getattr(obj, 'get_disciplines_display', lambda: 'N/A')()
+
 
 # --- Base Admin for Raw Results (with attempts) ---
 class BaseResultAttemptAdmin(admin.ModelAdmin):
     """Klasa bazowa dla adminów wyników z podejściami (TGU, Pistol, OnePress)."""
-    # Wcięcia atrybutów klasy
     list_filter = ("player__categories", "position")
     search_fields = ("player__name", "player__surname", "player__club__name")
     readonly_fields = (
-        "player_link",
-        "position",
-        "get_max_result_display",
-        "get_bw_percentage_display",
-        "get_player_categories",
+        "player_link", "position", "get_max_result_display",
+        "get_bw_percentage_display", "get_player_categories",
     )
     list_select_related = ("player", "player__club")
 
-    # Wcięcia metod klasy (4 spacje od 'class')
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def player_link(self, obj):
         return player_link_display(obj)
 
     @admin.display(description=_("Max Wynik"), ordering="max_result_value")
     def get_max_result_display(self, obj) -> str:
-        # Jednolinijkowa definicja jest OK, jeśli wcięcie jest poprawne
-        try: return f"{obj.max_result:.1f}"
-        except AttributeError: return "N/A"
+        """Bezpiecznie wyświetla maksymalny wynik z formatowaniem."""
+        try:
+            max_res = getattr(obj, 'max_result', None)
+            if max_res is not None:
+                return f"{max_res:.1f}"
+            else:
+                return "---"
+        except AttributeError:
+            return "N/A"
 
     @admin.display(description=_("% Masy Ciała"))
     def get_bw_percentage_display(self, obj) -> str | None:
+        """Bezpiecznie wyświetla % masy ciała z formatowaniem."""
         try:
-            bw = obj.bw_percentage
-            return f"{bw:.2f}%" if bw is not None else "---"
+            bw = getattr(obj, 'bw_percentage', None)
+            if bw is not None:
+                return f"{bw:.2f}%"
+            else:
+                return "---"
         except AttributeError:
             return "N/A"
 
@@ -211,6 +237,7 @@ class BaseResultAttemptAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        # Adnotacja dla sortowania
         qs = qs.annotate(max_result_value=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0)))
         return qs
 
@@ -218,7 +245,6 @@ class BaseResultAttemptAdmin(admin.ModelAdmin):
 # --- Base Admin for Raw Results (L/R attempts) ---
 class BaseResultLRAttemptAdmin(admin.ModelAdmin):
     """Klasa bazowa dla adminów wyników z podejściami L/R (SSP, KBSquat, TwoPress)."""
-    # Wcięcia atrybutów klasy
     list_filter = ("player__categories", "position")
     search_fields = ("player__name", "player__surname", "player__club__name")
     readonly_fields = (
@@ -228,7 +254,6 @@ class BaseResultLRAttemptAdmin(admin.ModelAdmin):
     )
     list_select_related = ("player", "player__club")
 
-    # Wcięcia metod klasy
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def player_link(self, obj):
         return player_link_display(obj)
@@ -250,23 +275,29 @@ class BaseResultLRAttemptAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Max Wynik (Suma)"), ordering="max_score_value")
     def get_max_score_display(self, obj) -> str:
-        try: return f"{obj.max_score:.1f}"
+        """Bezpiecznie wyświetla max score (L+R sum), z fallbackiem na obliczanie."""
+        try:
+            max_s = getattr(obj, 'max_score', None)
+            if max_s is not None:
+                return f"{max_s:.1f}"
         except AttributeError:
-            l1,r1=getattr(obj,"result_left_1",0.0),getattr(obj,"result_right_1",0.0)
-            l2,r2=getattr(obj,"result_left_2",0.0),getattr(obj,"result_right_2",0.0)
-            l3,r3=getattr(obj,"result_left_3",0.0),getattr(obj,"result_right_3",0.0)
-            s1=(l1 or 0)+(r1 or 0)if l1 is not None and r1 is not None else 0
-            s2=(l2 or 0)+(r2 or 0)if l2 is not None and r2 is not None else 0
-            s3=(l3 or 0)+(r3 or 0)if l3 is not None and r3 is not None else 0
+            pass # Przejdź do fallback
+        # Fallback
+        try:
+            l1,r1=getattr(obj,"result_left_1",0.0),getattr(obj,"result_right_1",0.0); l2,r2=getattr(obj,"result_left_2",0.0),getattr(obj,"result_right_2",0.0); l3,r3=getattr(obj,"result_left_3",0.0),getattr(obj,"result_right_3",0.0)
+            s1=(l1 or 0.0)+(r1 or 0.0) if l1 and l1>0 and r1 and r1>0 else 0.0
+            s2=(l2 or 0.0)+(r2 or 0.0) if l2 and l2>0 and r2 and r2>0 else 0.0
+            s3=(l3 or 0.0)+(r3 or 0.0) if l3 and l3>0 and r3 and r3>0 else 0.0
             return f"{max(s1,s2,s3):.1f}"
+        except Exception: return "ERR"
 
     @admin.display(description=_("% Masy Ciała"))
     def get_bw_percentage_display(self, obj) -> str | None:
         try:
-            bw = obj.bw_percentage
-            return f"{bw:.2f}%" if bw is not None else "---"
-        except AttributeError:
-            return "N/A"
+            bw = getattr(obj, 'bw_percentage', None)
+            if bw is not None: return f"{bw:.2f}%"
+            else: return "---"
+        except AttributeError: return "N/A"
 
     @admin.display(description=_("Kategorie"))
     def get_player_categories(self, obj) -> str:
@@ -284,7 +315,7 @@ class BaseResultLRAttemptAdmin(admin.ModelAdmin):
 # --- Indywidualne Adminy Wyników ---
 @admin.register(SnatchResult)
 class SnatchResultAdmin(admin.ModelAdmin):
-    list_display = ("player_link", "result", "position", "get_player_categories"); list_filter = ("player__categories", "position"); search_fields = ("player__name", "player__surname", "player__club__name"); readonly_fields = ("player_link", "position", "get_player_categories"); list_select_related = ("player", "player__club")
+    list_display = ("player_link", "result", "position", "get_player_categories"); list_filter = ("player__categories", "position"); search_fields = ("player__name", "player__surname", "player__club__name"); readonly_fields = ("player_link", "position", "get_player_categories", "result"); list_select_related = ("player", "player__club")
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def player_link(self, obj: SnatchResult): return player_link_display(obj)
     @admin.display(description=_("Kategorie"))
@@ -313,7 +344,4 @@ class OverallResultAdmin(admin.ModelAdmin):
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def player_link(self, obj: OverallResult): return player_link_display(obj)
     @admin.display(description=_("Kategorie"))
-    def get_player_categories(self, obj: OverallResult) -> str: return get_player_categories_display(obj)
-    def has_add_permission(self, request): return False
-    def has_change_permission(self, request, obj=None): return False
-    def has_delete_permission(self, request, obj=None): return True
+    def get_player_categories(self, obj: OverallResult) -> str: return
