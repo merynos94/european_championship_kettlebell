@@ -17,16 +17,16 @@ from .constants import (
     TWO_KB_PRESS,
 )
 from .player import Player
-from .results.kb_squat import BestKBSquatResult, KBSquatResult
+from .results.kb_squat import KBSquatResult
 from .results.one_kettlebell_press import OneKettlebellPressResult  # <--- NOWY MODEL
 from .results.overall import OverallResult
 from .results.pistol_squat import PistolSquatResult
-from .results.see_saw_press import BestSeeSawPressResult, SeeSawPressResult
+from .results.see_saw_press import SeeSawPressResult
 
 # Import result models (adjust path if using results/ subdirectory)
 from .results.snatch import BestSnatchResult, SnatchResult
 from .results.tgu import TGUResult
-from .results.two_kettlebell_press import BestTwoKettlebellPressResult, TwoKettlebellPressResult  # <--- NOWE MODELE
+from .results.two_kettlebell_press import TwoKettlebellPressResult  # <--- NOWE MODELE
 
 # Import models
 from .sport_club import SportClub

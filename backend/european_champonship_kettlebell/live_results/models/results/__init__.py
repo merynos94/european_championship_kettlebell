@@ -1,6 +1,5 @@
 # Importuj surowe wyniki
 from .kb_squat import (
-    BestKBSquatResult,  # Już było
     KBSquatResult,
 )
 from .one_kettlebell_press import (
@@ -14,7 +13,6 @@ from .pistol_squat import (
     PistolSquatResult,
 )
 from .see_saw_press import (
-    BestSeeSawPressResult,  # Już było
     SeeSawPressResult,
 )
 
@@ -29,7 +27,6 @@ from .tgu import (
     TGUResult,
 )
 from .two_kettlebell_press import (
-    BestTwoKettlebellPressResult,  # Dodano (zakładając, że jest w two_kettlebell_press.py)
     TwoKettlebellPressResult,  # Dodano
 )
 
