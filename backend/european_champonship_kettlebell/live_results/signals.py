@@ -2,7 +2,7 @@ import traceback
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from models.results import (
+from .models.results import (
     KBSquatResult, OneKettlebellPressResult, PistolSquatResult,
     SeeSawPressResult, SnatchResult, TGUResult, TwoKettlebellPressResult
 )

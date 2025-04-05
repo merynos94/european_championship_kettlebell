@@ -1,8 +1,8 @@
 from django.db.models import Case, F, FloatField, Value, When
 from django.db.models.functions import Greatest
+from .models.constants import SNATCH, TGU, SEE_SAW_PRESS, KB_SQUAT, PISTOL_SQUAT, ONE_KB_PRESS, TWO_KB_PRESS
 
-from backend.european_champonship_kettlebell.live_results.models.constants import KB_SQUAT, ONE_KB_PRESS, PISTOL_SQUAT, SEE_SAW_PRESS, SNATCH, TGU, TWO_KB_PRESS
-from models.results import (
+from .models.results import (
     KBSquatResult, OneKettlebellPressResult, PistolSquatResult,
     SeeSawPressResult, SnatchResult, TGUResult, TwoKettlebellPressResult,
     OverallResult

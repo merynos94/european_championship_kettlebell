@@ -11,11 +11,11 @@ from import_export.admin import ImportExportModelAdmin
 
 # === Import Models ===
 # Zakładamy, że Category i SportClub są w swoich aplikacjach
-from models import Category
-from models import SportClub
-from models import Player
+from .models.category import Category
+from .models.sport_club import SportClub
+from .models.player import Player
 # Importuj modele wyników z aplikacji results (zakładając __init__.py)
-from models.results import (
+from .models.results import (
     KBSquatResult,
     OneKettlebellPressResult,
     OverallResult,
@@ -26,7 +26,7 @@ from models.results import (
     TwoKettlebellPressResult,
 )
 # Importuj stałe dyscyplin
-from models.constants import AVAILABLE_DISCIPLINES
+from .models.constants import AVAILABLE_DISCIPLINES
 # === Import Resources ===
 # Zakładamy, że te pliki istnieją w bieżącej aplikacji
 from .resources import PlayerExportResource, PlayerImportResource
