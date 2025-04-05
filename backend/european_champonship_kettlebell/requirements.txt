@@ -1,4 +1,4 @@
-Django==5.1.7
+Django==5.2
 django-import-export==4.3.7
 djangorestframework==3.16.0
 gunicorn==23.0.0
