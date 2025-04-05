@@ -55,10 +55,11 @@ def player_link_display(obj, app_name="live_results"):
     return _("Brak gracza")
 
 
-"""Helper function to display player categories in admin panel"""
+
 
 
 def get_player_categories_display(obj) -> str:
+    """Helper function to display player categories in admin panel"""
     player = getattr(obj, "player", None)
     target_player = obj if isinstance(obj, Player) else player
     if target_player and hasattr(target_player, "categories") and target_player.categories.exists():
@@ -66,10 +67,11 @@ def get_player_categories_display(obj) -> str:
     return "---"
 
 
-"""Helper function to display player categories in admin panel"""
+
 
 
 class CategoryAdminForm(forms.ModelForm):
+    """Helper function to display player categories in admin panel"""
     disciplines = forms.MultipleChoiceField(
         choices=AVAILABLE_DISCIPLINES,
         widget=forms.CheckboxSelectMultiple,
@@ -77,15 +79,17 @@ class CategoryAdminForm(forms.ModelForm):
         label=_("Dyscypliny"),
         help_text=_("Wybierz dyscypliny dla tej kategorii."),
     )
-    """Form for CategoryAdmin to manage disciplines in admin panel"""
+
 
     class Meta:
+        """Form for CategoryAdmin to manage disciplines in admin panel"""
         model = Category
         fields = ["name", "disciplines"]
 
-    """Form for PlayerAdmin to manage disciplines in admin panel"""
+
 
     def __init__(self, *args, **kwargs):
+        """Form for PlayerAdmin to manage disciplines in admin panel"""
         super().__init__(*args, **kwargs)
         inst = self.instance
         if inst and inst.pk:
@@ -94,7 +98,7 @@ class CategoryAdminForm(forms.ModelForm):
         else:
             self.fields["disciplines"].initial = []
 
-    """Form for PlayerAdmin to manage disciplines in admin panel"""
+
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -112,13 +116,13 @@ class PlayerAdmin(ImportExportModelAdmin):
     resource_classes = [PlayerImportResource]
     export_resource_classes = [PlayerExportResource]
     list_display = (
-        "full_name",
+        "display_surname_name",
         "weight",
         "club",
         "get_categories_for_player",
         "get_snatch_score_display",
         "get_tgu_bw_percentage_display",
-        "get_ssp_bw_percentage_display",
+        # "get_ssp_bw_percentage_display", --> comment see saw press
         "get_kbs_bw_percentage_display",
         "get_pistol_bw_percentage_display",
         "get_okbp_bw_percentage_display",
@@ -133,7 +137,7 @@ class PlayerAdmin(ImportExportModelAdmin):
         "categories",
         "snatch_result",
         "tgu_result",
-        "see_saw_press_result",
+        # "see_saw_press_result",
         "kb_squat_result",
         "pistol_squat_result",
         "one_kettlebell_press_result",
@@ -151,6 +155,17 @@ class PlayerAdmin(ImportExportModelAdmin):
         ONE_KB_PRESS: "get_okbp_bw_percentage_display",
         TWO_KB_PRESS: "get_tkbp_bw_percentage_display",
     }
+
+    @admin.display(description="Nazwisko, Imię", ordering='surname')
+    def display_surname_name(self, obj):
+        if obj.surname and obj.name:
+             return f"{obj.surname} {obj.name}"
+        elif obj.surname:
+             return obj.surname
+        elif obj.name:
+             return obj.name
+        else:
+             return "---"
 
     def get_allowed_disciplines(self, obj: Player | None) -> set:
         allowed_disciplines = set()
@@ -197,7 +212,7 @@ class PlayerAdmin(ImportExportModelAdmin):
     def get_categories_for_player(self, obj: Player) -> str:
         return get_player_categories_display(obj)
 
-    @admin.display(description=_("Snatch Score"), ordering="snatch_result__result")
+    @admin.display(description=_("Snatch Score"))
     def get_snatch_score_display(self, obj: Player) -> str:
         res = getattr(obj, "snatch_result", None)
         score = getattr(res, "result", None)
