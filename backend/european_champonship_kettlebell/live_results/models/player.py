@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+
 class Player(models.Model):
     """Represents a competitor."""
 
@@ -13,13 +14,10 @@ class Player(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Klub"),
-        related_name="players"
+        related_name="players",
     )
     categories = models.ManyToManyField(
-        "live_results.Category",
-        verbose_name=_("Kategorie"),
-        related_name="players",
-        blank=True
+        "live_results.Category", verbose_name=_("Kategorie"), related_name="players", blank=True
     )
     tiebreak = models.BooleanField(_("Zastosowano Tiebreak"), default=False)
 

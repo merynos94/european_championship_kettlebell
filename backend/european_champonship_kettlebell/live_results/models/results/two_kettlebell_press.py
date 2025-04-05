@@ -1,10 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from .bases import BaseDoubleAttemptResult
+
 
 class TwoKettlebellPressResult(BaseDoubleAttemptResult):
     player = models.OneToOneField(
-        "live_results.Player", # Dostosuj ścieżkę
+        "live_results.Player",  # Dostosuj ścieżkę
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
         related_name="two_kettlebell_press_result",

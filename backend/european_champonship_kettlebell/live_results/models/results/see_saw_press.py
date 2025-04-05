@@ -1,10 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from .bases import BaseDoubleAttemptResult
+
 
 class SeeSawPressResult(BaseDoubleAttemptResult):
     player = models.OneToOneField(
-        "live_results.Player", # Dostosuj ścieżkę
+        "live_results.Player",
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
         related_name="see_saw_press_result",

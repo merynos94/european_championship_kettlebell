@@ -4,54 +4,57 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('live_results', '0019_alter_kbsquatresult_options_and_more'),
+        ("live_results", "0019_alter_kbsquatresult_options_and_more"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='overallresult',
-            options={'ordering': ['final_position', 'total_points'], 'verbose_name': 'Podsumowanie Wyników', 'verbose_name_plural': 'Podsumowania Wyników'},
+            name="overallresult",
+            options={
+                "ordering": ["final_position", "total_points"],
+                "verbose_name": "Podsumowanie Wyników",
+                "verbose_name_plural": "Podsumowania Wyników",
+            },
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='final_position',
-            field=models.PositiveIntegerField(blank=True, db_index=True, null=True, verbose_name='Miejsce Końcowe'),
+            model_name="overallresult",
+            name="final_position",
+            field=models.PositiveIntegerField(blank=True, db_index=True, null=True, verbose_name="Miejsce Końcowe"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='kb_squat_points',
-            field=models.FloatField(blank=True, null=True, verbose_name='Punkty KB Squat'),
+            model_name="overallresult",
+            name="kb_squat_points",
+            field=models.FloatField(blank=True, null=True, verbose_name="Punkty KB Squat"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='one_kb_press_points',
-            field=models.FloatField(blank=True, null=True, verbose_name='Punkty OKBP'),
+            model_name="overallresult",
+            name="one_kb_press_points",
+            field=models.FloatField(blank=True, null=True, verbose_name="Punkty OKBP"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='pistol_squat_points',
-            field=models.FloatField(blank=True, null=True, verbose_name='Punkty Pistol'),
+            model_name="overallresult",
+            name="pistol_squat_points",
+            field=models.FloatField(blank=True, null=True, verbose_name="Punkty Pistol"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='see_saw_press_points',
-            field=models.FloatField(blank=True, null=True, verbose_name='Punkty SSP'),
+            model_name="overallresult",
+            name="see_saw_press_points",
+            field=models.FloatField(blank=True, null=True, verbose_name="Punkty SSP"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='tiebreak_points',
-            field=models.FloatField(default=0.0, verbose_name='Punkty Tiebreak'),
+            model_name="overallresult",
+            name="tiebreak_points",
+            field=models.FloatField(default=0.0, verbose_name="Punkty Tiebreak"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='total_points',
-            field=models.FloatField(blank=True, db_index=True, null=True, verbose_name='Suma Punktów'),
+            model_name="overallresult",
+            name="total_points",
+            field=models.FloatField(blank=True, db_index=True, null=True, verbose_name="Suma Punktów"),
         ),
         migrations.AlterField(
-            model_name='overallresult',
-            name='two_kb_press_points',
-            field=models.FloatField(blank=True, null=True, verbose_name='Punkty TKBP'),
+            model_name="overallresult",
+            name="two_kb_press_points",
+            field=models.FloatField(blank=True, null=True, verbose_name="Punkty TKBP"),
         ),
     ]

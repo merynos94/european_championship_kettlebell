@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+
 class SnatchResult(models.Model):
     player = models.OneToOneField(
         "live_results.Player",
@@ -13,9 +14,9 @@ class SnatchResult(models.Model):
     position = models.IntegerField(_("Pozycja w kategorii"), null=True, blank=True)
 
     class Meta:
-         verbose_name = _("Wynik Snatch")
-         verbose_name_plural = _("Wyniki Snatch")
-         ordering = ["player__categories", "-position"]
+        verbose_name = _("Wynik Snatch")
+        verbose_name_plural = _("Wyniki Snatch")
+        ordering = ["player__categories", "-position"]
 
     @property
     def result(self) -> float | None:

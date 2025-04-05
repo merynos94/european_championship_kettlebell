@@ -1,13 +1,15 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from .bases import BaseSingleAttemptResult
+
 
 class OneKettlebellPressResult(BaseSingleAttemptResult):
     player = models.OneToOneField(
         "live_results.Player",
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
-        related_name="one_kettlebell_press_result"
+        related_name="one_kettlebell_press_result",
     )
 
     class Meta(BaseSingleAttemptResult.Meta):

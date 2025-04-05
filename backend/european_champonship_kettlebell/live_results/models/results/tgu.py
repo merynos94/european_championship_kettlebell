@@ -1,13 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from .bases import BaseSingleAttemptResult
+
 
 class TGUResult(BaseSingleAttemptResult):
     player = models.OneToOneField(
-        "live_results.Player",
-        on_delete=models.CASCADE,
-        verbose_name=_("Zawodnik"),
-        related_name="tgu_result"
+        "live_results.Player", on_delete=models.CASCADE, verbose_name=_("Zawodnik"), related_name="tgu_result"
     )
 
     class Meta(BaseSingleAttemptResult.Meta):
