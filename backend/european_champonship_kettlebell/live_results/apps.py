@@ -3,10 +3,8 @@ from django.utils.translation import gettext_lazy as _
 
 class LiveResultsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    # Upewnij się, że 'name' odpowiada ścieżce do Twojej aplikacji w projekcie Django
-    # Zazwyczaj jest to po prostu nazwa katalogu aplikacji.
     name = 'live_results'
-    verbose_name = _("Wyniki na Żywo") # Opcjonalna, bardziej przyjazna nazwa
+    verbose_name = _("Wyniki na Żywo")
 
     def ready(self):
         """
