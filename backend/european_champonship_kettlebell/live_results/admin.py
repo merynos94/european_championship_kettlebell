@@ -1,13 +1,12 @@
-# admin.py
 from django import forms
 from django.contrib import admin
 from django.db import models
 from django.db.models import Case, F, FloatField, Value, When
-from django.db.models.functions import Greatest
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from import_export.admin import ImportExportModelAdmin
+from .services import update_discipline_positions, update_overall_results_for_category # <--- WAŻNE
 
 # === Import Models ===
 # Zakładamy, że modele są w podkatalogu 'models' aplikacji 'live_results'
@@ -181,11 +180,52 @@ class CategoryAdmin(admin.ModelAdmin):
     form = CategoryAdminForm
     list_display = ("name", "get_disciplines_list_display")
     search_fields = ("name",)
+
     @admin.display(description=_("Dyscypliny"))
     def get_disciplines_list_display(self, obj: Category) -> str:
+        """Wyświetla listę dyscyplin dla kategorii w panelu admina."""
         disciplines = getattr(obj, "get_disciplines", getattr(obj, "disciplines", None))
-        if callable(disciplines): disciplines = disciplines()
-        return ", ".join(disciplines) if isinstance(disciplines, list) else "N/A"
+        # Upewnijmy się, że get_disciplines() jest wywoływane, jeśli istnieje
+        if callable(disciplines):
+            disciplines = disciplines()
+
+        # Sprawdźmy, czy wynik jest listą przed próbą join
+        if isinstance(disciplines, list):
+             # Możesz dodać mapowanie stałych na ładniejsze nazwy, jeśli chcesz
+             # np. display_map = {'SN': 'Snatch', 'TGU': 'TGU', ...}
+             # return ", ".join(display_map.get(d, d) for d in disciplines)
+             return ", ".join(disciplines) if disciplines else "---" # Pokaż "---" jeśli lista jest pusta
+        return "N/A" # Jeśli atrybut disciplines nie jest listą
+
+    # --- DODANA METODA save_model ---
+    def save_model(self, request, obj: Category, form, change):
+        """
+        Po zapisaniu zmian w Kategorii (np. zmianie listy dyscyplin),
+        uruchamia przeliczenie pozycji w dyscyplinach i wyników ogólnych
+        dla wszystkich zawodników w tej kategorii.
+        """
+        # Najpierw zapisujemy sam obiekt Category
+        super().save_model(request, obj, form, change)
+
+        # Następnie uruchamiamy logikę przeliczania wyników dla tej kategorii
+        print(f"Zapisano kategorię '{obj.name}'. Uruchamiam przeliczenie wyników...")
+        try:
+            # Ważne jest uruchomienie obu funkcji:
+            # 1. update_discipline_positions - aby ew. usunąć pozycje w usuniętych dyscyplinach
+            #    lub obliczyć dla nowo dodanych.
+            # 2. update_overall_results_for_category - aby zaktualizować punkty i sumę
+            #    na podstawie *aktualnej* listy dyscyplin.
+            update_discipline_positions(obj)
+            update_overall_results_for_category(obj)
+            print(f"Przeliczenie wyników dla kategorii '{obj.name}' zakończone.")
+            # Poinformuj użytkownika w panelu admina o sukcesie
+            self.message_user(request, f"Wyniki dla kategorii '{obj.name}' zostały pomyślnie przeliczone.", level='INFO')
+        except Exception as e:
+            # W razie błędu, zaloguj go i poinformuj użytkownika
+            print(f"BŁĄD podczas przeliczania wyników dla kategorii '{obj.name}' po zapisie: {e}")
+            traceback.print_exc() # Wyświetl pełny traceback w konsoli serwera
+            self.message_user(request, f"Wystąpił błąd podczas przeliczania wyników dla kategorii '{obj.name}': {e}", level='ERROR')
+    # --------------------------------
 
 # --- Base Admin for Single Attempt Results ---
 class BaseSingleResultAdmin(admin.ModelAdmin):
