@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 
 class SnatchResult(models.Model):
     player = models.OneToOneField(
-        "players.Player", 
+        "live_results.Player",
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
         related_name="snatch_result",

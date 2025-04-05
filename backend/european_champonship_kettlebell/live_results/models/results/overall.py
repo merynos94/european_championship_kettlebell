@@ -9,7 +9,7 @@ class OverallResult(models.Model):
     and final position for a player across all disciplines in their categories.
     """
     player = models.OneToOneField(
-        "players.Player",
+        "live_results.Player",
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
         related_name="overallresult",

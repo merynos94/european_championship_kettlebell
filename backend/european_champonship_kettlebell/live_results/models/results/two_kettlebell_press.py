@@ -4,7 +4,7 @@ from .bases import BaseDoubleAttemptResult
 
 class TwoKettlebellPressResult(BaseDoubleAttemptResult):
     player = models.OneToOneField(
-        "players.Player", # Dostosuj ścieżkę
+        "live_results.Player", # Dostosuj ścieżkę
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
         related_name="two_kettlebell_press_result",

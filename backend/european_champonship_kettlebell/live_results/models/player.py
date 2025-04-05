@@ -9,7 +9,7 @@ class Player(models.Model):
     surname = models.CharField(_("Nazwisko"), max_length=50)
     weight = models.FloatField(_("Waga (kg)"), null=True, blank=True, default=0.0)
     club = models.ForeignKey(
-        "sport_club.SportClub",
+        "live_results.SportClub",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -17,7 +17,7 @@ class Player(models.Model):
         related_name="players"
     )
     categories = models.ManyToManyField(
-        "category.Category",
+        "live_results.Category",
         verbose_name=_("Kategorie"),
         related_name="players",
         blank=True

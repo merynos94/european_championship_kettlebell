@@ -4,7 +4,7 @@ from .bases import BaseSingleAttemptResult
 
 class PistolSquatResult(BaseSingleAttemptResult):
     player = models.OneToOneField(
-        "players.Player",
+        "live_results.Player",
         on_delete=models.CASCADE,
         verbose_name=_("Zawodnik"),
         related_name="pistol_squat_result",
