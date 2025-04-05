@@ -1,50 +1,22 @@
-# Importuj surowe wyniki
-from .kb_squat import (
-    KBSquatResult,
-)
-from .one_kettlebell_press import (
-    # Dodano
-    OneKettlebellPressResult,  # Dodano
-)
-
-# Importuj wynik ogólny
+from .bases import BaseDoubleAttemptResult, BaseSingleAttemptResult
+from .kb_squat import KBSquatResult
+from .see_saw_press import SeeSawPressResult
+from .two_kettlebell_press import TwoKettlebellPressResult
+from .one_kettlebell_press import OneKettlebellPressResult
+from .pistol_squat import PistolSquatResult
+from .tgu import TGUResult
+from .snatch import SnatchResult
 from .overall import OverallResult
-from .pistol_squat import (
-    PistolSquatResult,
-)
-from .see_saw_press import (
-    SeeSawPressResult,
-)
 
-# Importuj najlepsze wyniki (zakładając, że są w osobnych plikach lub w tych samych co surowe)
-# Dostosuj ścieżki, jeśli Best* są w tych samych plikach co surowe wyniki
-from .snatch import (
-    SnatchResult,
-)
-from .tgu import (
-    # Dodano
-    TGUResult,
-)
-from .two_kettlebell_press import (
-    TwoKettlebellPressResult,  # Dodano
-)
-
-# Lista modeli eksportowanych przez ten moduł
 __all__ = [
-    # Surowe wyniki
-    "SnatchResult",
-    "TGUResult",
-    "PistolSquatResult",
-    "SeeSawPressResult",
+    "BaseDoubleAttemptResult",
+    "BaseSingleAttemptResult",
     "KBSquatResult",
-    "OneKettlebellPressResult",
+    "SeeSawPressResult",
     "TwoKettlebellPressResult",
-    # Najlepsze wyniki
-    "BestSnatchResult",
-    "BestPistolSquatResult",
-    "BestSeeSawPressResult",
-    "BestKBSquatResult",
-    "BestTwoKettlebellPressResult",
-    # Wynik ogólny
+    "OneKettlebellPressResult",
+    "PistolSquatResult",
+    "TGUResult",
+    "SnatchResult",
     "OverallResult",
 ]
