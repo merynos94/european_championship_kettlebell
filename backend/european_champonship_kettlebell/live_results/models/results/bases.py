@@ -1,8 +1,7 @@
-# results/bases.py
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-class BaseDoubleAttemptResult(models.Model): # Zmieniona nazwa
+class BaseDoubleAttemptResult(models.Model):
     """
     Abstract base model for disciplines with 3 L/R attempts.
     """
