@@ -8,7 +8,7 @@ from .constants import (
     AVAILABLE_DISCIPLINES,
     DISCIPLINE_NAMES,
     KB_SQUAT,
-    ONE_KB_PRESS,  # <--- NOWE STAŁE
+    ONE_KB_PRESS,
     PISTOL_SQUAT,
     SEE_SAW_PRESS,
     SNATCH,
