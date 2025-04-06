@@ -8,8 +8,4 @@ class LiveResultsConfig(AppConfig):
     verbose_name = _("Wyniki na Żywo")
 
     def ready(self):
-        """
-        Metoda wywoływana, gdy aplikacja jest gotowa.
-        Idealne miejsce do importowania sygnałów.
-        """
-        print("Live Results Signals Imported.")
+        import live_results.signals
