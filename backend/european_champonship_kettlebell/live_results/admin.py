@@ -37,12 +37,16 @@ from .models.results import (
 )
 from .models.sport_club import SportClub
 from .resources import PlayerExportResource, PlayerImportResource
-from .services import update_discipline_positions, update_overall_results_for_category
-
-"""Helper function to display player link in admin panel"""
+from .services import (
+    create_default_results_for_player_categories,
+    update_discipline_positions,
+    update_overall_results_for_category,
+    update_overall_results_for_player,
+)
 
 
 def player_link_display(obj, app_name="live_results"):
+    """Helper function to display player link in admin panel"""
     player = getattr(obj, "player", None)
     player_instance = None
     if isinstance(obj, Player):
@@ -55,9 +59,6 @@ def player_link_display(obj, app_name="live_results"):
     return _("Brak gracza")
 
 
-
-
-
 def get_player_categories_display(obj) -> str:
     """Helper function to display player categories in admin panel"""
     player = getattr(obj, "player", None)
@@ -67,11 +68,9 @@ def get_player_categories_display(obj) -> str:
     return "---"
 
 
-
-
-
 class CategoryAdminForm(forms.ModelForm):
-    """Helper function to display player categories in admin panel"""
+    """Django Form for the Category model used in the admin interface."""
+
     disciplines = forms.MultipleChoiceField(
         choices=AVAILABLE_DISCIPLINES,
         widget=forms.CheckboxSelectMultiple,
@@ -80,16 +79,13 @@ class CategoryAdminForm(forms.ModelForm):
         help_text=_("Wybierz dyscypliny dla tej kategorii."),
     )
 
-
     class Meta:
         """Form for CategoryAdmin to manage disciplines in admin panel"""
         model = Category
         fields = ["name", "disciplines"]
 
-
-
     def __init__(self, *args, **kwargs):
-        """Form for PlayerAdmin to manage disciplines in admin panel"""
+        """Initializes the form, setting initial disciplines for existing instances."""
         super().__init__(*args, **kwargs)
         inst = self.instance
         if inst and inst.pk:
@@ -97,8 +93,6 @@ class CategoryAdminForm(forms.ModelForm):
             self.fields["disciplines"].initial = initial_disciplines if isinstance(initial_disciplines, list) else []
         else:
             self.fields["disciplines"].initial = []
-
-
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -144,7 +138,7 @@ class PlayerAdmin(ImportExportModelAdmin):
         "two_kettlebell_press_result",
         "overallresult",
     )
-    ordering = ("-overallresult__total_points", "surname", "name")  # DODANO domyślne sortowanie
+    ordering = ("-overallresult__total_points", "surname", "name")
 
     DISCIPLINE_TO_FIELD_MAP = {
         SNATCH: "get_snatch_score_display",
@@ -156,16 +150,16 @@ class PlayerAdmin(ImportExportModelAdmin):
         TWO_KB_PRESS: "get_tkbp_bw_percentage_display",
     }
 
-    @admin.display(description="Nazwisko, Imię", ordering='surname')
+    @admin.display(description="Nazwisko, Imię", ordering="surname")
     def display_surname_name(self, obj):
         if obj.surname and obj.name:
-             return f"{obj.surname} {obj.name}"
+            return f"{obj.surname} {obj.name}"
         elif obj.surname:
-             return obj.surname
+            return obj.surname
         elif obj.name:
-             return obj.name
+            return obj.name
         else:
-             return "---"
+            return "---"
 
     def get_allowed_disciplines(self, obj: Player | None) -> set:
         allowed_disciplines = set()
@@ -267,42 +261,55 @@ class PlayerAdmin(ImportExportModelAdmin):
         return [PlayerExportResource]
 
     def save_model(self, request, obj: Player, form, change):
-        old_categories_pks = set()
-        if change and obj.pk:
-            try:
-                old_obj = Player.objects.get(pk=obj.pk)
-                old_categories_pks = set(old_obj.categories.values_list("pk", flat=True))
-            except Player.DoesNotExist:
-                pass
+        """Handles saving the Player model. Triggers a full results update after saving (e.g., for weight changes)."""
         super().save_model(request, obj, form, change)
-        current_categories_pks = set(obj.categories.values_list("pk", flat=True))
-        newly_added_category_pks = current_categories_pks - old_categories_pks
-        from .services import create_default_results_for_player_categories, update_overall_results_for_player
-
-        if newly_added_category_pks:
-            print(f"Gracz {obj.id}: Dodano kategorie {newly_added_category_pks}. Tworzę domyślne rekordy wyników...")
-            try:
-                created_any = create_default_results_for_player_categories(obj, newly_added_category_pks)
-                if created_any:
-                    print(f"Stworzono nowe domyślne rekordy wyników dla gracza {obj.id}.")
-                else:
-                    print(
-                        f"Nie stworzono nowych domyślnych rekordów (prawdopodobnie już istniały) dla gracza {obj.id}."
-                    )
-            except Exception as e:
-                print(f"BŁĄD podczas tworzenia domyślnych rekordów dla gracza {obj.id}: {e}")
-                traceback.print_exc()
-                self.message_user(
-                    request, f"Wystąpił błąd podczas tworzenia domyślnych rekordów wyników: {e}", level="ERROR"
-                )
-        print(f"Gracz {obj.id}: Uruchamiam przeliczenie wyników ogólnych...")
+        print(f"[Admin save_model] Saved player {obj.id}. Triggering overall results recalculation...")
         try:
             update_overall_results_for_player(obj)
-            print(f"Zakończono przeliczanie wyników ogólnych dla gracza {obj.id}.")
+            print(f"[Admin save_model] Finished recalculating overall results for player {obj.id}.")
         except Exception as e:
-            print(f"BŁĄD podczas przeliczania wyników ogólnych dla gracza {obj.id}: {e}")
+            print(f"[Admin save_model] ERROR during results recalculation for player {obj.id}: {e}")
             traceback.print_exc()
-            self.message_user(request, f"Wystąpił błąd podczas przeliczania wyników ogólnych: {e}", level="ERROR")
+            self.message_user(request, f"An error occurred during results recalculation: {e}", level="ERROR")
+
+    def save_related(self, request, form, formsets, change):
+        """Called AFTER saving ManyToMany relationships (e.g., categories). Ideal place to create default records for NEW players."""
+        super().save_related(request, form, formsets, change)
+
+        if not change:
+            player_instance = form.instance
+            category_pks = set(player_instance.categories.values_list("pk", flat=True))
+
+            if category_pks:
+                print(
+                    f"[Admin save_related] New player {player_instance.id} has categories {category_pks}. Creating default result records..."
+                )
+                try:
+                    created_any = create_default_results_for_player_categories(player_instance, category_pks)
+                    if created_any:
+                        print(
+                            f"[Admin save_related] Created new default result records for player {player_instance.id}.")
+                    else:
+                        print(
+                            f"[Admin save_related] No new default records created (likely already existed?) for player {player_instance.id}."
+                        )
+
+                    print(f"[Admin save_related] Triggering full results update for new player {player_instance.id}...")
+                    update_overall_results_for_player(player_instance)
+                    print(f"[Admin save_related] Finished update for new player {player_instance.id}.")
+
+                except Exception as e:
+                    print(f"[Admin save_related] CRITICAL ERROR while handling new player {player_instance.id}: {e}")
+                    traceback.print_exc()
+                    self.message_user(
+                        request,
+                        f"An error occurred while creating/updating results for the new player: {e}",
+                        level="ERROR",
+                    )
+            else:
+                print(
+                    f"[Admin save_related] New player {player_instance.id} has no assigned categories. Skipping default results creation."
+                )
 
 
 @admin.register(SportClub)
@@ -383,19 +390,19 @@ class CategoryAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj: Category, form, change):
         super().save_model(request, obj, form, change)
-        print(f"Zapisano kategorię '{obj.name}'. Uruchamiam przeliczenie wyników...")
+        print(f"Saved category '{obj.name}'. Triggering results recalculation...")
         try:
             update_discipline_positions(obj)
             update_overall_results_for_category(obj)
-            print(f"Przeliczenie wyników dla kategorii '{obj.name}' zakończone.")
+            print(f"Results recalculation for category '{obj.name}' finished.")
             self.message_user(
-                request, f"Wyniki dla kategorii '{obj.name}' zostały pomyślnie przeliczone.", level="INFO"
+                request, f"Results for category '{obj.name}' have been successfully recalculated.", level="INFO"
             )
         except Exception as e:
-            print(f"BŁĄD podczas przeliczania wyników dla kategorii '{obj.name}' po zapisie: {e}")
+            print(f"ERROR during results recalculation for category '{obj.name}' after save: {e}")
             traceback.print_exc()
             self.message_user(
-                request, f"Wystąpił błąd podczas przeliczania wyników dla kategorii '{obj.name}': {e}", level="ERROR"
+                request, f"An error occurred while recalculating results for category '{obj.name}': {e}", level="ERROR"
             )
 
     @admin.action(description=_("Eksportuj szczegółowe wyniki kategorii do HTML"))
@@ -426,7 +433,7 @@ class CategoryAdmin(admin.ModelAdmin):
                 )
                 prefetch_related_list.append(f"player__{related_name}")
             else:
-                print(f"OSTRZEŻENIE: Brak konfiguracji eksportu lub related_name dla dyscypliny '{code}'")
+                print(f"WARNING: Missing export configuration or related_name for discipline '{code}'")
 
         overall_results = (
             OverallResult.objects.filter(player__categories=category)
@@ -486,16 +493,16 @@ class BaseResultAdminMixin:
                         .order_by("surname", "name")
                     )
                     print(
-                        f"Ograniczono queryset graczy dla {self.__class__.__name__} do {kwargs['queryset'].count()} rekordów."
+                        f"Restricted player queryset for {self.__class__.__name__} to {kwargs['queryset'].count()} records."
                     )
                 else:
                     kwargs["queryset"] = Player.objects.none()
                     print(
-                        f"Brak kategorii dla dyscypliny {self.discipline_code}, queryset graczy pusty dla {self.__class__.__name__}."
+                        f"No categories for discipline {self.discipline_code}, player queryset empty for {self.__class__.__name__}."
                     )
 
             except Exception as e:
-                print(f"BŁĄD podczas filtrowania graczy w formfield_for_foreignkey dla {self.__class__.__name__}: {e}")
+                print(f"ERROR while filtering players in formfield_for_foreignkey for {self.__class__.__name__}: {e}")
                 traceback.print_exc()
                 pass
 
@@ -748,10 +755,10 @@ class OverallResultAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False  # Tylko do odczytu
+        return False
 
     # def has_delete_permission(self, request, obj=None):
-    #     return False # Tylko do odczytu
+    #     return False
 
     DISCIPLINE_POINTS_FIELDS = {
         SNATCH: "snatch_points",
