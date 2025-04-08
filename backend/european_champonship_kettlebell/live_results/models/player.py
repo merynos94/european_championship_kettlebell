@@ -34,4 +34,6 @@ class Player(models.Model):
         return f"{self.name} {self.surname}"
 
     def save(self, *args, **kwargs) -> None:
+        if self.weight is None:
+            self.weight = 0.0
         super().save(*args, **kwargs)
