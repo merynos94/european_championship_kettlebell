@@ -1,0 +1,73 @@
+.categoryContainer {
+}
+
+.backLink {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  color: var(--link-color);
+  text-decoration: none;
+}
+.backLink:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+.categoryTitle {
+  margin-bottom: 0.5rem;
+}
+
+.categoryDisciplines {
+  font-style: italic;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 2rem;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 2rem;
+}
+
+.resultsTable {
+  border: none;
+  margin-bottom: 0;
+  min-width: 700px;
+}
+
+.resultsTable th,
+.resultsTable td {
+  white-space: nowrap;
+}
+
+.resultsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.textRight {
+  text-align: right;
+}
+
+.bold {
+  font-weight: 700;
+}
+
+.resultsTable tbody tr:nth-child(odd) {
+  background-color: var(--secondary-color);
+}
+.resultsTable tbody tr:nth-child(odd):hover {
+  background-color: var(--table-row-hover-bg);
+}
+
+@media (prefers-color-scheme: light) {
+  .resultsTable tbody tr:nth-child(odd) {
+    background-color: var(--secondary-color);
+  }
+  .resultsTable tbody tr:nth-child(odd):hover {
+    background-color: var(--table-row-hover-bg);
+  }
+}
