@@ -1,0 +1,78 @@
+.appContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  background-color: var(--background-color);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+}
+
+.logoLink {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: var(--text-color);
+  text-decoration: none;
+}
+.logoLink:hover {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.navigation {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.navLink {
+  font-weight: 500;
+  color: var(--link-color);
+  text-decoration: none;
+  padding: 0.5rem 0;
+  position: relative;
+}
+.navLink::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  display: block;
+  margin-top: 5px;
+  right: 0;
+  background: var(--primary-color);
+  transition: width 0.2s ease;
+  -webkit-transition: width 0.2s ease;
+}
+.navLink:hover::after {
+  width: 100%;
+  left: 0;
+  background-color: var(--primary-color-hover);
+}
+.navLink:hover {
+  color: var(--link-hover-color);
+  text-decoration: none;
+}
+
+.mainContent {
+  flex-grow: 1;
+  padding-bottom: 2rem;
+}
+
+.footer {
+  padding: 1.5rem 0;
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.7;
+}
