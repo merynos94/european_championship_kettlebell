@@ -519,11 +519,12 @@ class BaseResultAdminMixin:
 
 
 class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
+    # Displaying result_1, result_2, result_3 - assuming they exist on the model
     list_display = (
         "get_player_name",
-        "result_1",
-        "result_2",
-        "result_3",
+        "result_1", # Should exist on BaseSingleAttemptResult model
+        "result_2", # Should exist on BaseSingleAttemptResult model
+        "result_3", # Should exist on BaseSingleAttemptResult model
         "get_max_result_display",
         "get_bw_percentage_display",
         "position",
@@ -534,11 +535,12 @@ class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
     search_fields = ("player__name", "player__surname", "player__club__name")
     readonly_fields = ("position", "get_max_result_display", "get_bw_percentage_display", "get_player_categories")
     list_select_related = ("player", "player__club")
+    # Including result_1, result_2, result_3 in fields for the change form
     fields = (
         "player",
-        "result_1",
-        "result_2",
-        "result_3",
+        "result_1", # Should exist on BaseSingleAttemptResult model
+        "result_2", # Should exist on BaseSingleAttemptResult model
+        "result_3", # Should exist on BaseSingleAttemptResult model
         "position",
         "get_max_result_display",
         "get_bw_percentage_display",
@@ -553,17 +555,20 @@ class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
 
     @admin.display(description=_("Max Wynik"))
     def get_max_result_display(self, obj) -> str:
+        # Assuming 'max_result' property exists on BaseSingleAttemptResult model
         max_res = getattr(obj, "max_result", None)
         return f"{max_res:.1f}" if max_res is not None else "---"
 
     @admin.display(description=_("% Masy Ciała"))
     def get_bw_percentage_display(self, obj) -> str:
+        # Assuming 'bw_percentage' property exists on BaseSingleAttemptResult model
         bw = getattr(obj, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
     @admin.display(description=_("Kategorie"))
     def get_player_categories(self, obj) -> str:
         return get_player_categories_display(obj)
+
 
 
 # This class is no longer needed as kb_squat and two_kettlebell_press are now single attempt
@@ -715,27 +720,28 @@ class OneKettlebellPressResultAdmin(BaseSingleResultAdmin):
 
 # Updated admin registration to use BaseSingleResultAdmin based on new model [cite: 1]
 @admin.register(KBSquatResult)
-class KBSquatResultAdmin(BaseSingleResultAdmin): # Changed base class
+class KBSquatResultAdmin(BaseSingleResultAdmin):
     discipline_code = KB_SQUAT
 
 
-# Updated admin registration to use BaseSingleResultAdmin based on new model [cite: 3]
+# Inherits from BaseSingleResultAdmin, should work if BaseSingleAttemptResult has result_1,2,3
 @admin.register(TwoKettlebellPressResult)
-class TwoKettlebellPressResultAdmin(BaseSingleResultAdmin): # Changed base class
+class TwoKettlebellPressResultAdmin(BaseSingleResultAdmin):
     discipline_code = TWO_KB_PRESS
+
 
 
 @admin.register(OverallResult)
 class OverallResultAdmin(admin.ModelAdmin):
-    # Updated list_display based on comments
+    # (Keep the list_display, ordering, readonly_fields, etc. as they were in the previous corrected version)
     list_display = (
         "player_link",
         "get_player_categories_display",
         "snatch_points",
         "tgu_points",
-        # "see_saw_press_points", # Commented out based on request
+        # "see_saw_press_points", # Commented out
         "kb_squat_points",
-        # "pistol_squat_points", # Commented out based on request
+        # "pistol_squat_points", # Commented out
         "one_kb_press_points",
         "two_kb_press_points",
         "tiebreak_points",
@@ -744,15 +750,14 @@ class OverallResultAdmin(admin.ModelAdmin):
     )
     list_display_links = None
     ordering = ("final_position", "total_points")
-    # Updated readonly_fields based on comments
     readonly_fields = (
         "player_link",
         "get_player_categories_display",
         "snatch_points",
         "tgu_points",
-        # "see_saw_press_points", # Commented out based on request
+        # "see_saw_press_points", # Commented out
         "kb_squat_points",
-        # "pistol_squat_points", # Commented out based on request
+        # "pistol_squat_points", # Commented out
         "one_kb_press_points",
         "two_kb_press_points",
         "tiebreak_points",
@@ -774,18 +779,20 @@ class OverallResultAdmin(admin.ModelAdmin):
     # def has_delete_permission(self, request, obj=None):
     #     return False
 
-    # Updated DISCIPLINE_POINTS_FIELDS based on comments
+    # Define the points mapping first
     DISCIPLINE_POINTS_FIELDS = {
         SNATCH: "snatch_points",
         TGU: "tgu_points",
-        # SEE_SAW_PRESS: "see_saw_press_points", # Commented out based on request
+        # SEE_SAW_PRESS: "see_saw_press_points", # Commented out
         KB_SQUAT: "kb_squat_points",
-        # PISTOL_SQUAT: "pistol_squat_points", # Commented out based on request
+        # PISTOL_SQUAT: "pistol_squat_points", # Commented out
         ONE_KB_PRESS: "one_kb_press_points",
         TWO_KB_PRESS: "two_kb_press_points",
     }
-    # Use updated AVAILABLE_DISCIPLINES which implicitly excludes commented out constants
-    ORDERED_DISCIPLINE_CODES = [code for code, name in AVAILABLE_DISCIPLINES if code in DISCIPLINE_POINTS_FIELDS] # Ensure only available disciplines are used
+
+    # Define ordered codes based ONLY on the imported constant
+    # We will filter this list inside the method below
+    ORDERED_DISCIPLINE_CODES = [code for code, name in AVAILABLE_DISCIPLINES]
 
     @admin.action(description=_("Eksportuj podsumowanie wyników do HTML"))
     def export_overall_results_as_html(self, request, queryset):
@@ -800,14 +807,14 @@ class OverallResultAdmin(admin.ModelAdmin):
             return
 
         discipline_columns = []
-        # Use updated ORDERED_DISCIPLINE_CODES and DISCIPLINE_POINTS_FIELDS
+        # Filter the codes *inside* the method using the defined points fields
         for code in self.ORDERED_DISCIPLINE_CODES:
-            if code in self.DISCIPLINE_POINTS_FIELDS:
+            if code in self.DISCIPLINE_POINTS_FIELDS: # Filter using the class attribute
                 discipline_columns.append(
                     {
                         "code": code,
                         "name": dict(AVAILABLE_DISCIPLINES).get(code, code),
-                        "field_name": self.DISCIPLINE_POINTS_FIELDS[code],
+                        "field_name": self.DISCIPLINE_POINTS_FIELDS[code], # Access via self
                     }
                 )
 
@@ -825,7 +832,7 @@ class OverallResultAdmin(admin.ModelAdmin):
         context = {
             "title": _("Podsumowanie Wyników Ogólnych"),
             "results_with_cats": table_rows,
-            "discipline_columns": discipline_columns,
+            "discipline_columns": discipline_columns, # Use the filtered list
         }
 
         html_content = render_to_string("admin/live_results/overallresult/overall_export.html", context)
@@ -840,3 +847,4 @@ class OverallResultAdmin(admin.ModelAdmin):
     @admin.display(description=_("Kategorie"))
     def get_player_categories_display(self, obj: OverallResult) -> str:
         return get_player_categories_display(obj.player)
+
