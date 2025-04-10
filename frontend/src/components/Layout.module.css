@@ -1,78 +1,132 @@
 .appContainer {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  max-width: 1280px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 1.5rem;
-  background-color: var(--background-color);
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 2rem;
+  justify-content: space-between;
+  padding: 0 1.5rem !important;
+  background-color: rgba(10, 0, 0, 0.4) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  height: 64px;
+  backdrop-filter: blur(4px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+}
+
+.logoContainer {
+  flex-shrink: 0;
+  margin-right: auto;
 }
 
 .logoLink {
-  font-size: 1.4em;
-  font-weight: 700;
-  color: var(--text-color);
+  font-family: var(--font-primary);
+  font-size: 1.2em;
+  font-weight: 400;
+  color: var(--text-color) !important;
   text-decoration: none;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  transition: color 0.3s ease;
 }
 .logoLink:hover {
-  color: var(--primary-color);
+  color: var(--primary-color-hover) !important;
   text-decoration: none;
 }
 
-.navigation {
-  display: flex;
-  gap: 1.5rem;
+.navigationMenu {
+  line-height: 62px !important;
+  border-bottom: none !important;
+  background: transparent !important;
+  flex: 0 1 auto;
+  justify-content: flex-end;
 }
 
-.navLink {
+.navigationMenu .ant-menu-item a {
+  color: var(--text-color) !important;
+  font-weight: 400;
+  font-size: 1em;
+  transition: color 0.3s ease;
+  padding: 0 10px;
+}
+.navigationMenu .ant-menu-item-selected a,
+.navigationMenu .ant-menu-item a:hover {
+  color: var(--primary-color) !important;
+}
+.navigationMenu .ant-menu-item::after {
+  border-bottom-color: var(--primary-color) !important;
+}
+
+.mobileNavButton {
+  display: none;
+  border: none !important;
+  color: var(--text-color) !important;
+}
+.mobileNavButton:hover,
+.mobileNavButton:focus {
+  color: var(--primary-color-hover) !important;
+  background: transparent !important;
+}
+
+@media (max-width: 768px) {
+  .desktopNav {
+    display: none !important;
+  }
+  .mobileNavButton {
+    display: inline-block !important;
+  }
+  .logoLink {
+    font-size: 1.1em;
+  }
+  .header {
+    padding: 0 1rem !important;
+  }
+  .appContainer {
+    padding: 0 1rem;
+  }
+}
+
+.mobileDrawer .ant-drawer-body {
+  padding: 0;
+}
+.mobileDrawer .ant-menu-vertical {
+  border-right: none !important;
+}
+.mobileDrawer .ant-menu-item a {
+  color: #333 !important;
   font-weight: 500;
-  color: var(--link-color);
-  text-decoration: none;
-  padding: 0.5rem 0;
-  position: relative;
 }
-.navLink::after {
-  content: "";
-  position: absolute;
-  width: 0;
-  height: 2px;
-  display: block;
-  margin-top: 5px;
-  right: 0;
-  background: var(--primary-color);
-  transition: width 0.2s ease;
-  -webkit-transition: width 0.2s ease;
-}
-.navLink:hover::after {
-  width: 100%;
-  left: 0;
-  background-color: var(--primary-color-hover);
-}
-.navLink:hover {
-  color: var(--link-hover-color);
-  text-decoration: none;
+.mobileDrawer .ant-menu-item-selected a {
+  color: var(--primary-color) !important;
 }
 
 .mainContent {
+  padding: 16px;
+  border-radius: 6px;
+  margin: 16px 0;
+  background-color: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(3px);
   flex-grow: 1;
-  padding-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .mainContent {
+    padding: 24px;
+    margin: 24px 0;
+  }
 }
 
 .footer {
-  padding: 1.5rem 0;
-  margin-top: auto;
-  border-top: 1px solid var(--border-color);
   text-align: center;
+  padding: 1rem 0 !important;
   font-size: 0.9em;
-  color: var(--text-color);
-  opacity: 0.7;
+  color: var(--footer-text-color) !important;
+  background: transparent !important;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
 }
