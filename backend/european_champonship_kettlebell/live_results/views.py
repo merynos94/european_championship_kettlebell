@@ -62,7 +62,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         # Paginate results (good practice for lists)
-        # Pagination needs to be configured globally in settings.py
+        # Pagination needs to be configured globally in base.py
         # or a pagination class defined for this ViewSet for this to work effectively.
         page = self.paginate_queryset(queryset)
         if page is not None:
