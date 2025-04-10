@@ -5,18 +5,23 @@ from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 
 from .models import Player
+# Updated results import
 from .models.results import (
-    KBSquatResult, OneKettlebellPressResult, PistolSquatResult,
-    SeeSawPressResult, SnatchResult, TGUResult, TwoKettlebellPressResult,
+    KBSquatResult, OneKettlebellPressResult, # PistolSquatResult removed
+    # SeeSawPressResult removed
+    SnatchResult, TGUResult, TwoKettlebellPressResult,
 )
 from .services import (
     create_default_results_for_player_categories,
     update_overall_results_for_player,
 )
 
+# Updated RESULT_MODELS_TO_TRACK
 RESULT_MODELS_TO_TRACK = [
-    SnatchResult, TGUResult, SeeSawPressResult, KBSquatResult,
-    PistolSquatResult, OneKettlebellPressResult, TwoKettlebellPressResult,
+    SnatchResult, TGUResult, # SeeSawPressResult removed
+    KBSquatResult,
+    # PistolSquatResult removed
+    OneKettlebellPressResult, TwoKettlebellPressResult,
 ]
 
 
@@ -32,6 +37,7 @@ def trigger_overall_update_on_result_save(sender, instance, created, **kwargs):
             f"[Signal post_save] Zapisano {sender.__name__} dla gracza {player_instance.id}. Uruchamiam aktualizację wyników..."
         )
         try:
+            # Calls the updated service function
             update_overall_results_for_player(player_instance)
         except Exception as e:
             print(
@@ -70,6 +76,8 @@ def handle_player_category_change(sender, instance, action, pk_set, **kwargs):
                 f"[Signal m2m_changed on_commit] Rozpoczynam przetwarzanie dla Gracza {player.id}..."
             )
             try:
+                # Ensure player still exists and refresh categories
+                player.refresh_from_db()
                 all_category_pks = set(player.categories.all().values_list('pk', flat=True))
                 print(
                     f"[Signal m2m_changed on_commit] Gracz {player.id}: Aktualne kategorie PKs po odświeżeniu: {all_category_pks}"
@@ -84,6 +92,7 @@ def handle_player_category_change(sender, instance, action, pk_set, **kwargs):
                 print(
                     f"[Signal m2m_changed on_commit] Gracz {player.id}: Tworzenie/sprawdzanie domyślnych wyników dla kategorii {all_category_pks}..."
                 )
+                # Calls the updated service function
                 created_defaults = create_default_results_for_player_categories(player, all_category_pks)
                 if created_defaults:
                     print(
@@ -96,6 +105,7 @@ def handle_player_category_change(sender, instance, action, pk_set, **kwargs):
                 print(
                     f"[Signal m2m_changed on_commit] Uruchamiam pełną aktualizację wyników dla gracza {player.id}..."
                 )
+                # Calls the updated service function
                 update_overall_results_for_player(player)
                 print(
                     f"[Signal m2m_changed on_commit] Zakończono przetwarzanie dla gracza {player.id}."
