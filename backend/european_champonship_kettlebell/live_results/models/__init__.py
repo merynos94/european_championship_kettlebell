@@ -16,7 +16,7 @@ from .constants import (
     TWO_KB_PRESS,
 )
 from .player import Player
-from .results.kb_squat import KBSquatResult
+from .results.kb_squat_one_result import KBSquatResult
 from .results.one_kettlebell_press import OneKettlebellPressResult
 from .results.overall import OverallResult
 from .results.pistol_squat import PistolSquatResult
@@ -25,7 +25,7 @@ from .results.see_saw_press import SeeSawPressResult
 # Import result models (adjust path if using results/ subdirectory)
 from .results.snatch import SnatchResult
 from .results.tgu import TGUResult
-from .results.two_kettlebell_press import TwoKettlebellPressResult
+from .results.two_kettlebell_press_one_result import TwoKettlebellPressResult
 
 # Import models
 from .sport_club import SportClub
