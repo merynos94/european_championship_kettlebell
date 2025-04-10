@@ -7,9 +7,9 @@ from .models.results import (
     OverallResult,
     SnatchResult,
     TGUResult,
-    SeeSawPressResult,
+    # SeeSawPressResult, # Commented out
     KBSquatResult,
-    PistolSquatResult,
+    # PistolSquatResult, # Commented out
     OneKettlebellPressResult,
     TwoKettlebellPressResult,
 )
@@ -55,7 +55,7 @@ class SnatchResultSerializer(serializers.ModelSerializer):
         read_only_fields = ['position']
 
     def get_result_score(self, obj: SnatchResult) -> float:
-        score = obj.result  # Użyj property 'result' z modelu SnatchResult
+        score = obj.result  # Use property 'result' from SnatchResult model
         return score if score is not None else 0.0
 
 
@@ -95,63 +95,62 @@ class OneKettlebellPressResultSerializer(serializers.ModelSerializer):
         return val if val is not None else 0.0
 
 
-class PistolSquatResultSerializer(serializers.ModelSerializer):
-    max_result_val = serializers.SerializerMethodField()
-    bw_percentage_val = serializers.SerializerMethodField()
-
-    class Meta:
-        model = PistolSquatResult
-        fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val', 'position']
-        read_only_fields = ['position']
-
-    def get_max_result_val(self, obj: PistolSquatResult) -> float:
-        val = obj.max_result
-        return val if val is not None else 0.0
-
-    def get_bw_percentage_val(self, obj: PistolSquatResult) -> float:
-        val = obj.bw_percentage
-        return val if val is not None else 0.0
-
-
-class SeeSawPressResultSerializer(serializers.ModelSerializer):
-    max_score_val = serializers.SerializerMethodField()
-    bw_percentage_val = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SeeSawPressResult
-        fields = [
-            'result_left_1', 'result_right_1',
-            'result_left_2', 'result_right_2',
-            'result_left_3', 'result_right_3',
-            'max_score_val', 'bw_percentage_val', 'position'
-        ]
-        read_only_fields = ['position']
-
-    def get_max_score_val(self, obj: SeeSawPressResult) -> float:
-        val = obj.max_score
-        return val if val is not None else 0.0
-
-    def get_bw_percentage_val(self, obj: SeeSawPressResult) -> float:
-        val = obj.bw_percentage
-        return val if val is not None else 0.0
+# class PistolSquatResultSerializer(serializers.ModelSerializer): # Commented out
+#     max_result_val = serializers.SerializerMethodField()
+#     bw_percentage_val = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = PistolSquatResult
+#         fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val', 'position']
+#         read_only_fields = ['position']
+#
+#     def get_max_result_val(self, obj: PistolSquatResult) -> float:
+#         val = obj.max_result
+#         return val if val is not None else 0.0
+#
+#     def get_bw_percentage_val(self, obj: PistolSquatResult) -> float:
+#         val = obj.bw_percentage
+#         return val if val is not None else 0.0
 
 
+# class SeeSawPressResultSerializer(serializers.ModelSerializer): # Commented out
+#     max_score_val = serializers.SerializerMethodField()
+#     bw_percentage_val = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = SeeSawPressResult
+#         fields = [
+#             'result_left_1', 'result_right_1',
+#             'result_left_2', 'result_right_2',
+#             'result_left_3', 'result_right_3',
+#             'max_score_val', 'bw_percentage_val', 'position'
+#         ]
+#         read_only_fields = ['position']
+#
+#     def get_max_score_val(self, obj: SeeSawPressResult) -> float:
+#         val = obj.max_score
+#         return val if val is not None else 0.0
+#
+#     def get_bw_percentage_val(self, obj: SeeSawPressResult) -> float:
+#         val = obj.bw_percentage
+#         return val if val is not None else 0.0
+
+
+# Updated KBSquatResultSerializer for BaseSingleAttemptResult structure
 class KBSquatResultSerializer(serializers.ModelSerializer):
-    max_score_val = serializers.SerializerMethodField()
+    max_result_val = serializers.SerializerMethodField()
     bw_percentage_val = serializers.SerializerMethodField()
 
     class Meta:
         model = KBSquatResult
         fields = [
-            'result_left_1', 'result_right_1',
-            'result_left_2', 'result_right_2',
-            'result_left_3', 'result_right_3',
-            'max_score_val', 'bw_percentage_val', 'position'
+            'result_1', 'result_2', 'result_3', # Changed fields
+            'max_result_val', 'bw_percentage_val', 'position'
         ]
         read_only_fields = ['position']
 
-    def get_max_score_val(self, obj: KBSquatResult) -> float:
-        val = obj.max_score
+    def get_max_result_val(self, obj: KBSquatResult) -> float: # Changed method name and logic
+        val = obj.max_result
         return val if val is not None else 0.0
 
     def get_bw_percentage_val(self, obj: KBSquatResult) -> float:
@@ -159,22 +158,21 @@ class KBSquatResultSerializer(serializers.ModelSerializer):
         return val if val is not None else 0.0
 
 
+# Updated TwoKettlebellPressResultSerializer for BaseSingleAttemptResult structure
 class TwoKettlebellPressResultSerializer(serializers.ModelSerializer):
-    max_score_val = serializers.SerializerMethodField()
+    max_result_val = serializers.SerializerMethodField()
     bw_percentage_val = serializers.SerializerMethodField()
 
     class Meta:
         model = TwoKettlebellPressResult
         fields = [
-            'result_left_1', 'result_right_1',
-            'result_left_2', 'result_right_2',
-            'result_left_3', 'result_right_3',
-            'max_score_val', 'bw_percentage_val', 'position'
+            'result_1', 'result_2', 'result_3', # Changed fields
+            'max_result_val', 'bw_percentage_val', 'position'
         ]
         read_only_fields = ['position']
 
-    def get_max_score_val(self, obj: TwoKettlebellPressResult) -> float:
-        val = obj.max_score
+    def get_max_result_val(self, obj: TwoKettlebellPressResult) -> float: # Changed method name and logic
+        val = obj.max_result
         return val if val is not None else 0.0
 
     def get_bw_percentage_val(self, obj: TwoKettlebellPressResult) -> float:
@@ -187,21 +185,21 @@ class CategoryResultsSerializer(serializers.ModelSerializer):
 
     snatch_result = SnatchResultSerializer(source='player.snatch_result', read_only=True, allow_null=True)
     tgu_result = TGUResultSerializer(source='player.tgu_result', read_only=True, allow_null=True)
-    see_saw_press_result = SeeSawPressResultSerializer(source='player.see_saw_press_result', read_only=True,
-                                                       allow_null=True)
-    kb_squat_result = KBSquatResultSerializer(source='player.kb_squat_result', read_only=True, allow_null=True)
-    pistol_squat_result = PistolSquatResultSerializer(source='player.pistol_squat_result', read_only=True,
-                                                      allow_null=True)
+    # see_saw_press_result = SeeSawPressResultSerializer(source='player.see_saw_press_result', read_only=True, # Commented out
+    #                                                    allow_null=True)
+    kb_squat_result = KBSquatResultSerializer(source='player.kb_squat_one_result', read_only=True, allow_null=True) # Updated source
+    # pistol_squat_result = PistolSquatResultSerializer(source='player.pistol_squat_result', read_only=True, # Commented out
+    #                                                   allow_null=True)
     one_kettlebell_press_result = OneKettlebellPressResultSerializer(source='player.one_kettlebell_press_result',
                                                                      read_only=True, allow_null=True)
-    two_kettlebell_press_result = TwoKettlebellPressResultSerializer(source='player.two_kettlebell_press_result',
+    two_kettlebell_press_result = TwoKettlebellPressResultSerializer(source='player.two_kettlebell_press_one_result', # Updated source
                                                                      read_only=True, allow_null=True)
 
     snatch_points = serializers.SerializerMethodField()
     tgu_points = serializers.SerializerMethodField()
-    see_saw_press_points = serializers.SerializerMethodField()
+    # see_saw_press_points = serializers.SerializerMethodField() # Commented out
     kb_squat_points = serializers.SerializerMethodField()
-    pistol_squat_points = serializers.SerializerMethodField()
+    # pistol_squat_points = serializers.SerializerMethodField() # Commented out
     one_kb_press_points = serializers.SerializerMethodField()
     two_kb_press_points = serializers.SerializerMethodField()
     tiebreak_points = serializers.SerializerMethodField()
@@ -209,29 +207,33 @@ class CategoryResultsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OverallResult
+        # Updated fields list
         fields = [
             'final_position',
             'player',
             'total_points',
             'snatch_points',
             'tgu_points',
-            'see_saw_press_points',
+            # 'see_saw_press_points', # Commented out
             'kb_squat_points',
-            'pistol_squat_points',
+            # 'pistol_squat_points', # Commented out
             'one_kb_press_points',
             'two_kb_press_points',
             'tiebreak_points',
             'snatch_result',
             'tgu_result',
-            'see_saw_press_result',
-            'kb_squat_result',
-            'pistol_squat_result',
+            # 'see_saw_press_result', # Commented out
+            'kb_squat_result', # Represents the new kb_squat_one_result source
+            # 'pistol_squat_result', # Commented out
             'one_kettlebell_press_result',
-            'two_kettlebell_press_result',
+            'two_kettlebell_press_result', # Represents the new two_kettlebell_press_one_result source
         ]
+        # Updated read_only_fields list
         read_only_fields = [
             'final_position', 'player', 'snatch_result', 'tgu_result',
-            'see_saw_press_result', 'kb_squat_result', 'pistol_squat_result',
+            # 'see_saw_press_result', # Commented out
+            'kb_squat_result',
+            # 'pistol_squat_result', # Commented out
             'one_kettlebell_press_result', 'two_kettlebell_press_result'
         ]
 
@@ -241,14 +243,14 @@ class CategoryResultsSerializer(serializers.ModelSerializer):
     def get_tgu_points(self, obj: OverallResult) -> float:
         return obj.tgu_points if obj.tgu_points is not None else 0.0
 
-    def get_see_saw_press_points(self, obj: OverallResult) -> float:
-        return obj.see_saw_press_points if obj.see_saw_press_points is not None else 0.0
+    # def get_see_saw_press_points(self, obj: OverallResult) -> float: # Commented out
+    #     return obj.see_saw_press_points if obj.see_saw_press_points is not None else 0.0
 
     def get_kb_squat_points(self, obj: OverallResult) -> float:
         return obj.kb_squat_points if obj.kb_squat_points is not None else 0.0
 
-    def get_pistol_squat_points(self, obj: OverallResult) -> float:
-        return obj.pistol_squat_points if obj.pistol_squat_points is not None else 0.0
+    # def get_pistol_squat_points(self, obj: OverallResult) -> float: # Commented out
+    #     return obj.pistol_squat_points if obj.pistol_squat_points is not None else 0.0
 
     def get_one_kb_press_points(self, obj: OverallResult) -> float:
         return obj.one_kb_press_points if obj.one_kb_press_points is not None else 0.0
