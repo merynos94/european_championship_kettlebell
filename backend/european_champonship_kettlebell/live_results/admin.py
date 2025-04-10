@@ -18,22 +18,22 @@ from .models.constants import (
     AVAILABLE_DISCIPLINES,
     KB_SQUAT,
     ONE_KB_PRESS,
-    PISTOL_SQUAT,
-    SEE_SAW_PRESS,
+    # PISTOL_SQUAT, # Commented out based on request
+    # SEE_SAW_PRESS, # Commented out based on request
     SNATCH,
     TGU,
     TWO_KB_PRESS,
 )
 from .models.player import Player
 from .models.results import (
-    KBSquatResult,
+    KBSquatResult, # Updated import
     OneKettlebellPressResult,
     OverallResult,
-    PistolSquatResult,
-    SeeSawPressResult,
+    # PistolSquatResult, # Commented out based on request
+    # SeeSawPressResult, # Commented out based on request
     SnatchResult,
     TGUResult,
-    TwoKettlebellPressResult,
+    TwoKettlebellPressResult, # Updated import
 )
 from .models.sport_club import SportClub
 from .resources import PlayerExportResource, PlayerImportResource
@@ -116,11 +116,11 @@ class PlayerAdmin(ImportExportModelAdmin):
         "get_categories_for_player",
         "get_snatch_score_display",
         "get_tgu_bw_percentage_display",
-        # "get_ssp_bw_percentage_display", --> comment see saw press
-        "get_kbs_bw_percentage_display",
-        "get_pistol_bw_percentage_display",
+        # "get_ssp_bw_percentage_display", # Commented out based on request
+        "get_kbs_bw_percentage_display", # Uses KBSquatResult
+        # "get_pistol_bw_percentage_display", # Commented out based on request
         "get_okbp_bw_percentage_display",
-        "get_tkbp_bw_percentage_display",
+        "get_tkbp_bw_percentage_display", # Uses TwoKettlebellPressResult
         "tiebreak",
         "get_overall_score_display",
     )
@@ -131,21 +131,22 @@ class PlayerAdmin(ImportExportModelAdmin):
         "categories",
         "snatch_result",
         "tgu_result",
-        # "see_saw_press_result",
-        "kb_squat_result",
-        "pistol_squat_result",
+        # "see_saw_press_result", # Commented out based on request
+        "kb_squat_one_result", # Changed related_name based on new model [cite: 1]
+        # "pistol_squat_result", # Commented out based on request
         "one_kettlebell_press_result",
-        "two_kettlebell_press_result",
+        "two_kettlebell_press_one_result", # Changed related_name based on new model [cite: 3]
         "overallresult",
     )
     ordering = ("-overallresult__total_points", "surname", "name")
 
+    # Updated DISCIPLINE_TO_FIELD_MAP to reflect changes and comments
     DISCIPLINE_TO_FIELD_MAP = {
         SNATCH: "get_snatch_score_display",
         TGU: "get_tgu_bw_percentage_display",
-        SEE_SAW_PRESS: "get_ssp_bw_percentage_display",
+        # SEE_SAW_PRESS: "get_ssp_bw_percentage_display", # Commented out based on request
         KB_SQUAT: "get_kbs_bw_percentage_display",
-        PISTOL_SQUAT: "get_pistol_bw_percentage_display",
+        # PISTOL_SQUAT: "get_pistol_bw_percentage_display", # Commented out based on request
         ONE_KB_PRESS: "get_okbp_bw_percentage_display",
         TWO_KB_PRESS: "get_tkbp_bw_percentage_display",
     }
@@ -176,6 +177,7 @@ class PlayerAdmin(ImportExportModelAdmin):
             (_("Dane Podstawowe"), {"fields": ("name", "surname", "weight", "club", "categories", "tiebreak")}),
         ]
         results_fields = []
+        # Use updated DISCIPLINE_TO_FIELD_MAP
         for discipline_code, field_name in self.DISCIPLINE_TO_FIELD_MAP.items():
             if discipline_code in allowed_disciplines:
                 results_fields.append(field_name)
@@ -196,6 +198,7 @@ class PlayerAdmin(ImportExportModelAdmin):
     def get_readonly_fields(self, request, obj: Player | None = None):
         allowed_disciplines = self.get_allowed_disciplines(obj)
         readonly = []
+        # Use updated DISCIPLINE_TO_FIELD_MAP
         for discipline_code, field_name in self.DISCIPLINE_TO_FIELD_MAP.items():
             if discipline_code in allowed_disciplines:
                 readonly.append(field_name)
@@ -218,23 +221,24 @@ class PlayerAdmin(ImportExportModelAdmin):
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
-    @admin.display(description=_("SSP (%BW)"))
-    def get_ssp_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "see_saw_press_result", None)
-        bw = getattr(res, "bw_percentage", None)
-        return f"{bw:.2f}%" if bw is not None else "---"
+    # @admin.display(description=_("SSP (%BW)")) # Commented out based on request
+    # def get_ssp_bw_percentage_display(self, obj: Player) -> str:
+    #     res = getattr(obj, "see_saw_press_result", None)
+    #     bw = getattr(res, "bw_percentage", None)
+    #     return f"{bw:.2f}%" if bw is not None else "---"
 
     @admin.display(description=_("KBS (%BW)"))
     def get_kbs_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "kb_squat_result", None)
+        # Updated related name based on new model [cite: 1]
+        res = getattr(obj, "kb_squat_one_result", None)
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
-    @admin.display(description=_("Pistol (%BW)"))
-    def get_pistol_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "pistol_squat_result", None)
-        bw = getattr(res, "bw_percentage", None)
-        return f"{bw:.2f}%" if bw is not None else "---"
+    # @admin.display(description=_("Pistol (%BW)")) # Commented out based on request
+    # def get_pistol_bw_percentage_display(self, obj: Player) -> str:
+    #     res = getattr(obj, "pistol_squat_result", None)
+    #     bw = getattr(res, "bw_percentage", None)
+    #     return f"{bw:.2f}%" if bw is not None else "---"
 
     @admin.display(description=_("OKBP (%BW)"))
     def get_okbp_bw_percentage_display(self, obj: Player) -> str:
@@ -244,7 +248,8 @@ class PlayerAdmin(ImportExportModelAdmin):
 
     @admin.display(description=_("TKBP (%BW)"))
     def get_tkbp_bw_percentage_display(self, obj: Player) -> str:
-        res = getattr(obj, "two_kettlebell_press_result", None)
+        # Updated related name based on new model [cite: 3]
+        res = getattr(obj, "two_kettlebell_press_one_result", None)
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
@@ -332,15 +337,17 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     actions = ["export_results_as_html"]
 
+    # Updated DISCIPLINE_RELATED_NAMES based on comments and changes
     DISCIPLINE_RELATED_NAMES = {
         SNATCH: "snatch_result",
         TGU: "tgu_result",
-        SEE_SAW_PRESS: "see_saw_press_result",
-        KB_SQUAT: "kb_squat_result",
-        PISTOL_SQUAT: "pistol_squat_result",
+        # SEE_SAW_PRESS: "see_saw_press_result", # Commented out
+        KB_SQUAT: "kb_squat_one_result", # Changed related name [cite: 1]
+        # PISTOL_SQUAT: "pistol_squat_result", # Commented out
         ONE_KB_PRESS: "one_kettlebell_press_result",
-        TWO_KB_PRESS: "two_kettlebell_press_result",
+        TWO_KB_PRESS: "two_kettlebell_press_one_result", # Changed related name [cite: 3]
     }
+    # Updated DISCIPLINE_EXPORT_CONFIG based on comments and changes
     DISCIPLINE_EXPORT_CONFIG = {
         SNATCH: {
             "header": "Snatch (kg x reps / wynik)",
@@ -352,30 +359,30 @@ class CategoryAdmin(admin.ModelAdmin):
             "attributes": ["max_result", "bw_percentage", "position"],
             "template_snippet": "admin/live_results/category/export_snippets/single_attempt.html",
         },
-        PISTOL_SQUAT: {
-            "header": "Pistol (max kg / %BW)",
-            "attributes": ["max_result", "bw_percentage", "position"],
-            "template_snippet": "admin/live_results/category/export_snippets/single_attempt.html",
-        },
+        # PISTOL_SQUAT: { # Commented out
+        #     "header": "Pistol (max kg / %BW)",
+        #     "attributes": ["max_result", "bw_percentage", "position"],
+        #     "template_snippet": "admin/live_results/category/export_snippets/single_attempt.html",
+        # },
         ONE_KB_PRESS: {
             "header": "OH Press (max kg / %BW)",
             "attributes": ["max_result", "bw_percentage", "position"],
             "template_snippet": "admin/live_results/category/export_snippets/single_attempt.html",
         },
-        SEE_SAW_PRESS: {
-            "header": "SeeSaw Press (max kg / %BW)",
-            "attributes": ["max_score", "bw_percentage", "position"],
-            "template_snippet": "admin/live_results/category/export_snippets/double_attempt.html",
-        },
-        KB_SQUAT: {
+        # SEE_SAW_PRESS: { # Commented out
+        #     "header": "SeeSaw Press (max kg / %BW)",
+        #     "attributes": ["max_score", "bw_percentage", "position"],
+        #     "template_snippet": "admin/live_results/category/export_snippets/double_attempt.html",
+        # },
+        KB_SQUAT: { # Changed base class implies single attempt logic
             "header": "KB Squat (max kg / %BW)",
-            "attributes": ["max_score", "bw_percentage", "position"],
-            "template_snippet": "admin/live_results/category/export_snippets/double_attempt.html",
+            "attributes": ["max_result", "bw_percentage", "position"], # Changed attributes
+            "template_snippet": "admin/live_results/category/export_snippets/single_attempt.html", # Changed template
         },
-        TWO_KB_PRESS: {
+        TWO_KB_PRESS: { # Changed base class implies single attempt logic
             "header": "2KB Press (max kg / %BW)",
-            "attributes": ["max_score", "bw_percentage", "position"],
-            "template_snippet": "admin/live_results/category/export_snippets/double_attempt.html",
+            "attributes": ["max_result", "bw_percentage", "position"], # Changed attributes
+            "template_snippet": "admin/live_results/category/export_snippets/single_attempt.html", # Changed template
         },
     }
 
@@ -417,8 +424,10 @@ class CategoryAdmin(admin.ModelAdmin):
         disciplines_in_category = sorted(list(category.get_disciplines()))
 
         discipline_columns = []
+        # Use updated DISCIPLINE_RELATED_NAMES
         prefetch_related_list = ["player__club"]
         for code in disciplines_in_category:
+            # Use updated DISCIPLINE_EXPORT_CONFIG and DISCIPLINE_RELATED_NAMES
             if code in self.DISCIPLINE_EXPORT_CONFIG and code in self.DISCIPLINE_RELATED_NAMES:
                 config = self.DISCIPLINE_EXPORT_CONFIG[code]
                 related_name = self.DISCIPLINE_RELATED_NAMES[code]
@@ -557,78 +566,79 @@ class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
         return get_player_categories_display(obj)
 
 
-class BaseDoubleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
-    list_display = (
-        "get_player_name",
-        "get_attempt_1_score_display",
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-        "get_max_score_display",
-        "get_bw_percentage_display",
-        "position",
-        "get_player_categories",
-    )
-    list_display_links = ("get_player_name",)
-    list_filter = ("player__categories", "position", ("player__weight", admin.EmptyFieldListFilter))
-    search_fields = ("player__name", "player__surname", "player__club__name")
-    readonly_fields = (
-        "position",
-        "get_max_score_display",
-        "get_attempt_1_score_display",
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-        "get_bw_percentage_display",
-        "get_player_categories",
-    )
-    list_select_related = ("player", "player__club")
-    fields = (
-        "player",
-        ("result_left_1", "result_right_1"),
-        ("result_left_2", "result_right_2"),
-        ("result_left_3", "result_right_3"),
-        "position",
-        "get_max_score_display",
-        "get_bw_percentage_display",
-        "get_player_categories",
-        "get_attempt_1_score_display",
-        "get_attempt_2_score_display",
-        "get_attempt_3_score_display",
-    )
-    autocomplete_fields = ("player",)
+# This class is no longer needed as kb_squat and two_kettlebell_press are now single attempt
+# class BaseDoubleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
+#     list_display = (
+#         "get_player_name",
+#         "get_attempt_1_score_display",
+#         "get_attempt_2_score_display",
+#         "get_attempt_3_score_display",
+#         "get_max_score_display",
+#         "get_bw_percentage_display",
+#         "position",
+#         "get_player_categories",
+#     )
+#     list_display_links = ("get_player_name",)
+#     list_filter = ("player__categories", "position", ("player__weight", admin.EmptyFieldListFilter))
+#     search_fields = ("player__name", "player__surname", "player__club__name")
+#     readonly_fields = (
+#         "position",
+#         "get_max_score_display",
+#         "get_attempt_1_score_display",
+#         "get_attempt_2_score_display",
+#         "get_attempt_3_score_display",
+#         "get_bw_percentage_display",
+#         "get_player_categories",
+#     )
+#     list_select_related = ("player", "player__club")
+#     fields = (
+#         "player",
+#         ("result_left_1", "result_right_1"),
+#         ("result_left_2", "result_right_2"),
+#         ("result_left_3", "result_right_3"),
+#         "position",
+#         "get_max_score_display",
+#         "get_bw_percentage_display",
+#         "get_player_categories",
+#         "get_attempt_1_score_display",
+#         "get_attempt_2_score_display",
+#         "get_attempt_3_score_display",
+#     )
+#     autocomplete_fields = ("player",)
 
-    @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def get_player_name(self, obj):
-        player = getattr(obj, "player", None)
-        return str(player) if player else _("Brak Gracza")
+#     @admin.display(description=_("Zawodnik"), ordering="player__surname")
+#     def get_player_name(self, obj):
+#         player = getattr(obj, "player", None)
+#         return str(player) if player else _("Brak Gracza")
 
-    @admin.display(description=_("Wynik Próby 1"))
-    def get_attempt_1_score_display(self, obj) -> str:
-        score = obj.get_attempt_score(1)
-        return f"{score:.1f}" if score is not None else "---"
+#     @admin.display(description=_("Wynik Próby 1"))
+#     def get_attempt_1_score_display(self, obj) -> str:
+#         score = obj.get_attempt_score(1)
+#         return f"{score:.1f}" if score is not None else "---"
 
-    @admin.display(description=_("Wynik Próby 2"))
-    def get_attempt_2_score_display(self, obj) -> str:
-        score = obj.get_attempt_score(2)
-        return f"{score:.1f}" if score is not None else "---"
+#     @admin.display(description=_("Wynik Próby 2"))
+#     def get_attempt_2_score_display(self, obj) -> str:
+#         score = obj.get_attempt_score(2)
+#         return f"{score:.1f}" if score is not None else "---"
 
-    @admin.display(description=_("Wynik Próby 3"))
-    def get_attempt_3_score_display(self, obj) -> str:
-        score = obj.get_attempt_score(3)
-        return f"{score:.1f}" if score is not None else "---"
+#     @admin.display(description=_("Wynik Próby 3"))
+#     def get_attempt_3_score_display(self, obj) -> str:
+#         score = obj.get_attempt_score(3)
+#         return f"{score:.1f}" if score is not None else "---"
 
-    @admin.display(description=_("Max Wynik (Suma)"))
-    def get_max_score_display(self, obj) -> str:
-        max_s = getattr(obj, "max_score", None)
-        return f"{max_s:.1f}" if max_s is not None else "---"
+#     @admin.display(description=_("Max Wynik (Suma)"))
+#     def get_max_score_display(self, obj) -> str:
+#         max_s = getattr(obj, "max_score", None)
+#         return f"{max_s:.1f}" if max_s is not None else "---"
 
-    @admin.display(description=_("% Masy Ciała"))
-    def get_bw_percentage_display(self, obj) -> str:
-        bw = getattr(obj, "bw_percentage", None)
-        return f"{bw:.2f}%" if bw is not None else "---"
+#     @admin.display(description=_("% Masy Ciała"))
+#     def get_bw_percentage_display(self, obj) -> str:
+#         bw = getattr(obj, "bw_percentage", None)
+#         return f"{bw:.2f}%" if bw is not None else "---"
 
-    @admin.display(description=_("Kategorie"))
-    def get_player_categories(self, obj) -> str:
-        return get_player_categories_display(obj)
+#     @admin.display(description=_("Kategorie"))
+#     def get_player_categories(self, obj) -> str:
+#         return get_player_categories_display(obj)
 
 
 @admin.register(SnatchResult)
@@ -693,36 +703,39 @@ class OneKettlebellPressResultAdmin(BaseSingleResultAdmin):
     discipline_code = ONE_KB_PRESS
 
 
-@admin.register(PistolSquatResult)
-class PistolSquatResultAdmin(BaseSingleResultAdmin):
-    discipline_code = PISTOL_SQUAT
+# @admin.register(PistolSquatResult) # Commented out based on request
+# class PistolSquatResultAdmin(BaseSingleResultAdmin):
+#     discipline_code = PISTOL_SQUAT
 
 
-@admin.register(SeeSawPressResult)
-class SeeSawPressResultAdmin(BaseDoubleResultAdmin):
-    discipline_code = SEE_SAW_PRESS
+# @admin.register(SeeSawPressResult) # Commented out based on request
+# class SeeSawPressResultAdmin(BaseDoubleResultAdmin):
+#     discipline_code = SEE_SAW_PRESS
 
 
+# Updated admin registration to use BaseSingleResultAdmin based on new model [cite: 1]
 @admin.register(KBSquatResult)
-class KBSquatResultAdmin(BaseDoubleResultAdmin):
+class KBSquatResultAdmin(BaseSingleResultAdmin): # Changed base class
     discipline_code = KB_SQUAT
 
 
+# Updated admin registration to use BaseSingleResultAdmin based on new model [cite: 3]
 @admin.register(TwoKettlebellPressResult)
-class TwoKettlebellPressResultAdmin(BaseDoubleResultAdmin):
+class TwoKettlebellPressResultAdmin(BaseSingleResultAdmin): # Changed base class
     discipline_code = TWO_KB_PRESS
 
 
 @admin.register(OverallResult)
 class OverallResultAdmin(admin.ModelAdmin):
+    # Updated list_display based on comments
     list_display = (
         "player_link",
         "get_player_categories_display",
         "snatch_points",
         "tgu_points",
-        "see_saw_press_points",
+        # "see_saw_press_points", # Commented out based on request
         "kb_squat_points",
-        "pistol_squat_points",
+        # "pistol_squat_points", # Commented out based on request
         "one_kb_press_points",
         "two_kb_press_points",
         "tiebreak_points",
@@ -731,14 +744,15 @@ class OverallResultAdmin(admin.ModelAdmin):
     )
     list_display_links = None
     ordering = ("final_position", "total_points")
+    # Updated readonly_fields based on comments
     readonly_fields = (
         "player_link",
         "get_player_categories_display",
         "snatch_points",
         "tgu_points",
-        "see_saw_press_points",
+        # "see_saw_press_points", # Commented out based on request
         "kb_squat_points",
-        "pistol_squat_points",
+        # "pistol_squat_points", # Commented out based on request
         "one_kb_press_points",
         "two_kb_press_points",
         "tiebreak_points",
@@ -760,16 +774,18 @@ class OverallResultAdmin(admin.ModelAdmin):
     # def has_delete_permission(self, request, obj=None):
     #     return False
 
+    # Updated DISCIPLINE_POINTS_FIELDS based on comments
     DISCIPLINE_POINTS_FIELDS = {
         SNATCH: "snatch_points",
         TGU: "tgu_points",
-        SEE_SAW_PRESS: "see_saw_press_points",
+        # SEE_SAW_PRESS: "see_saw_press_points", # Commented out based on request
         KB_SQUAT: "kb_squat_points",
-        PISTOL_SQUAT: "pistol_squat_points",
+        # PISTOL_SQUAT: "pistol_squat_points", # Commented out based on request
         ONE_KB_PRESS: "one_kb_press_points",
         TWO_KB_PRESS: "two_kb_press_points",
     }
-    ORDERED_DISCIPLINE_CODES = [code for code, name in AVAILABLE_DISCIPLINES]
+    # Use updated AVAILABLE_DISCIPLINES which implicitly excludes commented out constants
+    ORDERED_DISCIPLINE_CODES = [code for code, name in AVAILABLE_DISCIPLINES if code in DISCIPLINE_POINTS_FIELDS] # Ensure only available disciplines are used
 
     @admin.action(description=_("Eksportuj podsumowanie wyników do HTML"))
     def export_overall_results_as_html(self, request, queryset):
@@ -784,6 +800,7 @@ class OverallResultAdmin(admin.ModelAdmin):
             return
 
         discipline_columns = []
+        # Use updated ORDERED_DISCIPLINE_CODES and DISCIPLINE_POINTS_FIELDS
         for code in self.ORDERED_DISCIPLINE_CODES:
             if code in self.DISCIPLINE_POINTS_FIELDS:
                 discipline_columns.append(
