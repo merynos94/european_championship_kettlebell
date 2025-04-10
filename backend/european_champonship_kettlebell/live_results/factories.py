@@ -20,12 +20,20 @@ class SportClubFactory(DjangoModelFactory):
 
 
 CATEGORY_NAMES = [
-    "Najlepszy Ząbkowiczanin", "Najlepsza Ząbkowiczanka",
-    "Junior do 16 roku życia", "Junior",
-    "Pro Mężczyźni do 85 kg", "Pro Mężczyźni powyżej 85 kg", "Masters 45+",
-    "Amator Kobiety do 65 kg", "Amator Kobiety powyżej 65 kg", "Amator Mężczyźni do 85 kg",
-    "Amator Mężczyźni powyżej 85 kg",
-    "Pro Kobiety do 65 kg", "Pro Kobiety powyżej 65 kg",
+    "Amator Kobiet 65 kg / Woman Amateur 65 kg",
+    "Amator Kobiet +65 kg / Woman Amateur +65 kg",
+    "Amator Mężczyzn 85 kg / Man Amateur 85 kg",
+    "Amator Mężczyzn +85 kg / Man Amateur +85 kg",
+    "Pro Kobiet 65 kg / Woman Professional 65 kg",
+    "Pro Kobiet +65 kg / Woman Professional +65 kg",
+    "Pro Mężczyzn 85 kg / Man Professional 85 kg",
+    "Pro Mężczyzn +85 kg / Man Professional +85 kg",
+    "Junior 16 Dziewcząt / Girls Junior 16",
+    "Junior 16 Chłopców / Boys Junior 16",
+    "Masters +45 Kobiet / Woman Masters +45",
+    "Masters +45 Mężczyzn / Man Masters +45",
+    "Najlepsza Ząbkowiczanka / Woman Local"
+    "Najlepszy Ząbkowiczanin / Man Local"
 ]
 
 
