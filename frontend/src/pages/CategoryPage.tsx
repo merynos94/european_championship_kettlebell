@@ -1,213 +1,756 @@
-// src/pages/CategoryPage.tsx
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import apiClient from '../services/api';
-import { CategoryResultsResponse, OverallResult, Category } from '../types';
-import styles from './CategoryPage.module.css'; // Importujemy CSS Module
+import React, { useState, useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Table, Spin, Alert, Typography, Button, Input } from "antd";
+import type { TableProps } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import apiClient from "../services/api";
+import { CategoryResultsResponse, OverallResult, Category } from "../types";
+import styles from "./CategoryPage.module.css";
+
+const { Title, Paragraph } = Typography;
+const { Search } = Input;
+
+const formatNumber = (
+  value: number | null | undefined,
+  digits: number = 1
+): string => {
+  if (value == null || isNaN(value)) return "-";
+  return value.toFixed(digits);
+};
+const formatPercentage = (value: number | null | undefined): string => {
+  if (value == null || isNaN(value)) return "-";
+  return `${value.toFixed(2)}%`;
+};
+
+const fetchCategoryData = async (
+  categoryId: string | undefined
+): Promise<{ categoryInfo: Category; results: CategoryResultsResponse }> => {
+  if (!categoryId) throw new Error("Category ID jest wymagane");
+  const [catInfoResponse, resultsResponse] = await Promise.all([
+    apiClient.get<Category>(`/categories/${categoryId}/`),
+    apiClient.get<CategoryResultsResponse>(
+      `/categories/${categoryId}/results/`
+    ),
+  ]);
+  const sortedResults = resultsResponse.data.sort(
+    (a, b) => (a.final_position ?? 999) - (b.final_position ?? 999)
+  );
+  return { categoryInfo: catInfoResponse.data, results: sortedResults };
+};
+
+const overallColumns: TableProps<OverallResult>["columns"] = [
+  {
+    title: "M-ce",
+    dataIndex: "final_position",
+    key: "final_position",
+    render: (pos) => pos ?? "-",
+    sorter: (a, b) => (a.final_position ?? 999) - (b.final_position ?? 999),
+    width: 80,
+    align: "center",
+  },
+  {
+    title: "Zawodnik",
+    key: "player",
+    render: (_, record) => `${record.player.name} ${record.player.surname}`,
+    sorter: (a, b) =>
+      `${a.player.name} ${a.player.surname}`.localeCompare(
+        `${b.player.name} ${b.player.surname}`
+      ),
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
+  },
+  {
+    title: "Klub",
+    dataIndex: ["player", "club_name"],
+    key: "club",
+    render: (club) => club || "-",
+    sorter: (a, b) =>
+      (a.player.club_name || "").localeCompare(b.player.club_name || ""),
+    responsive: ["md"],
+  },
+  {
+    title: "Waga",
+    dataIndex: ["player", "weight"],
+    key: "weight",
+    render: (w) => formatNumber(w, 1),
+    sorter: (a, b) => (a.player.weight ?? 0) - (b.player.weight ?? 0),
+    align: "right",
+    responsive: ["lg"],
+  },
+  {
+    title: "Pkt Suma",
+    dataIndex: "total_points",
+    key: "total_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) => (a.total_points ?? 0) - (b.total_points ?? 0),
+    align: "right",
+    className: "boldColumn",
+    width: 100,
+  },
+  {
+    title: "Snatch",
+    dataIndex: "snatch_points",
+    key: "snatch_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) => (a.snatch_points ?? 0) - (b.snatch_points ?? 0),
+    align: "right",
+    responsive: ["lg"],
+  },
+  {
+    title: "TGU",
+    dataIndex: "tgu_points",
+    key: "tgu_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) => (a.tgu_points ?? 0) - (b.tgu_points ?? 0),
+    align: "right",
+    responsive: ["lg"],
+  },
+  {
+    title: "SSP",
+    dataIndex: "see_saw_press_points",
+    key: "ssp_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) =>
+      (a.see_saw_press_points ?? 0) - (b.see_saw_press_points ?? 0),
+    align: "right",
+    responsive: ["xl"],
+  },
+  {
+    title: "KBS",
+    dataIndex: "kb_squat_points",
+    key: "kbs_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) => (a.kb_squat_points ?? 0) - (b.kb_squat_points ?? 0),
+    align: "right",
+    responsive: ["xl"],
+  },
+  {
+    title: "Pistol",
+    dataIndex: "pistol_squat_points",
+    key: "pistol_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) =>
+      (a.pistol_squat_points ?? 0) - (b.pistol_squat_points ?? 0),
+    align: "right",
+    responsive: ["xl"],
+  },
+  {
+    title: "OKBP",
+    dataIndex: "one_kb_press_points",
+    key: "okbp_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) =>
+      (a.one_kb_press_points ?? 0) - (b.one_kb_press_points ?? 0),
+    align: "right",
+    responsive: ["xl"],
+  },
+  {
+    title: "TKBP",
+    dataIndex: "two_kb_press_points",
+    key: "tkbp_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) =>
+      (a.two_kb_press_points ?? 0) - (b.two_kb_press_points ?? 0),
+    align: "right",
+    responsive: ["xl"],
+  },
+  {
+    title: "Tiebreak",
+    dataIndex: "tiebreak_points",
+    key: "tiebreak_points",
+    render: (pts) => formatNumber(pts, 1),
+    sorter: (a, b) => (a.tiebreak_points ?? 0) - (b.tiebreak_points ?? 0),
+    align: "right",
+    responsive: ["xl"],
+  },
+];
+
+const createDisciplineColumns = (
+  specificColumns: TableProps<any>["columns"] = [],
+  sortPositionKey: string
+): TableProps<OverallResult>["columns"] => [
+  {
+    title: "Zawodnik",
+    key: "player",
+    render: (_, record) =>
+      record?.player ? `${record.player.name} ${record.player.surname}` : "?",
+    sorter: (a, b) =>
+      `${a.player?.name} ${a.player?.surname}`.localeCompare(
+        `${b.player?.name} ${b.player?.surname}`
+      ),
+    fixed: "left",
+    width: 180,
+  },
+  ...specificColumns.map((col) => ({
+    ...col,
+    align: col.align || "right",
+    width: col.width || 80,
+  })), // Dodano domyślną szerokość dla prób
+  {
+    title: "Pozycja",
+    key: "position",
+    render: (_, record) =>
+      sortPositionKey.split(".").reduce((o, k) => o?.[k], record) ?? "-",
+    sorter: (a, b) => {
+      const posA =
+        sortPositionKey.split(".").reduce((o, k) => o?.[k], a) ?? 999;
+      const posB =
+        sortPositionKey.split(".").reduce((o, k) => o?.[k], b) ?? 999;
+      return (posA as number) - (posB as number);
+    },
+    width: 100,
+    align: "center",
+    fixed: "right",
+  },
+];
+
+const snatchCols = createDisciplineColumns(
+  [
+    {
+      title: "Waga",
+      dataIndex: ["snatch_result", "kettlebell_weight"],
+      key: "snatch_weight",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Powt.",
+      dataIndex: ["snatch_result", "repetitions"],
+      key: "snatch_reps",
+      render: (v) => v ?? 0,
+    },
+    {
+      title: "Wynik",
+      dataIndex: ["snatch_result", "result_score"],
+      key: "snatch_score",
+      render: (v) => formatNumber(v, 1),
+    },
+  ],
+  "snatch_result.position"
+);
+
+const tguCols = createDisciplineColumns(
+  [
+    {
+      title: "Próba 1",
+      dataIndex: ["tgu_result", "result_1"],
+      key: "tgu_r1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Próba 2",
+      dataIndex: ["tgu_result", "result_2"],
+      key: "tgu_r2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Próba 3",
+      dataIndex: ["tgu_result", "result_3"],
+      key: "tgu_r3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Max (kg)",
+      dataIndex: ["tgu_result", "max_result_val"],
+      key: "tgu_max",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "% MC",
+      dataIndex: ["tgu_result", "bw_percentage_val"],
+      key: "tgu_perc",
+      render: (v) => formatPercentage(v),
+    },
+  ],
+  "tgu_result.position"
+);
+
+const sspCols = createDisciplineColumns(
+  [
+    {
+      title: "L1",
+      dataIndex: ["see_saw_press_result", "result_left_1"],
+      key: "ssp_l1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P1",
+      dataIndex: ["see_saw_press_result", "result_right_1"],
+      key: "ssp_r1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "L2",
+      dataIndex: ["see_saw_press_result", "result_left_2"],
+      key: "ssp_l2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P2",
+      dataIndex: ["see_saw_press_result", "result_right_2"],
+      key: "ssp_r2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "L3",
+      dataIndex: ["see_saw_press_result", "result_left_3"],
+      key: "ssp_l3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P3",
+      dataIndex: ["see_saw_press_result", "result_right_3"],
+      key: "ssp_r3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Max (kg)",
+      dataIndex: ["see_saw_press_result", "max_score_val"],
+      key: "ssp_max",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "% MC",
+      dataIndex: ["see_saw_press_result", "bw_percentage_val"],
+      key: "ssp_perc",
+      render: (v) => formatPercentage(v),
+    },
+  ],
+  "see_saw_press_result.position"
+);
+
+const kbsCols = createDisciplineColumns(
+  [
+    {
+      title: "L1",
+      dataIndex: ["kb_squat_result", "result_left_1"],
+      key: "kbs_l1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P1",
+      dataIndex: ["kb_squat_result", "result_right_1"],
+      key: "kbs_r1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "L2",
+      dataIndex: ["kb_squat_result", "result_left_2"],
+      key: "kbs_l2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P2",
+      dataIndex: ["kb_squat_result", "result_right_2"],
+      key: "kbs_r2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "L3",
+      dataIndex: ["kb_squat_result", "result_left_3"],
+      key: "kbs_l3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P3",
+      dataIndex: ["kb_squat_result", "result_right_3"],
+      key: "kbs_r3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Max (kg)",
+      dataIndex: ["kb_squat_result", "max_score_val"],
+      key: "kbs_max",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "% MC",
+      dataIndex: ["kb_squat_result", "bw_percentage_val"],
+      key: "kbs_perc",
+      render: (v) => formatPercentage(v),
+    },
+  ],
+  "kb_squat_result.position"
+);
+
+const pistolCols = createDisciplineColumns(
+  [
+    {
+      title: "Próba 1",
+      dataIndex: ["pistol_squat_result", "result_1"],
+      key: "pistol_r1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Próba 2",
+      dataIndex: ["pistol_squat_result", "result_2"],
+      key: "pistol_r2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Próba 3",
+      dataIndex: ["pistol_squat_result", "result_3"],
+      key: "pistol_r3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Max (kg)",
+      dataIndex: ["pistol_squat_result", "max_result_val"],
+      key: "pistol_max",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "% MC",
+      dataIndex: ["pistol_squat_result", "bw_percentage_val"],
+      key: "pistol_perc",
+      render: (v) => formatPercentage(v),
+    },
+  ],
+  "pistol_squat_result.position"
+);
+
+const okbpCols = createDisciplineColumns(
+  [
+    {
+      title: "Próba 1",
+      dataIndex: ["one_kettlebell_press_result", "result_1"],
+      key: "okbp_r1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Próba 2",
+      dataIndex: ["one_kettlebell_press_result", "result_2"],
+      key: "okbp_r2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Próba 3",
+      dataIndex: ["one_kettlebell_press_result", "result_3"],
+      key: "okbp_r3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Max (kg)",
+      dataIndex: ["one_kettlebell_press_result", "max_result_val"],
+      key: "okbp_max",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "% MC",
+      dataIndex: ["one_kettlebell_press_result", "bw_percentage_val"],
+      key: "okbp_perc",
+      render: (v) => formatPercentage(v),
+    },
+  ],
+  "one_kettlebell_press_result.position"
+);
+
+const tkbpCols = createDisciplineColumns(
+  [
+    {
+      title: "L1",
+      dataIndex: ["two_kettlebell_press_result", "result_left_1"],
+      key: "tkbp_l1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P1",
+      dataIndex: ["two_kettlebell_press_result", "result_right_1"],
+      key: "tkbp_r1",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "L2",
+      dataIndex: ["two_kettlebell_press_result", "result_left_2"],
+      key: "tkbp_l2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P2",
+      dataIndex: ["two_kettlebell_press_result", "result_right_2"],
+      key: "tkbp_r2",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "L3",
+      dataIndex: ["two_kettlebell_press_result", "result_left_3"],
+      key: "tkbp_l3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "P3",
+      dataIndex: ["two_kettlebell_press_result", "result_right_3"],
+      key: "tkbp_r3",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "Max (kg)",
+      dataIndex: ["two_kettlebell_press_result", "max_score_val"],
+      key: "tkbp_max",
+      render: (v) => formatNumber(v, 1),
+    },
+    {
+      title: "% MC",
+      dataIndex: ["two_kettlebell_press_result", "bw_percentage_val"],
+      key: "tkbp_perc",
+      render: (v) => formatPercentage(v),
+    },
+  ],
+  "two_kettlebell_press_result.position"
+);
+
+interface DisciplineMapEntry {
+  name: string;
+  key: keyof OverallResult;
+  columns: TableProps<any>["columns"];
+  sortKey: string;
+}
+
+const disciplineMap: Record<string, DisciplineMapEntry> = {
+  snatch: {
+    name: "Snatch",
+    key: "snatch_result",
+    columns: snatchCols,
+    sortKey: "snatch_result.position",
+  },
+  tgu: {
+    name: "Turkish Get-Up (TGU)",
+    key: "tgu_result",
+    columns: tguCols,
+    sortKey: "tgu_result.position",
+  },
+  see_saw_press: {
+    name: "See Saw Press (SSP)",
+    key: "see_saw_press_result",
+    columns: sspCols,
+    sortKey: "see_saw_press_result.position",
+  },
+  kb_squat: {
+    name: "Kettlebell Squat (KBS)",
+    key: "kb_squat_result",
+    columns: kbsCols,
+    sortKey: "kb_squat_result.position",
+  },
+  pistol_squat: {
+    name: "Pistol Squat",
+    key: "pistol_squat_result",
+    columns: pistolCols,
+    sortKey: "pistol_squat_result.position",
+  },
+  one_kettlebell_press: {
+    name: "One Kettlebell Press (OKBP)",
+    key: "one_kettlebell_press_result",
+    columns: okbpCols,
+    sortKey: "one_kettlebell_press_result.position",
+  },
+  two_kettlebell_press: {
+    name: "Two Kettlebell Press (TKBP)",
+    key: "two_kettlebell_press_result",
+    columns: tkbpCols,
+    sortKey: "two_kettlebell_press_result.position",
+  },
+};
 
 const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const [results, setResults] = useState<CategoryResultsResponse>([]);
-  const [categoryInfo, setCategoryInfo] = useState<Category | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [filterTerm, setFilterTerm] = useState<string>("");
 
-  useEffect(() => {
-    if (!categoryId) return;
+  const { data, isLoading, isError, error, isFetching } = useQuery<
+    { categoryInfo: Category; results: CategoryResultsResponse },
+    Error
+  >({
+    queryKey: ["categoryData", categoryId],
+    queryFn: () => fetchCategoryData(categoryId),
+    enabled: !!categoryId,
+    refetchInterval: 120000,
+    staleTime: 60000,
+  });
 
-    const fetchCategoryData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setResults([]);
-        setCategoryInfo(null);
+  const categoryInfo = data?.categoryInfo;
+  const results = data?.results ?? [];
 
-        const [catInfoResponse, resultsResponse] = await Promise.all([
-          apiClient.get<Category>(`/categories/${categoryId}/`),
-          apiClient.get<CategoryResultsResponse>(`/categories/${categoryId}/results/`)
-        ]);
+  const filteredResults = useMemo(() => {
+    if (!results) return [];
+    if (!filterTerm) return results;
+    const lowerCaseFilter = filterTerm.toLowerCase();
+    return results.filter(
+      (result) =>
+        result.player &&
+        (`${result.player.name} ${result.player.surname}`
+          .toLowerCase()
+          .includes(lowerCaseFilter) ||
+          (result.player.club_name || "")
+            .toLowerCase()
+            .includes(lowerCaseFilter))
+    );
+  }, [results, filterTerm]);
 
-        setCategoryInfo(catInfoResponse.data);
-        const sortedResults = resultsResponse.data.sort((a, b) => (a.final_position ?? 999) - (b.final_position ?? 999));
-        setResults(sortedResults);
-
-      } catch (err) {
-        console.error(`Error fetching data for category ${categoryId}:`, err);
-        setError(`Nie udało się załadować danych dla kategorii ${categoryId}. Spróbuj odświeżyć stronę.`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategoryData();
-  }, [categoryId]);
-
-  // Funkcje pomocnicze bez zmian
-  const formatNumber = (value: number | null | undefined, digits: number = 1): string => {
-    if (value == null) return '-';
-    return value.toFixed(digits);
-  };
-   const formatPercentage = (value: number | null | undefined): string => {
-     if (value == null) return '-';
-     return `${value.toFixed(2)}%`;
-   };
-
-  // Funkcja do renderowania tabeli dla konkretnej dyscypliny
-  // Zapobiega powtarzaniu kodu
-  const renderDisciplineTable = (
-      disciplineName: string,
-      resultKey: keyof OverallResult, // Klucz do obiektu z wynikiem dyscypliny
-      columns: { header: string; dataKey: string; format?: (value: any) => string }[], // Definicja kolumn
-      sortPositionKey: string // Klucz do pozycji w danej dyscyplinie (np. 'snatch_result.position')
+  const renderAntdTable = (
+    title: string,
+    dataSource: OverallResult[],
+    columns: TableProps<any>["columns"] = [],
+    rowKeySuffix: string
   ) => {
-      const filteredResults = results
-          .filter(r => r[resultKey]) // Bierzemy tylko tych co mają wynik
-          .sort((a: OverallResult, b: OverallResult) => {
-              // Bezpieczne pobieranie zagnieżdżonej pozycji
-              const posA = sortPositionKey.split('.').reduce((o, k) => o?.[k], a) ?? 999;
-              const posB = sortPositionKey.split('.').reduce((o, k) => o?.[k], b) ?? 999;
-              return (posA as number) - (posB as number);
-          });
-
-      if (filteredResults.length === 0) {
-          return null; // Nie renderuj tabeli, jeśli nie ma wyników
+    if (!dataSource || dataSource.length === 0) {
+      if (filterTerm && results.length > 0) {
+        return (
+          <Paragraph key={rowKeySuffix} style={{ marginTop: "1rem" }}>
+            Brak zawodników pasujących do filtra dla: {title}
+          </Paragraph>
+        );
       }
+      return null;
+    }
 
-      return (
-          <>
-              <h2>Wyniki - {disciplineName}</h2>
-              <div className={styles.tableContainer}> {/* Wrapper dla responsywności */}
-                  <table className={styles.resultsTable}> {/* Używamy klasy CSS Module */}
-                      <thead>
-                          <tr>
-                              <th>Zawodnik</th>
-                              {columns.map(col => <th key={col.header}>{col.header}</th>)}
-                              <th>Pozycja ({disciplineName})</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-                          {filteredResults.map(result => {
-                              const disciplineResult = result[resultKey] as any; // Wynik konkretnej dyscypliny
-                              const position = sortPositionKey.split('.').reduce((o, k) => o?.[k], result) ?? '-';
-
-                              return (
-                                  <tr key={result.player.id + '-' + resultKey}>
-                                      <td>{result.player.name} {result.player.surname}</td>
-                                      {columns.map(col => {
-                                           // Bezpieczne pobieranie zagnieżdżonych danych
-                                           const value = col.dataKey.split('.').reduce((o, k) => o?.[k], disciplineResult);
-                                           return <td key={col.dataKey}>{col.format ? col.format(value) : (value ?? '-')}</td>;
-                                      })}
-                                      <td>{position}</td>
-                                  </tr>
-                              );
-                          })}
-                      </tbody>
-                  </table>
-              </div>
-          </>
-      );
+    return (
+      <section key={rowKeySuffix}>
+        <Title level={3} className={styles.disciplineTableTitle}>
+          {title}
+        </Title>
+        <Table
+          dataSource={dataSource}
+          columns={columns}
+          rowKey={(record) =>
+            record?.player?.id
+              ? record.player.id + "-" + rowKeySuffix
+              : Math.random() + "-" + rowKeySuffix
+          }
+          pagination={
+            title === "Klasyfikacja Generalna"
+              ? {
+                  pageSize: 20,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["10", "20", "50", "100"],
+                  hideOnSinglePage: true,
+                }
+              : false
+          }
+          size="middle"
+          bordered
+          scroll={{ x: "max-content" }}
+          loading={
+            isFetching && !isLoading && title === "Klasyfikacja Generalna"
+          }
+        />
+      </section>
+    );
   };
 
+  if (isLoading) {
+    return (
+      <div className={styles.centered}>
+        <Spin
+          size="large"
+          tip={`Ładowanie danych kategorii ${categoryId}...`}
+        />
+      </div>
+    );
+  }
+
+  if (isError && !results.length) {
+    return (
+      <div className={styles.categoryContainer}>
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined />}
+          href="/"
+          className={styles.backButton}
+        >
+          Powrót do listy kategorii
+        </Button>
+        <Alert
+          message={`Błąd ładowania danych dla kategorii ${categoryId}`}
+          description={
+            error?.message ||
+            "Nie udało się pobrać danych. Spróbuj odświeżyć stronę."
+          }
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.categoryContainer}>
-      <Link to="/" className={styles.backLink}>{'<'} Powrót do listy kategorii</Link>
-      <h1 className={styles.categoryTitle}>
-        Wyniki: {categoryInfo?.name || (loading ? 'Ładowanie...' : `Kategoria ${categoryId}`)}
-      </h1>
-      {categoryInfo && <p className={styles.categoryDisciplines}>Dyscypliny: {categoryInfo.disciplines.join(', ')}</p>}
+      <Button
+        type="link"
+        icon={<ArrowLeftOutlined />}
+        href="/"
+        className={styles.backButton}
+      >
+        Powrót do listy kategorii
+      </Button>
 
-      {loading && <div className="loading-message">Ładowanie wyników...</div>}
-      {error && <div className="error-message">{error}</div>}
+      <Title level={1} className={styles.categoryTitle}>
+        Wyniki: {categoryInfo?.name || `Kategoria ${categoryId}`}
+        {isFetching && !isLoading && <Spin size="small" />}
+      </Title>
+      {categoryInfo && (
+        <Paragraph type="secondary" className={styles.categoryDisciplines}>
+          Dyscypliny: {categoryInfo.disciplines.join(", ")}
+        </Paragraph>
+      )}
 
-      {!loading && !error && (
-        <>
-          <h2>Klasyfikacja Generalna</h2>
-          {results.length > 0 ? (
-            <div className={styles.tableContainer}> {/* Wrapper dla responsywności */}
-              <table className={styles.resultsTable}> {/* Używamy klasy CSS Module */}
-                <thead>
-                  <tr>
-                    <th>Miejsce</th>
-                    <th>Zawodnik</th>
-                    <th>Klub</th>
-                    <th className={styles.textRight}>Waga (kg)</th>
-                    <th className={styles.textRight}>Punkty Ogółem</th>
-                    <th className={styles.textRight}>Pkt Snatch</th>
-                    <th className={styles.textRight}>Pkt TGU</th>
-                    <th className={styles.textRight}>Pkt SSP</th>
-                    <th className={styles.textRight}>Pkt KBS</th>
-                    <th className={styles.textRight}>Pkt Pistol</th>
-                    <th className={styles.textRight}>Pkt OKBP</th>
-                    <th className={styles.textRight}>Pkt TKBP</th>
-                    <th className={styles.textRight}>Pkt Tiebreak</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((result) => (
-                    <tr key={result.player.id + '-overall'}>
-                      <td>{result.final_position ?? '-'}</td>
-                      <td>{result.player.name} {result.player.surname}</td>
-                      <td>{result.player.club_name || '-'}</td>
-                      <td className={styles.textRight}>{formatNumber(result.player.weight, 1)}</td>
-                      <td className={`${styles.textRight} ${styles.bold}`}>{formatNumber(result.total_points, 1)}</td> {/* Pogrubienie sumy */}
-                      <td className={styles.textRight}>{formatNumber(result.snatch_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.tgu_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.see_saw_press_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.kb_squat_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.pistol_squat_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.one_kb_press_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.two_kb_press_points, 1)}</td>
-                      <td className={styles.textRight}>{formatNumber(result.tiebreak_points, 1)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p>Brak wyników do wyświetlenia dla tej kategorii.</p>
-          )}
+      <Search
+        placeholder="Filtruj po nazwisku, imieniu lub klubie..."
+        allowClear
+        enterButton="Filtruj"
+        size="large"
+        onSearch={(value) => setFilterTerm(value)}
+        onChange={(e) => {
+          if (!e.target.value) setFilterTerm("");
+        }}
+        className={styles.filterInput}
+      />
 
-          {/* Renderowanie tabel dyscyplin za pomocą funkcji pomocniczej */}
-          {renderDisciplineTable('Snatch', 'snatch_result', [
-              { header: 'Waga odważnika (kg)', dataKey: 'kettlebell_weight', format: (v) => formatNumber(v) },
-              { header: 'Powtórzenia', dataKey: 'repetitions', format: (v) => v ?? 0 },
-              { header: 'Wynik (obl.)', dataKey: 'result_score', format: (v) => formatNumber(v) }
-          ], 'snatch_result.position')}
+      {isError && results.length > 0 && (
+        <Alert
+          message="Nie udało się odświeżyć danych"
+          description={
+            error?.message || "Wyświetlane są ostatnie znane wyniki."
+          }
+          type="warning"
+          showIcon
+          style={{ marginBottom: "1rem" }}
+        />
+      )}
 
-          {renderDisciplineTable('Turkish Get-Up (TGU)', 'tgu_result', [
-              { header: 'Max Wynik (kg)', dataKey: 'max_result_val', format: (v) => formatNumber(v) },
-              { header: '% Masy Ciała', dataKey: 'bw_percentage_val', format: (v) => formatPercentage(v) }
-          ], 'tgu_result.position')}
+      {renderAntdTable(
+        "Klasyfikacja Generalna",
+        filteredResults,
+        overallColumns,
+        "overall"
+      )}
 
-          {renderDisciplineTable('See Saw Press (SSP)', 'see_saw_press_result', [
-              { header: 'Max Wynik (kg)', dataKey: 'max_score_val', format: (v) => formatNumber(v) },
-              { header: '% Masy Ciała', dataKey: 'bw_percentage_val', format: (v) => formatPercentage(v) }
-          ], 'see_saw_press_result.position')}
+      {categoryInfo?.disciplines &&
+        categoryInfo.disciplines.map((disciplineApiKey) => {
+          const mappingInfo = disciplineMap[disciplineApiKey];
+          if (!mappingInfo) {
+            console.warn(
+              `Nie znaleziono mapowania dla klucza dyscypliny z API: ${disciplineApiKey}`
+            );
+            return null;
+          }
+          const disciplineDataSource = filteredResults.filter(
+            (r) => r && r[mappingInfo.key]
+          );
+          return renderAntdTable(
+            mappingInfo.name,
+            disciplineDataSource,
+            mappingInfo.columns,
+            mappingInfo.key.toString()
+          );
+        })}
 
-           {renderDisciplineTable('Kettlebell Squat (KBS)', 'kb_squat_result', [
-               { header: 'Max Wynik (kg)', dataKey: 'max_score_val', format: (v) => formatNumber(v) },
-               { header: '% Masy Ciała', dataKey: 'bw_percentage_val', format: (v) => formatPercentage(v) }
-           ], 'kb_squat_result.position')}
-
-           {renderDisciplineTable('Pistol Squat', 'pistol_squat_result', [
-               { header: 'Max Wynik (kg)', dataKey: 'max_result_val', format: (v) => formatNumber(v) },
-               { header: '% Masy Ciała', dataKey: 'bw_percentage_val', format: (v) => formatPercentage(v) }
-           ], 'pistol_squat_result.position')}
-
-           {renderDisciplineTable('One Kettlebell Press (OKBP)', 'one_kettlebell_press_result', [
-               { header: 'Max Wynik (kg)', dataKey: 'max_result_val', format: (v) => formatNumber(v) },
-               { header: '% Masy Ciała', dataKey: 'bw_percentage_val', format: (v) => formatPercentage(v) }
-           ], 'one_kettlebell_press_result.position')}
-
-           {renderDisciplineTable('Two Kettlebell Press (TKBP)', 'two_kettlebell_press_result', [
-               { header: 'Max Wynik (kg)', dataKey: 'max_score_val', format: (v) => formatNumber(v) },
-               { header: '% Masy Ciała', dataKey: 'bw_percentage_val', format: (v) => formatPercentage(v) }
-           ], 'two_kettlebell_press_result.position')}
-
-          {/* Stopka jest teraz w komponencie Layout */}
-        </>
+      {filterTerm && filteredResults.length === 0 && results.length > 0 && (
+        <Paragraph style={{ textAlign: "center", marginTop: "2rem" }}>
+          Brak zawodników pasujących do filtra "{filterTerm}".
+        </Paragraph>
+      )}
+      {!isLoading && !isError && results.length === 0 && !filterTerm && (
+        <Paragraph style={{ textAlign: "center", marginTop: "2rem" }}>
+          Brak wyników w tej kategorii.
+        </Paragraph>
       )}
     </div>
   );
