@@ -18,10 +18,11 @@ from dotenv import load_dotenv
 # --- Core Path Configuration ---
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+dotenv_path = BASE_DIR.parent / '.env'
 # --- Environment Variable Loading ---
 # Load environment variables from .env file (should be done early)
-load_dotenv(BASE_DIR / '.env')  # Explicitly point to .env in BASE_DIR
+
+load_dotenv(dotenv_path=dotenv_path, override=True)  # Explicitly point to .env in BASE_DIR
 
 # --- Security Settings ---
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -63,7 +64,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+#CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOWED_ORIGINS = ["https://mehardstylekettlebell.pl", "htttps://www.mehardstylekettlebell.pl",]
 ROOT_URLCONF = "european_champonship_kettlebell.urls"
 
 WSGI_APPLICATION = "european_champonship_kettlebell.wsgi.application"

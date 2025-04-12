@@ -5,8 +5,9 @@ DEBUG = False
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")
 
-ALLOWED_HOSTS = ["mehardstylekettlebell.pl", "localhost"]
-CSRF_TRUSTED_ORIGINS = ["https://mehardstylekettlebell.pl"]
+ALLOWED_HOSTS = ["mehardstylekettlebell.pl","www.mehardstylekettlebell.pl", "localhost"]
+CSRF_TRUSTED_ORIGINS = ["https://mehardstylekettlebell.pl", "https://www.mehardstylekettlebell.pl"]
+# CSRF_TRUSTED_ORIGINS = ["https://mehardstylekettlebell.pl"]
 
 LOG_PATH = BASE_DIR.parent / "logs"
 DBBACKUP_PATH = BASE_DIR.parent / "dbbackup"
