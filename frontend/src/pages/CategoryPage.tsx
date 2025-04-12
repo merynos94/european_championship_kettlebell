@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Table, Spin, Alert, Typography, Button, Input } from "antd";
 import type { TableProps } from "antd";
@@ -164,45 +164,85 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     responsive: ["xl"],
   },
 ];
-
+// Helper function for safe nested property access
+function getNestedValue(obj: any, path: string, defaultValue: any = undefined): any {
+  // Handle cases where obj might be null/undefined early
+  if (obj === null || typeof obj === 'undefined') {
+    return defaultValue;
+  }
+  return path.split('.').reduce((acc, key) =>
+    (acc && typeof acc === 'object' && key in acc) ? acc[key as keyof typeof acc] : defaultValue,
+  obj);
+}
 const createDisciplineColumns = (
-  specificColumns: TableProps<any>["columns"] = [],
+  specificColumns: TableProps<OverallResult>["columns"] = [], // Use OverallResult here if specificColumns relate to it
   sortPositionKey: string
-): TableProps<OverallResult>["columns"] => [
-  {
-    title: "Zawodnik",
-    key: "player",
-    render: (_, record) =>
-      record?.player ? `${record.player.name} ${record.player.surname}` : "?",
-    sorter: (a, b) =>
-      `${a.player?.name} ${a.player?.surname}`.localeCompare(
-        `${b.player?.name} ${b.player?.surname}`
-      ),
-    fixed: "left",
-    width: 180,
-  },
-  ...specificColumns.map((col) => ({
+): TableProps<OverallResult>["columns"] => {
+
+  // Map specific columns, ensuring they are compatible.
+  // We assume render functions in specificColumns (like formatNumber) return valid ReactNode (string, number, JSX)
+  const mappedSpecificColumns: TableProps<OverallResult>["columns"] = specificColumns.map((col: any) => ({ // Use 'any' temporarily if type issues persist here, but ideally resolve specificColumn types
     ...col,
     align: col.align || "right",
     width: col.width || 80,
-  })), // Dodano domyślną szerokość dla prób
-  {
-    title: "Pozycja",
-    key: "position",
-    render: (_, record) =>
-      sortPositionKey.split(".").reduce((o, k) => o?.[k], record) ?? "-",
-    sorter: (a, b) => {
-      const posA =
-        sortPositionKey.split(".").reduce((o, k) => o?.[k], a) ?? 999;
-      const posB =
-        sortPositionKey.split(".").reduce((o, k) => o?.[k], b) ?? 999;
-      return (posA as number) - (posB as number);
+    // If errors *still* point to this map, double-check render functions
+    // in snatchCols, tguCols, etc. They *must* return React.ReactNode.
+  }));
+
+  // Define the columns to be returned
+  const columns: TableProps<OverallResult>["columns"] = [
+    {
+      title: "Zawodnik",
+      key: "player",
+      render: (_, record: OverallResult): React.ReactNode => // Added explicit types
+        record?.player ? `${record.player.name} ${record.player.surname}` : "?",
+      sorter: (a: OverallResult, b: OverallResult): number => // Added explicit types
+        `${a.player?.name} ${a.player?.surname}`.localeCompare(
+          `${b.player?.name} ${b.player?.surname}`
+        ),
+      fixed: "left",
+      width: 180,
     },
-    width: 100,
-    align: "center",
-    fixed: "right",
-  },
-];
+
+    ...mappedSpecificColumns, // Spread the processed specific columns
+
+    {
+      title: "Pozycja",
+      key: "position",
+      render: (_: any, record: OverallResult): React.ReactNode => { // Explicit return type
+          const value = getNestedValue(record, sortPositionKey, null); // Use null as default for checking
+          // Ensure the value is renderable (string, number, or JSX)
+          if (value === null || value === undefined) {
+              return "-"; // Return a valid ReactNode string
+          }
+          // Convert potential numbers/other values to string for display
+          return String(value);
+      },
+      sorter: (a: OverallResult, b: OverallResult): number => { // Explicit return type
+        // Use helper and provide a default that indicates invalid/missing data (e.g., Infinity)
+        const posA = getNestedValue(a, sortPositionKey, Infinity);
+        const posB = getNestedValue(b, sortPositionKey, Infinity);
+
+        // Attempt to convert to numbers, defaulting to Infinity if not possible
+        const numA = Number(posA);
+        const numB = Number(posB);
+        const finalA = isNaN(numA) ? Infinity : numA; // Push non-numbers/NaN to the end
+        const finalB = isNaN(numB) ? Infinity : numB;
+
+        if (finalA === Infinity && finalB === Infinity) return 0; // Both invalid, treat as equal
+        if (finalA === Infinity) return 1; // Put invalid 'a' after valid 'b'
+        if (finalB === Infinity) return -1; // Put invalid 'b' after valid 'a'
+
+        return finalA - finalB; // Perform numeric comparison
+      },
+      width: 100,
+      align: "center",
+      fixed: "right",
+    },
+  ];
+
+  return columns;
+};
 
 const snatchCols = createDisciplineColumns(
   [

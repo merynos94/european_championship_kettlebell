@@ -6,7 +6,7 @@ import apiClient from "../services/api";
 import { Category } from "../types";
 import styles from "./HomePage.module.css";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 const fetchCategories = async (): Promise<Category[]> => {
   const response = await apiClient.get<Category[]>("/categories/");
@@ -73,9 +73,9 @@ const HomePage: React.FC = () => {
     });
 
     Object.values(groups).forEach((group) =>
-      group?.sort((a, b) => a.name.localeCompare(b.name))
-    );
-
+      // Add Category type to a and b
+      group?.sort((a: Category, b: Category) => a.name.localeCompare(b.name))
+  );
     if (groups.Other?.length === 0) {
       delete groups.Other;
     }
