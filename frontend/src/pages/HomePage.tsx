@@ -1,29 +1,44 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { List, Card, Spin, Alert, Typography } from "antd";
-import apiClient from "../services/api";
+import { Typography, List, Card, Spin, Alert } from "antd";
 import { Category } from "../types";
+import apiClient from "../services/api";
 import styles from "./HomePage.module.css";
 
 const { Title, Paragraph } = Typography;
 
-const fetchCategories = async (): Promise<Category[]> => {
-  const response = await apiClient.get<Category[]>("/categories/");
-  return response.data;
-};
 
 interface GroupedCategories {
   Amateur: Category[];
   Pro: Category[];
   Najlepszy: Category[];
   Master: Category[];
-  U18Plus: Category[];
   U16: Category[];
-  Other?: Category[];
 }
 
+const categoryGroupConfig: { key: keyof GroupedCategories; title: string; keywords: string[] }[] = [
+
+  { key: 'U16', title: 'Junior 16 / U16', keywords: ['junior 16', 'u16', 'dziewcząt', 'chłopców', 'under 16'] },
+  { key: 'Amateur', title: 'Amator / Amateur', keywords: ['amator', 'amateur'] },
+  { key: 'Pro', title: 'Pro / Professional', keywords: ['pro', 'professional'] },
+  { key: 'Master', title: 'Masters', keywords: ['master'] },
+  { key: 'Najlepszy', title: 'Najlepszy / Best', keywords: ['najlepsz', 'local'] },
+];
+
 const HomePage: React.FC = () => {
+  // --- Pobieranie Danych (bez zmian) ---
+  const fetchCategories = async (): Promise<Category[]> => {
+    try {
+      const response = await apiClient.get<Category[]>("/categories/");
+      // Proste sortowanie pobranych kategorii alfabetycznie od razu
+      return response.data.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      throw error;
+    }
+  };
+
   const {
     data: categories = [],
     isLoading,
@@ -33,121 +48,84 @@ const HomePage: React.FC = () => {
   } = useQuery<Category[], Error>({
     queryKey: ["categories"],
     queryFn: fetchCategories,
-    staleTime: 60 * 1000 * 10,
+    staleTime: 60 * 1000 * 10, // 10 minut
   });
 
+  // --- Grupowanie Kategorii (bez specjalnych przypadków ID) ---
   const groupedCategories = useMemo((): GroupedCategories => {
+    // Inicjalizacja pustych grup
     const groups: GroupedCategories = {
-      Amateur: [],
-      Pro: [],
-      Najlepszy: [],
-      Master: [],
-      U18Plus: [],
-      U16: [],
-      Other: [],
+      Amateur: [], Pro: [], Najlepszy: [], Master: [], U16: [],
     };
-    const najlepszyNames = ["Ząbkowiczanka", "Ząbkowiczanin"];
 
     categories.forEach((cat) => {
-      const name = cat.name;
-      const nameLower = name.toLowerCase();
+      if (!cat.name) return; // Pomijamy kategorie bez nazwy
 
-      if (najlepszyNames.includes(name)) {
-        groups.Najlepszy.push(cat);
-      } else if (nameLower.includes("master")) {
-        groups.Master.push(cat);
-      } else if (nameLower.includes("+18") || nameLower.includes("plus 18")) {
-        groups.U18Plus.push(cat);
-      } else if (nameLower.includes("u16") || nameLower.includes("under 16")) {
-        groups.U16.push(cat);
-      } else if (nameLower.includes("pro")) {
-        groups.Pro.push(cat);
-      } else if (
-        nameLower.includes("amator") ||
-        nameLower.includes("amateur")
-      ) {
-        groups.Amateur.push(cat);
-      } else if (groups.Other) {
-        groups.Other.push(cat);
+      let assigned = false;
+      const nameLower = cat.name.toLowerCase();
+
+      // Iteracja po zdefiniowanej konfiguracji grup
+      for (const config of categoryGroupConfig) {
+          // Sprawdzenie, czy nazwa zawiera któreś ze słów kluczowych dla danej grupy
+          if (config.keywords.some(keyword => nameLower.includes(keyword))) {
+              groups[config.key].push(cat);
+              assigned = true;
+              break; // Przypisz tylko do pierwszej pasującej grupy
+          }
+      }
+
+      // Jeśli kategoria nie została przypisana do żadnej grupy na podstawie słów kluczowych
+      if (!assigned) {
+         console.warn(`Category "${cat.name}" (ID: ${cat.id}) did not match any predefined group keywords.`);
+         // Można by ewentualnie dodać logikę fallback, np. sprawdzanie części nazwy przed " / "
+         // lub stworzyć grupę "Inne", ale na razie tylko ostrzegamy.
       }
     });
 
+    // Sortowanie wewnątrz grup nie jest już potrzebne, bo sortujemy główne `categories` po pobraniu.
+    // Jeśli jednak chcesz zachować sortowanie w grupach, odkomentuj poniższy blok:
+    // /*
     Object.values(groups).forEach((group) =>
-      // Add Category type to a and b
       group?.sort((a: Category, b: Category) => a.name.localeCompare(b.name))
-  );
-    if (groups.Other?.length === 0) {
-      delete groups.Other;
-    }
+    );
+    // */
+
     return groups;
-  }, [categories]);
+  }, [categories]); // Zależność od posortowanych kategorii
 
-  const formatCategoryName = (
-    name: string,
-    groupKey: keyof GroupedCategories
-  ): string => {
-    if (groupKey === "Najlepszy") {
-      if (name === "Ząbkowiczanka") return "Ząbkowiczanka";
-      if (name === "Ząbkowiczanin") return "Ząbkowiczanin";
-      return name;
+  // --- Funkcje Formatujące (bez zmian z ostatniej wersji) ---
+  const formatCategoryName = (name: string): string => {
+    if (!name) return "Unnamed Category";
+    if (name.includes("Najlepsza Ząbkowiczanka") || name.includes("Najlepszy Ząbkowiczanin")) {
+        return name.split(" / ")[0].trim();
     }
-    const cleanedName = name.replace(
-      /^(Amator |Amateur |PRO |Masters |\+18 |U16 )\s*/i,
-      ""
-    );
-    return cleanedName;
+    return name.includes(" / ") ? name.split(" / ")[0].trim() : name;
   };
 
-  const renderCategoryGroup = (
-    title: string,
-    groupKey: keyof GroupedCategories
-  ) => {
-    const groupCategories = groupedCategories[groupKey];
-    if (!groupCategories || groupCategories.length === 0) return null;
-    return (
-      <section key={title}>
-        <Title level={3} className={styles.categoryGroupTitle}>
-          {title}
-        </Title>
-        <List
-          grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 5 }}
-          dataSource={groupCategories}
-          renderItem={(category) => (
-            <List.Item>
-              <Link to={`/category/${category.id}`}>
-                <Card
-                  hoverable
-                  className={styles.categoryCard}
-                  title={formatCategoryName(category.name, groupKey)}
-                ></Card>
-              </Link>
-            </List.Item>
-          )}
-        />
-      </section>
-    );
+  const getEnglishName = (name: string): string | null => {
+    if (!name) return null;
+    if (name.includes(" / ")) {
+      const parts = name.split(" / ");
+      return parts.length > 1 ? parts[1].trim() : null;
+    }
+    return null;
   };
 
+  // --- Renderowanie Komponentu (bez zmian z ostatniej wersji) ---
   return (
     <div className={styles.homeContainer}>
       <Title level={1}>European Kettlebell Championship - Live Results</Title>
-      <Paragraph className={styles.introText}>
-        Witaj na stronie wyników! Wybierz kategorię poniżej, aby zobaczyć
-        aktualne rezultaty zawodników.
-      </Paragraph>
 
       {isLoading && (
         <div className={styles.centered}>
           <Spin size="large" tip="Ładowanie kategorii..." />
         </div>
       )}
+
       {isError && (
         <Alert
           message="Błąd ładowania kategorii"
-          description={
-            error?.message ||
-            "Nie udało się pobrać listy kategorii. Spróbuj odświeżyć stronę."
-          }
+          description={ error?.message || "Nie udało się pobrać listy kategorii. Spróbuj odświeżyć stronę." }
           type="error"
           showIcon
           className={styles.errorAlert}
@@ -156,15 +134,48 @@ const HomePage: React.FC = () => {
 
       {!isLoading && !isError && categories.length > 0 && (
         <>
-          {renderCategoryGroup("Amator", "Amateur")}
-          {renderCategoryGroup("PRO", "Pro")}
-          {renderCategoryGroup("Najlepszy", "Najlepszy")}
-          {renderCategoryGroup("Masters", "Master")}
-          {renderCategoryGroup("+18", "U18Plus")}
-          {renderCategoryGroup("U16", "U16")}
-          {groupedCategories.Other && renderCategoryGroup("Pozostałe", "Other")}
+          {categoryGroupConfig.map((groupConfig) => {
+            const groupCategories = groupedCategories[groupConfig.key];
+            if (!groupCategories || groupCategories.length === 0) {
+              return null;
+            }
+            return (
+              <section key={groupConfig.key} className="category-section">
+                <Title level={3} className={`${styles.categoryGroupTitle} category-title`}>
+                  {groupConfig.title}
+                </Title>
+                <List
+                  grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 5 }}
+                  dataSource={groupCategories}
+                  renderItem={(category) => {
+                    const displayName = formatCategoryName(category.name);
+                    const englishName = getEnglishName(category.name);
+                    return (
+                      <List.Item key={category.id}>
+                        <Link to={`/category/${category.id}`}>
+                          <Card
+                            hoverable
+                            className={styles.categoryCard}
+                            title={displayName}
+                          >
+                            {englishName && (
+                              <div className={styles.englishName}>
+                                {englishName}
+                              </div>
+                            )}
+                          </Card>
+                        </Link>
+                      </List.Item>
+                    );
+                  }}
+                />
+              </section>
+            );
+          })}
         </>
       )}
+
+
       {!isLoading && !isError && categories.length === 0 && (
         <Paragraph style={{ textAlign: "center" }}>
           Brak dostępnych kategorii do wyświetlenia.
@@ -172,15 +183,7 @@ const HomePage: React.FC = () => {
       )}
 
       {isFetching && !isLoading && (
-        <Spin
-          size="small"
-          style={{
-            position: "fixed",
-            top: "10px",
-            right: "10px",
-            zIndex: 1000,
-          }}
-        />
+        <Spin size="small" style={{ position: "fixed", top: "10px", right: "10px", zIndex: 1000 }} />
       )}
     </div>
   );
