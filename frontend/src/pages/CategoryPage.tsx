@@ -11,6 +11,13 @@ import styles from "./CategoryPage.module.css";
 const { Title, Paragraph } = Typography;
 const { Search } = Input;
 
+// --- TIME GATE FOR OVERALL RESULTS ---
+// Set the date and time after which the overall results should be visible.
+// It uses the browser's local time zone (Warsaw/CEST in your case).
+const OVERALL_RESULTS_VISIBLE_AFTER = new Date();
+// Set hours, minutes, seconds, milliseconds (HH, MM, SS, MS) for today. Change 21, 10 for desired time.
+OVERALL_RESULTS_VISIBLE_AFTER.setHours(21, 10, 0, 0);
+
 const formatNumber = (
   value: number | null | undefined,
   digits: number = 1
@@ -27,16 +34,27 @@ const fetchCategoryData = async (
   categoryId: string | undefined
 ): Promise<{ categoryInfo: Category; results: CategoryResultsResponse }> => {
   if (!categoryId) throw new Error("Category ID jest wymagane");
-  const [catInfoResponse, resultsResponse] = await Promise.all([
-    apiClient.get<Category>(`/categories/${categoryId}/`),
-    apiClient.get<CategoryResultsResponse>(
-      `/categories/${categoryId}/results/`
-    ),
-  ]);
-  const sortedResults = resultsResponse.data.sort(
-    (a, b) => (a.final_position ?? 999) - (b.final_position ?? 999)
-  );
-  return { categoryInfo: catInfoResponse.data, results: sortedResults };
+
+  try {
+    console.log(`Attempting to fetch category data for ID: ${categoryId}`);
+
+    const [catInfoResponse, resultsResponse] = await Promise.all([
+      apiClient.get<Category>(`/categories/${categoryId}/`),
+      apiClient.get<CategoryResultsResponse>(
+        `/categories/${categoryId}/results/`
+      ),
+    ]);
+
+    console.log("Category data successfully retrieved");
+    const sortedResults = resultsResponse.data.sort(
+      (a, b) => (a.final_position ?? 999) - (b.final_position ?? 999)
+    );
+    return { categoryInfo: catInfoResponse.data, results: sortedResults };
+  } catch (error) {
+    console.error(`Error fetching category data for ID ${categoryId}:`, error);
+    // Could add mock data option here if needed during development
+    throw error;
+  }
 };
 
 const overallColumns: TableProps<OverallResult>["columns"] = [
@@ -165,85 +183,79 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
   },
 ];
 // Helper function for safe nested property access
-function getNestedValue(obj: any, path: string, defaultValue: any = undefined): any {
-  // Handle cases where obj might be null/undefined early
-  if (obj === null || typeof obj === 'undefined') {
+function getNestedValue(
+  obj: any,
+  path: string,
+  defaultValue: any = undefined
+): any {
+  if (obj === null || typeof obj === "undefined") {
     return defaultValue;
   }
-  return path.split('.').reduce((acc, key) =>
-    (acc && typeof acc === 'object' && key in acc) ? acc[key as keyof typeof acc] : defaultValue,
-  obj);
+  return path
+    .split(".")
+    .reduce(
+      (acc, key) =>
+        acc && typeof acc === "object" && key in acc
+          ? acc[key as keyof typeof acc]
+          : defaultValue,
+      obj
+    );
 }
 const createDisciplineColumns = (
-  specificColumns: TableProps<OverallResult>["columns"] = [], // Use OverallResult here if specificColumns relate to it
+  specificColumns: TableProps<OverallResult>["columns"] = [],
   sortPositionKey: string
 ): TableProps<OverallResult>["columns"] => {
-
-  // Map specific columns, ensuring they are compatible.
-  // We assume render functions in specificColumns (like formatNumber) return valid ReactNode (string, number, JSX)
-  const mappedSpecificColumns: TableProps<OverallResult>["columns"] = specificColumns.map((col: any) => ({ // Use 'any' temporarily if type issues persist here, but ideally resolve specificColumn types
-    ...col,
-    align: col.align || "right",
-    width: col.width || 80,
-    // If errors *still* point to this map, double-check render functions
-    // in snatchCols, tguCols, etc. They *must* return React.ReactNode.
-  }));
-
-  // Define the columns to be returned
+  const mappedSpecificColumns: TableProps<OverallResult>["columns"] =
+    specificColumns.map((col: any) => ({
+      ...col,
+      align: col.align || "right",
+      width: col.width || 80,
+    }));
   const columns: TableProps<OverallResult>["columns"] = [
     {
       title: "Zawodnik",
       key: "player",
-      render: (_, record: OverallResult): React.ReactNode => // Added explicit types
+      render: (_, record: OverallResult): React.ReactNode =>
         record?.player ? `${record.player.name} ${record.player.surname}` : "?",
-      sorter: (a: OverallResult, b: OverallResult): number => // Added explicit types
+      sorter: (a: OverallResult, b: OverallResult): number =>
         `${a.player?.name} ${a.player?.surname}`.localeCompare(
           `${b.player?.name} ${b.player?.surname}`
         ),
       fixed: "left",
       width: 180,
     },
-
-    ...mappedSpecificColumns, // Spread the processed specific columns
-
+    ...mappedSpecificColumns,
     {
       title: "Pozycja",
       key: "position",
-      render: (_: any, record: OverallResult): React.ReactNode => { // Explicit return type
-          const value = getNestedValue(record, sortPositionKey, null); // Use null as default for checking
-          // Ensure the value is renderable (string, number, or JSX)
-          if (value === null || value === undefined) {
-              return "-"; // Return a valid ReactNode string
-          }
-          // Convert potential numbers/other values to string for display
-          return String(value);
+      render: (_: any, record: OverallResult): React.ReactNode => {
+        const value = getNestedValue(record, sortPositionKey, null);
+        if (value === null || value === undefined) {
+          return "-";
+        }
+        return String(value);
       },
-      sorter: (a: OverallResult, b: OverallResult): number => { // Explicit return type
-        // Use helper and provide a default that indicates invalid/missing data (e.g., Infinity)
+      sorter: (a: OverallResult, b: OverallResult): number => {
         const posA = getNestedValue(a, sortPositionKey, Infinity);
         const posB = getNestedValue(b, sortPositionKey, Infinity);
-
-        // Attempt to convert to numbers, defaulting to Infinity if not possible
         const numA = Number(posA);
         const numB = Number(posB);
-        const finalA = isNaN(numA) ? Infinity : numA; // Push non-numbers/NaN to the end
+        const finalA = isNaN(numA) ? Infinity : numA;
         const finalB = isNaN(numB) ? Infinity : numB;
-
-        if (finalA === Infinity && finalB === Infinity) return 0; // Both invalid, treat as equal
-        if (finalA === Infinity) return 1; // Put invalid 'a' after valid 'b'
-        if (finalB === Infinity) return -1; // Put invalid 'b' after valid 'a'
-
-        return finalA - finalB; // Perform numeric comparison
+        if (finalA === Infinity && finalB === Infinity) return 0;
+        if (finalA === Infinity) return 1;
+        if (finalB === Infinity) return -1;
+        return finalA - finalB;
       },
       width: 100,
       align: "center",
       fixed: "right",
     },
   ];
-
   return columns;
 };
 
+// Definicje kolumn bez zmian dla dyscyplin, które już były poprawne
 const snatchCols = createDisciplineColumns(
   [
     {
@@ -306,6 +318,7 @@ const tguCols = createDisciplineColumns(
 
 const sspCols = createDisciplineColumns(
   [
+    // See Saw Press - zakładam, że ma podział L/P i zostaje bez zmian? Jeśli nie, zmień poniżej.
     {
       title: "L1",
       dataIndex: ["see_saw_press_result", "result_left_1"],
@@ -358,41 +371,24 @@ const sspCols = createDisciplineColumns(
   "see_saw_press_result.position"
 );
 
+// --- ZMIENIONA DEFINICJA KOLUMN DLA KETTLEBELL SQUAT (KBS) ---
 const kbsCols = createDisciplineColumns(
   [
     {
-      title: "L1",
-      dataIndex: ["kb_squat_result", "result_left_1"],
-      key: "kbs_l1",
-      render: (v) => formatNumber(v, 1),
-    },
-    {
-      title: "P1",
-      dataIndex: ["kb_squat_result", "result_right_1"],
+      title: "Próba 1",
+      dataIndex: ["kb_squat_result", "result_1"],
       key: "kbs_r1",
       render: (v) => formatNumber(v, 1),
     },
     {
-      title: "L2",
-      dataIndex: ["kb_squat_result", "result_left_2"],
-      key: "kbs_l2",
-      render: (v) => formatNumber(v, 1),
-    },
-    {
-      title: "P2",
-      dataIndex: ["kb_squat_result", "result_right_2"],
+      title: "Próba 2",
+      dataIndex: ["kb_squat_result", "result_2"],
       key: "kbs_r2",
       render: (v) => formatNumber(v, 1),
     },
     {
-      title: "L3",
-      dataIndex: ["kb_squat_result", "result_left_3"],
-      key: "kbs_l3",
-      render: (v) => formatNumber(v, 1),
-    },
-    {
-      title: "P3",
-      dataIndex: ["kb_squat_result", "result_right_3"],
+      title: "Próba 3",
+      dataIndex: ["kb_squat_result", "result_3"],
       key: "kbs_r3",
       render: (v) => formatNumber(v, 1),
     },
@@ -409,7 +405,7 @@ const kbsCols = createDisciplineColumns(
       render: (v) => formatPercentage(v),
     },
   ],
-  "kb_squat_result.position"
+  "kb_squat_result.position" // Klucz sortowania pozostaje bez zmian
 );
 
 const pistolCols = createDisciplineColumns(
@@ -484,41 +480,24 @@ const okbpCols = createDisciplineColumns(
   "one_kettlebell_press_result.position"
 );
 
+// --- ZMIENIONA DEFINICJA KOLUMN DLA TWO KETTLEBELL PRESS (TKBP) ---
 const tkbpCols = createDisciplineColumns(
   [
     {
-      title: "L1",
-      dataIndex: ["two_kettlebell_press_result", "result_left_1"],
-      key: "tkbp_l1",
-      render: (v) => formatNumber(v, 1),
-    },
-    {
-      title: "P1",
-      dataIndex: ["two_kettlebell_press_result", "result_right_1"],
+      title: "Próba 1",
+      dataIndex: ["two_kettlebell_press_result", "result_1"],
       key: "tkbp_r1",
       render: (v) => formatNumber(v, 1),
     },
     {
-      title: "L2",
-      dataIndex: ["two_kettlebell_press_result", "result_left_2"],
-      key: "tkbp_l2",
-      render: (v) => formatNumber(v, 1),
-    },
-    {
-      title: "P2",
-      dataIndex: ["two_kettlebell_press_result", "result_right_2"],
+      title: "Próba 2",
+      dataIndex: ["two_kettlebell_press_result", "result_2"],
       key: "tkbp_r2",
       render: (v) => formatNumber(v, 1),
     },
     {
-      title: "L3",
-      dataIndex: ["two_kettlebell_press_result", "result_left_3"],
-      key: "tkbp_l3",
-      render: (v) => formatNumber(v, 1),
-    },
-    {
-      title: "P3",
-      dataIndex: ["two_kettlebell_press_result", "result_right_3"],
+      title: "Próba 3",
+      dataIndex: ["two_kettlebell_press_result", "result_3"],
       key: "tkbp_r3",
       render: (v) => formatNumber(v, 1),
     },
@@ -535,7 +514,7 @@ const tkbpCols = createDisciplineColumns(
       render: (v) => formatPercentage(v),
     },
   ],
-  "two_kettlebell_press_result.position"
+  "two_kettlebell_press_result.position" // Klucz sortowania pozostaje bez zmian
 );
 
 interface DisciplineMapEntry {
@@ -545,6 +524,7 @@ interface DisciplineMapEntry {
   sortKey: string;
 }
 
+// Mapa dyscyplin - używa teraz zaktualizowanych kbsCols i tkbpCols
 const disciplineMap: Record<string, DisciplineMapEntry> = {
   snatch: {
     name: "Snatch",
@@ -569,7 +549,7 @@ const disciplineMap: Record<string, DisciplineMapEntry> = {
     key: "kb_squat_result",
     columns: kbsCols,
     sortKey: "kb_squat_result.position",
-  },
+  }, // Używa nowych kbsCols
   pistol_squat: {
     name: "Pistol Squat",
     key: "pistol_squat_result",
@@ -587,7 +567,7 @@ const disciplineMap: Record<string, DisciplineMapEntry> = {
     key: "two_kettlebell_press_result",
     columns: tkbpCols,
     sortKey: "two_kettlebell_press_result.position",
-  },
+  }, // Używa nowych tkbpCols
 };
 
 const CategoryPage: React.FC = () => {
@@ -710,6 +690,10 @@ const CategoryPage: React.FC = () => {
     );
   }
 
+  // --- Calculate if overall results should be shown based on time ---
+  const now = new Date();
+  const showOverallResults = now >= OVERALL_RESULTS_VISIBLE_AFTER;
+
   return (
     <div className={styles.categoryContainer}>
       <Button
@@ -723,7 +707,9 @@ const CategoryPage: React.FC = () => {
 
       <Title level={1} className={styles.categoryTitle}>
         Wyniki: {categoryInfo?.name || `Kategoria ${categoryId}`}
-        {isFetching && !isLoading && <Spin size="small" />}
+        {isFetching && !isLoading && (
+          <Spin size="small" style={{ marginLeft: "8px" }} />
+        )}
       </Title>
       {categoryInfo && (
         <Paragraph type="secondary" className={styles.categoryDisciplines}>
@@ -741,6 +727,7 @@ const CategoryPage: React.FC = () => {
           if (!e.target.value) setFilterTerm("");
         }}
         className={styles.filterInput}
+        disabled={results.length === 0}
       />
 
       {isError && results.length > 0 && (
@@ -752,15 +739,37 @@ const CategoryPage: React.FC = () => {
           type="warning"
           showIcon
           style={{ marginBottom: "1rem" }}
+          closable
         />
       )}
 
-      {renderAntdTable(
-        "Klasyfikacja Generalna",
-        filteredResults,
-        overallColumns,
-        "overall"
+      {/* --- CONDITIONAL RENDERING for Overall Results --- */}
+      {showOverallResults ? (
+        renderAntdTable(
+          "Klasyfikacja Generalna",
+          filteredResults,
+          overallColumns,
+          "overall"
+        )
+      ) : (
+        <div
+          style={{
+            padding: "20px",
+            textAlign: "center",
+            border: "1px dashed #ccc",
+            margin: "20px 0",
+            borderRadius: "4px",
+          }}
+        >
+          <Paragraph style={{ fontStyle: "italic", color: "#555" }}>
+            Overall Classification will be available after 21:10.
+          </Paragraph>
+          <Paragraph type="secondary" style={{ fontSize: "0.9em" }}>
+            (Please refresh the page after this time)
+          </Paragraph>
+        </div>
       )}
+      {/* --- END CONDITIONAL RENDERING --- */}
 
       {categoryInfo?.disciplines &&
         categoryInfo.disciplines.map((disciplineApiKey) => {
@@ -777,7 +786,7 @@ const CategoryPage: React.FC = () => {
           return renderAntdTable(
             mappingInfo.name,
             disciplineDataSource,
-            mappingInfo.columns,
+            mappingInfo.columns, // Teraz użyje zaktualizowanych kbsCols i tkbpCols
             mappingInfo.key.toString()
           );
         })}
