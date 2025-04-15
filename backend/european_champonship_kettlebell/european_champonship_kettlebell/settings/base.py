@@ -64,8 +64,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-#CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
-CORS_ALLOWED_ORIGINS = ["https://mehardstylekettlebell.pl", "htttps://www.mehardstylekettlebell.pl",]
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+# CORS_ALLOWED_ORIGINS = ["https://mehardstylekettlebell.pl", "htttps://www.mehardstylekettlebell.pl",]
 ROOT_URLCONF = "european_champonship_kettlebell.urls"
 
 WSGI_APPLICATION = "european_champonship_kettlebell.wsgi.application"
