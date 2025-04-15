@@ -9,8 +9,8 @@
 }
 
 :root {
-  --background-color-base: #6D0F1A;
-  --background-gradient-end: #4a0a12;
+  --background-color-base: #410707;
+  --background-gradient-end: #750b17;
   --text-color: #FFFFFF;
   --border-color: #8a4a51;
   --link-color: #ffab91;
@@ -23,7 +23,7 @@
   --navy-blue-hover-bg: #173A5E;
   --navy-blue-hover-border: #5691c8;
 
-  --footer-text-color: #ffffffb3;
+  --footer-text-color: #a20000b3;
 
   --font-header: 'Bebas Neue', sans-serif;
   --font-military: 'Oswald', sans-serif;

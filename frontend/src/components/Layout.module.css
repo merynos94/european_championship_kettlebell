@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem !important;
-  background-color: rgba(10, 0, 0, 0.4) !important;
+  background-color: rgba(113, 8, 232, 0.4) !important;
   border-bottom: 1px solid var(--border-color) !important;
   height: 64px;
   backdrop-filter: blur(4px);
@@ -125,7 +125,7 @@
   text-align: center;
   padding: 1rem 0 !important;
   font-size: 0.9em;
-  color: var(--footer-text-color) !important;
+  color: rgba(3, 255, 112, 0.4);
   background: transparent !important;
   border-top: 1px solid var(--border-color);
   margin-top: auto;

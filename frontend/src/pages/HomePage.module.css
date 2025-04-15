@@ -2,16 +2,16 @@
   padding: 1rem 0;
 }
 
-/* .introText {
-  font-size: 2.1em;
+.introText {
+  font-size: 1.1em;
   color: var(--text-color);
   opacity: 0.9;
   margin-bottom: 2.5rem;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
-  text-align: left;
-} */
+  text-align: center;
+}
 
 .categoryGroupTitle {
   margin-top: 2.5rem;
@@ -30,13 +30,13 @@
   background-color: var(--navy-blue-dark) !important;
   border: 1px solid var(--navy-blue-border) !important;
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out,
-  border-color 0.2s ease-in-out !important;
+    border-color 0.2s ease-in-out !important;
   border-radius: 4px !important;
   overflow: hidden;
 }
 
 .categoryCard:hover {
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-5px) scale(1.02);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   border-color: var(--navy-blue-hover-border) !important;
   background-color: var(--navy-blue-hover-bg) !important;
@@ -63,28 +63,4 @@
 
 .errorAlert {
   margin-bottom: 1rem;
-}
-
-.categoryTitle {
-  font-size: 2.2em;
-  color: var(--primary-color);
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  padding-bottom: 0.5rem;
-  margin-top: 2rem;
-  margin-bottom: 1.2rem;
-  border-bottom: 2px solid var(--primary-color);
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.categorySection {
-  margin-bottom: 3rem;
-}
-
-.categorySection h3 {
-  font-size: 1.8em;
-  color: var(--text-color);
-  font-weight: 700;
-  letter-spacing: 1px;
-  font-family: var(--font-military);
 }
