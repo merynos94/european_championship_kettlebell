@@ -49,11 +49,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             # Use the correct 'related_name' defined in OneToOneField relations in result models
             Prefetch('player__snatch_result'), # Using Prefetch is more explicit
             Prefetch('player__tgu_result'),
-            Prefetch('player__see_saw_press_result'),
-            Prefetch('player__kb_squat_result'),
-            Prefetch('player__pistol_squat_result'),
+            Prefetch('player__kb_squat_one_result'),
             Prefetch('player__one_kettlebell_press_result'),
-            Prefetch('player__two_kettlebell_press_result'),
+            Prefetch('player__two_kettlebell_press_one_result'),
             # Prefetch('player__categories'), # Rarely needed here unless displaying player's categories in PlayerBasicInfoSerializer
         ).order_by(
             'final_position', # Sort by final position within the category
