@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import CategoryPage from "./pages/CategoryPage";
 import LivePage from "./pages/LivePage";
@@ -7,6 +8,10 @@ import Layout from "./components/Layout";
 import "./index.css";
 
 function App() {
+  useEffect(() => {
+    document.title = "European Kettlebell Championship";
+  }, []);
+  
   return (
     <Router>
       <Routes>
