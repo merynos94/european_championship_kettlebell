@@ -49,7 +49,7 @@ const Layout: React.FC = () => {
       <Header className={styles.header}>
         <div className={styles.logoContainer}>
           <Link to="/" className={styles.logoLink}>
-            European Kettlebell Championship - Live Results
+            Hardstyle Kettlebell European Championship - Live Results
           </Link>
         </div>
 
@@ -76,15 +76,15 @@ const Layout: React.FC = () => {
           placement="right"
           onClose={closeDrawer}
           open={drawerVisible}
-          bodyStyle={{ padding: 0 }}
+          styles={{ body: { padding: 0 } }}  // Updated from bodyStyle
           className={styles.mobileDrawer}
         >
-          <Menu
-            theme="light"
-            mode="vertical"
-            selectedKeys={getSelectedKeys()}
-            items={menuItems}
-          />
+        <Menu
+          theme="light"
+          mode="vertical"
+          selectedKeys={getSelectedKeys()}
+          items={menuItems}
+        />
         </Drawer>
       </Header>
 
@@ -92,7 +92,7 @@ const Layout: React.FC = () => {
         <Outlet />
       </Content>
       <Footer className={styles.footer}>
-        © {currentYear} European Kettlebell Championship. All rights reserved.
+        © {currentYear} Hardstyle Kettlebell European Championship. All rights reserved.
       </Footer>
     </AntLayout>
   );
