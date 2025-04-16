@@ -12,7 +12,7 @@
   --background-color-base: #410707;
   --background-gradient-end: #750b17;
   --text-color: #FFFFFF;
-  --border-color: #8a4a51;
+  --border-color: #000000;
   --link-color: #ffab91;
   --link-hover-color: #ffccbc;
   --primary-color: #ff8a65;
@@ -23,7 +23,7 @@
   --navy-blue-hover-bg: #173A5E;
   --navy-blue-hover-border: #5691c8;
 
-  --footer-text-color: #a20000b3;
+  --footer-text-color: #000000b3;
 
   --font-header: 'Bebas Neue', sans-serif;
   --font-military: 'Oswald', sans-serif;
@@ -128,6 +128,46 @@ a:hover {
     background: transparent;
 }
 
+.ant-layout-footer {
+  background-color: #000000 !important;
+  color: var(--text-color) !important;
+  padding: 1.5rem;
+  width: 100%;
+  border-top: none !important;
+}
+
+/* Style for any custom footer class if needed */
+.footer {
+  background-color: #000000;
+  color: var(--text-color);
+  width: 100%;
+}
+.ant-layout {
+  background: transparent !important;
+}
+
+/* For content area */
+.ant-layout-content {
+  background-color: rgba(185, 9, 224, 0.7) !important;  /* Dark blue that matches your navy theme */
+  backdrop-filter: blur(3px);
+  margin: 16px 0;
+  border-radius: 6px;
+}
+
+/* If you need to target those specific classes */
+.ant-layout-header {
+  background: transparent !important;
+  padding: 0 16px !important;
+  border-bottom: none !important;
+}
+
+.ant-table-wrapper .ant-table { background: var(--navy-blue-dark) !important; color: var(--text-color); }
+.ant-table-thead > tr > th { background: var(--navy-blue-dark) !important; color: var(--text-color) !important; border-bottom: 1px solid var(--border-color) !important; font-family: var(--font-military); font-weight: 700;}
+.ant-table-tbody > tr > td { 
+  background-color: var(--navy-blue-dark) !important;
+  border-bottom: 1px solid var(--border-color) !important; 
+  color: var(--text-color) !important; 
+}
 
 .ant-spin-spinning { color: var(--primary-color) !important; }
 .ant-spin-text { color: var(--text-color) !important; opacity: 0.8; }
@@ -135,10 +175,10 @@ a:hover {
 .ant-alert-warning .ant-alert-message, .ant-alert-warning .ant-alert-description { color: #faad14 !important; }
 .ant-alert-error { background-color: rgba(244, 67, 54, 0.1) !important; border-color: #f44336 !important; }
 .ant-alert-error .ant-alert-message, .ant-alert-error .ant-alert-description { color: #f44336 !important; }
-.ant-table-wrapper .ant-table { background: transparent !important; color: var(--text-color); }
+.ant-table-wrapper .ant-table { background: rgba(255, 255, 255, 0.08) !important; color: var(--text-color); }
 .ant-table-thead > tr > th { background: rgba(255, 255, 255, 0.08) !important; color: var(--text-color) !important; border-bottom: 1px solid var(--border-color) !important; font-family: var(--font-military); font-weight: 700;}
 .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-color) !important; color: var(--text-color) !important; }
-.ant-table-tbody > tr.ant-table-row:hover > td { background: rgba(255, 255, 255, 0.1) !important; }
+.ant-table-tbody > tr.ant-table-row:hover > td { background: rgba(202, 20, 20, 0.949) !important; }
 .ant-pagination-item a, .ant-pagination-item-link, .ant-pagination-options-quick-jumper input, .ant-pagination-disabled .ant-pagination-item-link { color: var(--text-color) !important; background-color: transparent !important; border-color: var(--border-color) !important; }
 .ant-pagination-item-active { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
 .ant-pagination-item-active a { color: #000 !important; }
@@ -154,7 +194,7 @@ a:hover {
 .ant-input, .ant-input-search .ant-input { background-color: rgba(255, 255, 255, 0.1) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
 .ant-input::placeholder { color: rgba(245, 245, 245, 0.5) !important; }
 .ant-drawer-content-wrapper { background: #f0f0f0; } /* Jasne tło dla drawera */
-.ant-drawer-header { background: #e0e0e0; border-bottom: 1px solid #d9d9d9;}
+.ant-drawer-header { background: #8c0a0a; border-bottom: 1px solid #d9d9d9;}
 .ant-drawer-title { color: #333; }
 .ant-drawer-close { color: #333 !important; }
 .ant-menu-light { background: transparent !important; }
