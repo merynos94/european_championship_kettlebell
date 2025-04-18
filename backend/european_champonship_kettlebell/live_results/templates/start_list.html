@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista startowa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .info-panel {
+            background-color: #f2f2f2;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .info-panel p {
+            margin: 5px 0;
+        }
+        .stations-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .station {
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .station-header {
+            background-color: #5f0404;
+            color: white;
+            padding: 10px;
+            font-size: 18px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .no-players {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+        .return-link {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            text-decoration: none;
+            background-color: #5f0404;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .return-link:hover {
+            background-color: #5f0404;
+        }
+        @media print {
+            .return-link {
+                display: none;
+            }
+            h1 {
+                margin-top: 0;
+            }
+            body {
+                padding: 0;
+            }
+            .stations-container {
+                display: block;
+            }
+            .station {
+                page-break-inside: avoid;
+                max-width: 100%;
+                border: none;
+                margin-bottom: 30px;
+            }
+            .station-header {
+                background-color: #f2f2f2 !important;
+                color: black !important;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista startowa</h1>
+
+    <div class="info-panel">
+        <p><strong>Kategorie:</strong> {{ categories }}</p>
+        <p><strong>Liczba stanowisk:</strong> {{ stations }}</p>
+        {% if player_count %}
+            <p><strong>Liczba zawodników:</strong> {{ player_count }}</p>
+            <p><strong>Typ rozdzielenia:</strong> {{ distribute_type }}</p>
+        {% endif %}
+    </div>
+
+    {% if message %}
+        <div class="info-panel">
+            <p>{{ message }}</p>
+        </div>
+    {% else %}
+        <div class="stations-container">
+            {% for station in stations_list %}
+                <div class="station">
+                    <div class="station-header">
+                        <h3>Stanowisko {{ station.station_number }}</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Lp.</th>
+                                <th>Nazwisko</th>
+                                <th>Imię</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if station.players %}
+                                {% for player in station.players %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ player.surname }}</td>
+                                        <td>{{ player.name }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="no-players">Brak zawodników na tym stanowisku</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <a href="{% url 'generate_start_list' %}" class="return-link">Wróć do formularza</a>
+</body>
+</html>

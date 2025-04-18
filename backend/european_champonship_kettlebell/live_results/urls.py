@@ -31,4 +31,6 @@ urlpatterns = [
     path('', include(router.urls)),
     # You can add other URL paths for views not based on ViewSets here, if you have them
     # e.g. path('custom-view/', views.my_custom_api_view, name='custom-view'),
+    path('lista-startowa/', views.generate_start_list, name='generate_start_list'),
+
 ]
