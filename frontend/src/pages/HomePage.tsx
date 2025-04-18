@@ -1,11 +1,10 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Typography, List, Card, Spin, Alert } from "antd";
 import { Category } from "../types";
 import apiClient from "../services/api";
 import styles from "./HomePage.module.css";
-
+import { Typography, Space, Card, Spin, Alert } from "antd";
 const { Title, Paragraph } = Typography;
 
 
@@ -114,7 +113,7 @@ const HomePage: React.FC = () => {
   // --- Renderowanie Komponentu (bez zmian z ostatniej wersji) ---
   return (
     <div className={styles.homeContainer}>
-      <Title level={1}>European Kettlebell Championship - Live Results</Title>
+      {/* <Title level={1}>European Kettlebell Championship - Live Results</Title> */}
 
       {isLoading && (
         <div className={styles.centered}>
@@ -141,34 +140,32 @@ const HomePage: React.FC = () => {
             }
             return (
               <section key={groupConfig.key} className="category-section">
-                <Title level={3} className={`${styles.categoryGroupTitle} category-title`}>
-                  {groupConfig.title}
-                </Title>
-                <List
-                  grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 5 }}
-                  dataSource={groupCategories}
-                  renderItem={(category) => {
-                    const displayName = formatCategoryName(category.name);
-                    const englishName = getEnglishName(category.name);
-                    return (
-                      <List.Item key={category.id}>
-                        <Link to={`/category/${category.id}`}>
-                          <Card
-                            hoverable
-                            className={styles.categoryCard}
-                            title={displayName}
-                          >
-                            {englishName && (
-                              <div className={styles.englishName}>
-                                {englishName}
-                              </div>
-                            )}
-                          </Card>
-                        </Link>
-                      </List.Item>
-                    );
-                  }}
-                />
+              <Title level={2} className={`${styles.categoryGroupTitle} category-title`}>
+                {groupConfig.title}
+              </Title>
+               <Space wrap size={[16, 16]}>
+                 {groupCategories.map((category) => {
+                   const displayName = formatCategoryName(category.name);
+                   const englishName = getEnglishName(category.name);
+                   return (
+                     // Renderujemy Link i Card bezpośrednio w mapowaniu
+                     <Link to={`/category/${category.id}`} key={category.id}>
+                       <Card
+                         hoverable
+                         className={styles.categoryCard} // Ta sama klasa CSS
+                         title={displayName}
+                       >
+                         {englishName && (
+                           <div className={styles.englishName}>
+                             {englishName}
+                           </div>
+                         )}
+                       </Card>
+                     </Link>
+                   );
+                 })}
+               </Space>
+
               </section>
             );
           })}
