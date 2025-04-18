@@ -16,7 +16,7 @@ const { Search } = Input;
 // It uses the browser's local time zone (Warsaw/CEST in your case).
 const OVERALL_RESULTS_VISIBLE_AFTER = new Date();
 // Set hours, minutes, seconds, milliseconds (HH, MM, SS, MS) for today. Change 21, 10 for desired time.
-OVERALL_RESULTS_VISIBLE_AFTER.setHours(21, 10, 0, 0);
+OVERALL_RESULTS_VISIBLE_AFTER.setHours(16, 15, 0, 0);
 
 const formatNumber = (
   value: number | null | undefined,
@@ -623,7 +623,7 @@ const CategoryPage: React.FC = () => {
 
     return (
       <section key={rowKeySuffix}>
-        <Title level={3} className={styles.disciplineTableTitle}>
+        <Title level={2} className={styles.disciplineTableTitle}>
           {title}
         </Title>
         <Table
@@ -705,7 +705,7 @@ const CategoryPage: React.FC = () => {
         Powrót do listy kategorii
       </Button>
 
-      <Title level={1} className={styles.categoryTitle}>
+      <Title level={2} className={styles.categoryTitle}>
         Wyniki: {categoryInfo?.name || `Kategoria ${categoryId}`}
         {isFetching && !isLoading && (
           <Spin size="small" style={{ marginLeft: "8px" }} />
@@ -761,11 +761,11 @@ const CategoryPage: React.FC = () => {
             borderRadius: "4px",
           }}
         >
-          <Paragraph style={{ fontStyle: "italic", color: "#555" }}>
-            Overall Classification will be available after 21:10.
+          <Paragraph style={{ fontStyle: "italic", color: "#FFFFFF" }}>
+          Pełna klasyfikacja będzie dostępna po 16:15./ Overall Classification will be available after 16:15.
           </Paragraph>
-          <Paragraph type="secondary" style={{ fontSize: "0.9em" }}>
-            (Please refresh the page after this time)
+          <Paragraph type="secondary" style={{ fontSize: "0.9em", color: "#FFFFFF" }}>
+            (Po tym czasie należy odświeżyć stronę /Please refresh the page after this time)
           </Paragraph>
         </div>
       )}

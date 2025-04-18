@@ -18,6 +18,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  color: #FFFFFF !important;
 }
 
 .categoryDisciplines {
@@ -25,16 +26,19 @@
   color: var(--text-color);
   opacity: 0.8;
   margin-bottom: 2rem;
+  color: #FFFFFF !important;
 }
 
 .filterInput {
   margin-bottom: 2rem;
   max-width: 500px;
+  color: #FFFFFF !important;
 }
 
 .disciplineTableTitle {
   margin-top: 2.5rem;
   margin-bottom: 1rem;
+  color:red;
 }
 
 .overallTable {
