@@ -123,16 +123,16 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     align: "right",
     responsive: ["lg"],
   },
-  {
-    title: "SSP",
-    dataIndex: "see_saw_press_points",
-    key: "ssp_points",
-    render: (pts) => formatNumber(pts, 1),
-    sorter: (a, b) =>
-      (a.see_saw_press_points ?? 0) - (b.see_saw_press_points ?? 0),
-    align: "right",
-    responsive: ["xl"],
-  },
+  // {
+  //   title: "SSP",
+  //   dataIndex: "see_saw_press_points",
+  //   key: "ssp_points",
+  //   render: (pts) => formatNumber(pts, 1),
+  //   sorter: (a, b) =>
+  //     (a.see_saw_press_points ?? 0) - (b.see_saw_press_points ?? 0),
+  //   align: "right",
+  //   responsive: ["xl"],
+  // },
   {
     title: "KBS",
     dataIndex: "kb_squat_points",
@@ -142,16 +142,16 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     align: "right",
     responsive: ["xl"],
   },
-  {
-    title: "Pistol",
-    dataIndex: "pistol_squat_points",
-    key: "pistol_points",
-    render: (pts) => formatNumber(pts, 1),
-    sorter: (a, b) =>
-      (a.pistol_squat_points ?? 0) - (b.pistol_squat_points ?? 0),
-    align: "right",
-    responsive: ["xl"],
-  },
+  // {
+  //   title: "Pistol",
+  //   dataIndex: "pistol_squat_points",
+  //   key: "pistol_points",
+  //   render: (pts) => formatNumber(pts, 1),
+  //   sorter: (a, b) =>
+  //     (a.pistol_squat_points ?? 0) - (b.pistol_squat_points ?? 0),
+  //   align: "right",
+  //   responsive: ["xl"],
+  // },
   {
     title: "OKBP",
     dataIndex: "one_kb_press_points",
