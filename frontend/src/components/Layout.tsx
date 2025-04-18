@@ -49,7 +49,7 @@ const Layout: React.FC = () => {
       <Header className={styles.header}>
         <div className={styles.logoContainer}>
           <Link to="/" className={styles.logoLink}>
-            Hardstyle Kettlebell European Championship - Live Results
+          Hardstyle Kettlebell European Championship
           </Link>
         </div>
 

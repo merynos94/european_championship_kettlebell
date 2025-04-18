@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem !important;
-  background-color: rgba(113, 8, 232, 0.4) !important;
+  background-color: #00bbff !important;
   border-bottom: 1px solid var(--border-color) !important;
   height: 64px;
   backdrop-filter: blur(4px);
@@ -26,7 +26,7 @@
 
 .logoLink {
   font-family: var(--font-primary);
-  font-size: 1.2em;
+  font-size: 1.8em;
   font-weight: 400;
   color: var(--text-color) !important;
   text-decoration: none;
@@ -116,8 +116,8 @@
 
 @media (min-width: 768px) {
   .mainContent {
-    padding: 24px;
-    margin: 24px 0;
+    padding: 6px;
+    margin: 12px;
   }
 }
 
