@@ -175,3 +175,6 @@ backend/.env
 
 # Static files by collecstatic 
 /backend/european_champonship_kettlebell/staticfiles/
+/backend/european_champonship_kettlebell/zawodnicy_part_1.csv
+/backend/european_champonship_kettlebell/zawodnicy_part_2.csv
+/backend/european_champonship_kettlebell/zawodnicy_part_3.csv
