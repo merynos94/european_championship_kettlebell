@@ -205,7 +205,9 @@ a:hover {
   padding: 0 16px !important;
   border-bottom: none !important;
 }
-
+.ant-typography {
+  color: #FFFFFF !important;
+}
 /* AntD table styles */
 .ant-table-wrapper .ant-table {
   background: var(--navy-blue-dark) !important;
