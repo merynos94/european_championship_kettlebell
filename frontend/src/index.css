@@ -98,7 +98,11 @@ h6 {
   margin-bottom: 1rem;
   color: var(--text-color);
 }
+p {
+  color: var(--text-color);
+  font-family: var(--font-military)
 
+}
 a {
   color: var(--link-color);
   text-decoration: none;
