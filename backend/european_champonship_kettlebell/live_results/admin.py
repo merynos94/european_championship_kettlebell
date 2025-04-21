@@ -1,7 +1,8 @@
 """Admin panel for managing kettlebell competition results"""
+from django.contrib import messages
 
 import traceback
-
+from django.http import HttpResponseRedirect
 from django import forms
 from django.contrib import admin
 from django.db import models
@@ -547,7 +548,21 @@ class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
         "get_player_categories",
     )
     autocomplete_fields = ("player",)
+    ordering = ('position', 'player__surname', 'player__name')
 
+    def response_change(self, request, obj):
+        """
+        Called after saving changes to an existing object.
+        If the standard 'Save' button was pressed, redirect to the clean
+        changelist view without preserving filters or ordering.
+        Otherwise, fall back to default Django admin behavior.
+        """
+        if "_save" in request.POST:
+            list_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist')
+            messages.success(request, _("Zmiany w %(name)s zostały zapisane pomyślnie.") % {'name': str(obj)})
+            return HttpResponseRedirect(list_url)
+        else:
+            return super().response_change(request, obj)
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def get_player_name(self, obj):
         player = getattr(obj, "player", None)
@@ -671,6 +686,21 @@ class SnatchResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
     )
     list_select_related = ("player", "player__club")
     autocomplete_fields = ("player",)
+    ordering = ('position', 'player__surname', 'player__name')
+
+    def response_change(self, request, obj):
+        """
+        Called after saving changes to an existing object.
+        If the standard 'Save' button was pressed, redirect to the clean
+        changelist view without preserving filters or ordering.
+        Otherwise, fall back to default Django admin behavior.
+        """
+        if "_save" in request.POST:
+            list_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist')
+            messages.success(request, _("Zmiany w %(name)s zostały zapisane pomyślnie.") % {'name': str(obj)})
+            return HttpResponseRedirect(list_url)
+        else:
+            return super().response_change(request, obj)
 
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def get_player_name(self, obj: SnatchResult):
