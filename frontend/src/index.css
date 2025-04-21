@@ -223,7 +223,7 @@ a:hover {
   letter-spacing: 0.5px; /* Added for consistency */
 }
 .ant-table-tbody > tr > td {
-  background-color: transparent !important; /* Set transparency for cells */
+  background-color: var(--navy-blue-dark) !important; 
   border-bottom: 1px solid var(--navy-blue-border) !important; /* Adjusted border color */
   color: var(--text-color) !important;
 }
@@ -334,12 +334,12 @@ a:hover {
 }
 .ant-input,
 .ant-input-search .ant-input {
-  background-color: rgba(10, 25, 47, 0.7) !important;
+  background-color: transparent !important;
   border-color: var(--navy-blue-border) !important;
   color: var(--text-color) !important;
 } /* Adjusted input background and border */
 .ant-input::placeholder {
-  color: rgba(228, 255, 21, 0.5) !important;
+  color: rgb(150, 150, 150) !important;
 } /* Adjusted placeholder color */
 .ant-input:focus,
 .ant-input-focused {

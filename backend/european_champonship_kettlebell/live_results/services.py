@@ -229,11 +229,11 @@ def update_discipline_positions(category: Category) -> None:
             if last_score is None or abs(score - last_score) > epsilon:
                 current_pos = rank_counter
             last_score = score
-
-            if result.position != current_pos:
+            
+            # Update if the calculated position is different OR if the stored position is currently None
+            if result.position != current_pos or result.position is None:
                 result.position = current_pos
                 updates.append(result)
-
         if updates:
             try:
                 updated_count = model.objects.bulk_update(updates, ["position"])
