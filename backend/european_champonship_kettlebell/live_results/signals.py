@@ -28,22 +28,40 @@ RESULT_MODELS_TO_TRACK = [
 @receiver(post_save, sender=RESULT_MODELS_TO_TRACK)
 def trigger_overall_update_on_result_save(sender, instance, created, **kwargs):
     """
-    Triggers overall results update for the player when a tracked
-    individual Result model instance is saved.
+    Triggers overall results update for the player AFTER the transaction
+    that saved the Result model instance has been successfully committed.
     """
     player_instance = getattr(instance, "player", None)
     if player_instance and isinstance(player_instance, Player):
+        # Zapisz ID gracza, na wypadek gdyby instancja player_instance stała się nieaktualna
+        player_id = player_instance.id
         print(
-            f"[Signal post_save] Zapisano {sender.__name__} dla gracza {player_instance.id}. Uruchamiam aktualizację wyników..."
+            f"[Signal post_save] Zapisano {sender.__name__} dla gracza {player_id}. "
+            f"Planuję aktualizację wyników po zatwierdzeniu transakcji..."
         )
-        try:
-            # Calls the updated service function
-            update_overall_results_for_player(player_instance)
-        except Exception as e:
-            print(
-                f"[Signal post_save] KRYTYCZNY BŁĄD podczas aktualizacji dla {sender.__name__} (Gracz: {player_instance.id}): {e}"
-            )
-            traceback.print_exc()
+
+        # Funkcja, która zostanie wykonana PO zatwierdzeniu transakcji
+        def process_update_after_commit():
+            print(f"[Signal post_save on_commit] Rozpoczynam aktualizację dla gracza {player_id}...")
+            try:
+                # Ponownie pobierz instancję gracza z bazy danych, aby mieć pewność,
+                # że pracujemy na najświeższych danych (ważne jeśli inne sygnały też coś robią)
+                # i że waga jest już na pewno widoczna po commicie.
+                player_to_update = Player.objects.get(pk=player_id)
+                # Wywołaj główną funkcję aktualizującą
+                update_overall_results_for_player(player_to_update)
+                print(f"[Signal post_save on_commit] Zakończono aktualizację dla gracza {player_id}.")
+            except Player.DoesNotExist:
+                 print(f"[Signal post_save on_commit ERROR] Gracz {player_id} nie istnieje już w bazie?")
+            except Exception as e:
+                print(
+                    f"[Signal post_save on_commit] KRYTYCZNY BŁĄD podczas aktualizacji dla {sender.__name__} "
+                    f"(Gracz: {player_id}): {e}"
+                )
+                traceback.print_exc()
+
+        # Zaplanuj wykonanie funkcji process_update_after_commit po zakończeniu bieżącej transakcji
+        transaction.on_commit(process_update_after_commit)
 
 
 @receiver(m2m_changed, sender=Player.categories.through)
