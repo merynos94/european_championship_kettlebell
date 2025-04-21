@@ -16,7 +16,7 @@ const { Search } = Input;
 // It uses the browser's local time zone (Warsaw/CEST in your case).
 const OVERALL_RESULTS_VISIBLE_AFTER = new Date();
 // Set hours, minutes, seconds, milliseconds (HH, MM, SS, MS) for today. Change 21, 10 for desired time.
-OVERALL_RESULTS_VISIBLE_AFTER.setHours(16, 15, 0, 0);
+OVERALL_RESULTS_VISIBLE_AFTER.setHours(0, 1, 0, 0);
 
 const formatNumber = (
   value: number | null | undefined,
@@ -743,7 +743,6 @@ const CategoryPage: React.FC = () => {
         />
       )}
 
-      {/* --- CONDITIONAL RENDERING for Overall Results --- */}
       {showOverallResults ? (
         renderAntdTable(
           "Klasyfikacja Generalna",
@@ -769,7 +768,6 @@ const CategoryPage: React.FC = () => {
           </Paragraph>
         </div>
       )}
-      {/* --- END CONDITIONAL RENDERING --- */}
 
       {categoryInfo?.disciplines &&
         categoryInfo.disciplines.map((disciplineApiKey) => {
@@ -780,13 +778,33 @@ const CategoryPage: React.FC = () => {
             );
             return null;
           }
-          const disciplineDataSource = filteredResults.filter(
-            (r) => r && r[mappingInfo.key]
+          const filteredSource = filteredResults.filter(
+            (r) => r && getNestedValue(r, mappingInfo.key)
           );
+
+          const sortedDisciplineDataSource = [...filteredSource].sort((a, b) => {
+             const posA = getNestedValue(a, mappingInfo.sortKey, Infinity);
+             const posB = getNestedValue(b, mappingInfo.sortKey, Infinity);
+             const numA = Number(posA);
+             const numB = Number(posB);
+             const finalA = isNaN(numA) ? Infinity : numA;
+             const finalB = isNaN(numB) ? Infinity : numB;
+
+             if (finalA === Infinity && finalB === Infinity) {
+                 const nameA = `${a.player?.name} ${a.player?.surname}`;
+                 const nameB = `${b.player?.name} ${b.player?.surname}`;
+                 return nameA.localeCompare(nameB);
+             }
+             if (finalA === Infinity) return 1;
+             if (finalB === Infinity) return -1;
+
+             return finalA - finalB;
+          });
+
           return renderAntdTable(
             mappingInfo.name,
-            disciplineDataSource,
-            mappingInfo.columns, // Teraz użyje zaktualizowanych kbsCols i tkbpCols
+            sortedDisciplineDataSource,
+            mappingInfo.columns,
             mappingInfo.key.toString()
           );
         })}
