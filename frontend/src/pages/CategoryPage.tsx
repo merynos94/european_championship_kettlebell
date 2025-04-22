@@ -224,6 +224,15 @@ const createDisciplineColumns = (
       fixed: "left",
       width: 180,
     },
+    {
+      title: "Waga",
+      dataIndex: ["player", "weight"],
+      key: "weight",
+      render: (w) => formatNumber(w, 1),
+      sorter: (a: OverallResult, b: OverallResult) => (a.player?.weight ?? 0) - (b.player?.weight ?? 0),
+      align: "right",
+      width: 80,
+    },
     ...mappedSpecificColumns,
     {
       title: "Pozycja",
@@ -259,7 +268,7 @@ const createDisciplineColumns = (
 const snatchCols = createDisciplineColumns(
   [
     {
-      title: "Waga",
+      title: "Waga kettla",
       dataIndex: ["snatch_result", "kettlebell_weight"],
       key: "snatch_weight",
       render: (v) => formatNumber(v, 1),
