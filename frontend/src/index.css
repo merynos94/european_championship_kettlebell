@@ -13,7 +13,8 @@
 :root {
   --background-color-base: #a51414;
   --background-gradient-end: #401010;
-  --text-color: #f0f0f0;
+  --text-color: #ffffff;
+  --text-input-search: #000000;
   --border-color: #000000;
   --link-color: #1c701f;
   --link-hover-color: #ffccbc;
@@ -336,7 +337,7 @@ a:hover {
 .ant-input-search .ant-input {
   background-color: transparent !important;
   border-color: var(--navy-blue-border) !important;
-  color: var(--text-color) !important;
+  color: var(--text-input-search) !important;
 } /* Adjusted input background and border */
 .ant-input::placeholder {
   color: rgb(150, 150, 150) !important;
