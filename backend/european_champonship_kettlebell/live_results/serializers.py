@@ -51,7 +51,7 @@ class SnatchResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SnatchResult
-        fields = ['kettlebell_weight', 'repetitions', 'result_score', 'position']
+        fields = ['kettlebell_weight', 'repetitions', 'result_score',]
         read_only_fields = ['position']
 
     def get_result_score(self, obj: SnatchResult) -> float:
@@ -65,7 +65,7 @@ class TGUResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TGUResult
-        fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val', 'position']
+        fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val']
         read_only_fields = ['position']
 
     def get_max_result_val(self, obj: TGUResult) -> float:
@@ -83,7 +83,7 @@ class OneKettlebellPressResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OneKettlebellPressResult
-        fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val', 'position']
+        fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val']
         read_only_fields = ['position']
 
     def get_max_result_val(self, obj: OneKettlebellPressResult) -> float:
@@ -101,7 +101,7 @@ class OneKettlebellPressResultSerializer(serializers.ModelSerializer):
 #
 #     class Meta:
 #         model = PistolSquatResult
-#         fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val', 'position']
+#         fields = ['result_1', 'result_2', 'result_3', 'max_result_val', 'bw_percentage_val']
 #         read_only_fields = ['position']
 #
 #     def get_max_result_val(self, obj: PistolSquatResult) -> float:
@@ -123,7 +123,7 @@ class OneKettlebellPressResultSerializer(serializers.ModelSerializer):
 #             'result_left_1', 'result_right_1',
 #             'result_left_2', 'result_right_2',
 #             'result_left_3', 'result_right_3',
-#             'max_score_val', 'bw_percentage_val', 'position'
+#             'max_score_val', 'bw_percentage_val'
 #         ]
 #         read_only_fields = ['position']
 #
@@ -145,7 +145,7 @@ class KBSquatResultSerializer(serializers.ModelSerializer):
         model = KBSquatResult
         fields = [
             'result_1', 'result_2', 'result_3', # Changed fields
-            'max_result_val', 'bw_percentage_val', 'position'
+            'max_result_val', 'bw_percentage_val'
         ]
         read_only_fields = ['position']
 
@@ -167,7 +167,7 @@ class TwoKettlebellPressResultSerializer(serializers.ModelSerializer):
         model = TwoKettlebellPressResult
         fields = [
             'result_1', 'result_2', 'result_3', # Changed fields
-            'max_result_val', 'bw_percentage_val', 'position'
+            'max_result_val', 'bw_percentage_val'
         ]
         read_only_fields = ['position']
 

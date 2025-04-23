@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Table, Spin, Alert, Typography, Button, Input } from "antd";
-import type { TableProps } from "antd";
+import type { TableProps, ColumnsType} from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import apiClient from "../services/api";
 import { CategoryResultsResponse, OverallResult, Category } from "../types";
@@ -201,27 +201,67 @@ function getNestedValue(
       obj
     );
 }
+const calculateSnatchScore = (result: OverallResult['snatch_result']): number => {
+  if (!result) return 0;
+  const weight = result.kettlebell_weight ?? 0;
+  const reps = result.repetitions ?? 0;
+  return weight > 0 && reps > 0 ? weight * reps : 0;
+};
+
+const calculateTguScore = (result: OverallResult['tgu_result'], playerWeight?: number | null): number => {
+  if (!result || !playerWeight || playerWeight <= 0) return 0;
+  const maxRes = Math.max(result.result_1 ?? 0, result.result_2 ?? 0, result.result_3 ?? 0);
+  return maxRes > 0 ? (maxRes / playerWeight) * 100 : 0; // Zwraca % masy ciała
+};
+
+const calculateKbSquatScore = (result: OverallResult['kb_squat_result'], playerWeight?: number | null): number => {
+  if (!result || !playerWeight || playerWeight <= 0) return 0;
+  const maxRes = Math.max(result.result_1 ?? 0, result.result_2 ?? 0, result.result_3 ?? 0);
+  return maxRes > 0 ? (maxRes / playerWeight) * 100 : 0; // Zwraca % masy ciała
+};
+
+const calculateOneKbPressScore = (result: OverallResult['one_kettlebell_press_result'], playerWeight?: number | null): number => {
+   if (!result || !playerWeight || playerWeight <= 0) return 0;
+   const maxRes = Math.max(result.result_1 ?? 0, result.result_2 ?? 0, result.result_3 ?? 0);
+   return maxRes > 0 ? (maxRes / playerWeight) * 100 : 0; // Zwraca % masy ciała
+};
+
+const calculateTwoKbPressScore = (result: OverallResult['two_kettlebell_press_result'], playerWeight?: number | null): number => {
+   if (!result || !playerWeight || playerWeight <= 0) return 0;
+   const maxRes = Math.max(result.result_1 ?? 0, result.result_2 ?? 0, result.result_3 ?? 0);
+   return maxRes > 0 ? (maxRes / playerWeight) * 100 : 0; // Zwraca % masy ciała
+};
 const createDisciplineColumns = (
-  specificColumns: TableProps<OverallResult>["columns"] = [],
-  sortPositionKey: string
-): TableProps<OverallResult>["columns"] => {
-  const mappedSpecificColumns: TableProps<OverallResult>["columns"] =
+  specificColumns: ColumnsType<OverallResult> = [] // Użyj ColumnsType zamiast TableProps[...]
+): ColumnsType<OverallResult> => {
+  const mappedSpecificColumns: ColumnsType<OverallResult> =
     specificColumns.map((col: any) => ({
       ...col,
       align: col.align || "right",
       width: col.width || 80,
     }));
-  const columns: TableProps<OverallResult>["columns"] = [
+
+  const columns: ColumnsType<OverallResult> = [
+    {
+      title: "Pozycja", // Przesunięta na początek dla lepszej widoczności
+      key: "rank",
+      width: 60,
+      align: "center",
+      fixed: "left",
+      // Renderuje pozycję na podstawie indeksu w posortowanej tablicy
+      // (index jest przekazywany przez Ant Design Table jako drugi argument render)
+      render: (_, __, index) => index + 1,
+    },
     {
       title: "Zawodnik",
       key: "player",
       render: (_, record: OverallResult): React.ReactNode =>
         record?.player ? `${record.player.name} ${record.player.surname}` : "?",
-      sorter: (a: OverallResult, b: OverallResult): number =>
+      sorter: (a: OverallResult, b: OverallResult): number => // Sortowanie po nazwisku nadal może być przydatne w samej kolumnie
         `${a.player?.name} ${a.player?.surname}`.localeCompare(
           `${b.player?.name} ${b.player?.surname}`
         ),
-      fixed: "left",
+      // fixed: 'left', // Już nie fixed, bo pozycja jest fixed
       width: 180,
     },
     {
@@ -229,38 +269,15 @@ const createDisciplineColumns = (
       dataIndex: ["player", "weight"],
       key: "weight",
       render: (w) => formatNumber(w, 1),
+      // Sortowanie po wadze nadal OK
       sorter: (a: OverallResult, b: OverallResult) => (a.player?.weight ?? 0) - (b.player?.weight ?? 0),
       align: "right",
       width: 80,
     },
-    ...mappedSpecificColumns,
-    {
-      title: "Pozycja",
-      key: "position",
-      render: (_: any, record: OverallResult): React.ReactNode => {
-        const value = getNestedValue(record, sortPositionKey, null);
-        if (value === null || value === undefined) {
-          return "-";
-        }
-        return String(value);
-      },
-      sorter: (a: OverallResult, b: OverallResult): number => {
-        const posA = getNestedValue(a, sortPositionKey, Infinity);
-        const posB = getNestedValue(b, sortPositionKey, Infinity);
-        const numA = Number(posA);
-        const numB = Number(posB);
-        const finalA = isNaN(numA) ? Infinity : numA;
-        const finalB = isNaN(numB) ? Infinity : numB;
-        if (finalA === Infinity && finalB === Infinity) return 0;
-        if (finalA === Infinity) return 1;
-        if (finalB === Infinity) return -1;
-        return finalA - finalB;
-      },
-      width: 100,
-      align: "center",
-      fixed: "right",
-    },
+    ...mappedSpecificColumns, // Kolumny specyficzne dla dyscypliny
+    // Usunięto starą kolumnę "Pozycja", która sortowała po kluczu z API
   ];
+
   return columns;
 };
 
@@ -534,49 +551,46 @@ interface DisciplineMapEntry {
 }
 
 // Mapa dyscyplin - używa teraz zaktualizowanych kbsCols i tkbpCols
+interface DisciplineMapEntry {
+  name: string;
+  key: keyof OverallResult; // Klucz do obiektu wyniku w OverallResult (np. 'snatch_result')
+  columns: ColumnsType<any>; // Poprawiony typ
+  calculateScore: (result: OverallResult) => number; // Funkcja do obliczania wyniku
+}
+
 const disciplineMap: Record<string, DisciplineMapEntry> = {
   snatch: {
     name: "Snatch",
     key: "snatch_result",
     columns: snatchCols,
-    sortKey: "snatch_result.position",
+    calculateScore: (r) => calculateSnatchScore(r.snatch_result),
   },
   tgu: {
     name: "Turkish Get-Up (TGU)",
     key: "tgu_result",
     columns: tguCols,
-    sortKey: "tgu_result.position",
+    calculateScore: (r) => calculateTguScore(r.tgu_result, r.player?.weight),
   },
-  see_saw_press: {
-    name: "See Saw Press (SSP)",
-    key: "see_saw_press_result",
-    columns: sspCols,
-    sortKey: "see_saw_press_result.position",
-  },
+  // see_saw_press: { ... }, // Jeśli używane
   kb_squat: {
     name: "Kettlebell Squat (KBS)",
-    key: "kb_squat_result",
+    key: "kb_squat_result", // Upewnij się, że klucz pasuje do danych z API
     columns: kbsCols,
-    sortKey: "kb_squat_result.position",
-  }, // Używa nowych kbsCols
-  pistol_squat: {
-    name: "Pistol Squat",
-    key: "pistol_squat_result",
-    columns: pistolCols,
-    sortKey: "pistol_squat_result.position",
+    calculateScore: (r) => calculateKbSquatScore(r.kb_squat_result, r.player?.weight), // Użyj poprawnego klucza
   },
+  // pistol_squat: { ... }, // Jeśli używane
   one_kettlebell_press: {
-    name: "One Kettlebell Press (OKBP)",
+    name: "One Kettlebell Press (OKBP)", // Zmieniona nazwa dla jasności?
     key: "one_kettlebell_press_result",
     columns: okbpCols,
-    sortKey: "one_kettlebell_press_result.position",
+    calculateScore: (r) => calculateOneKbPressScore(r.one_kettlebell_press_result, r.player?.weight),
   },
   two_kettlebell_press: {
-    name: "Two Kettlebell Press (TKBP)",
-    key: "two_kettlebell_press_result",
+    name: "Two Kettlebell Press (TKBP)", // Zmieniona nazwa dla jasności?
+    key: "two_kettlebell_press_result", // Upewnij się, że klucz pasuje do danych z API
     columns: tkbpCols,
-    sortKey: "two_kettlebell_press_result.position",
-  }, // Używa nowych tkbpCols
+    calculateScore: (r) => calculateTwoKbPressScore(r.two_kettlebell_press_result, r.player?.weight), // Użyj poprawnego klucza
+  },
 };
 
 const CategoryPage: React.FC = () => {
@@ -615,12 +629,12 @@ const CategoryPage: React.FC = () => {
 
   const renderAntdTable = (
     title: string,
-    dataSource: OverallResult[],
-    columns: TableProps<any>["columns"] = [],
+    dataSource: OverallResult[], // Przyjmuje już posortowane dane
+    columns: ColumnsType<any> = [], // Poprawiony typ
     rowKeySuffix: string
   ) => {
     if (!dataSource || dataSource.length === 0) {
-      if (filterTerm && results.length > 0) {
+      if (filterTerm && results.length > 0) { // Sprawdź oryginalne wyniki przed filtrowaniem
         return (
           <Paragraph key={rowKeySuffix} style={{ marginTop: "1rem" }}>
             Brak zawodników pasujących do filtra dla: {title}
@@ -636,29 +650,18 @@ const CategoryPage: React.FC = () => {
           {title}
         </Title>
         <Table
-          dataSource={dataSource}
+          dataSource={dataSource} // Przekaż posortowane dane
           columns={columns}
           rowKey={(record) =>
             record?.player?.id
-              ? record.player.id + "-" + rowKeySuffix
-              : Math.random() + "-" + rowKeySuffix
+              ? `${record.player.id}-${rowKeySuffix}` // Bardziej unikalny klucz
+              : `${Math.random()}-${rowKeySuffix}`
           }
-          pagination={
-            title === "Klasyfikacja Generalna"
-              ? {
-                  pageSize: 20,
-                  showSizeChanger: true,
-                  pageSizeOptions: ["10", "20", "50", "100"],
-                  hideOnSinglePage: true,
-                }
-              : false
-          }
+          pagination={false} // Zwykle nie paginujemy tabel dyscyplin
           size="middle"
           bordered
           scroll={{ x: "max-content" }}
-          loading={
-            isFetching && !isLoading && title === "Klasyfikacja Generalna"
-          }
+          // Loading nie jest już potrzebny tutaj w ten sposób
         />
       </section>
     );
@@ -778,6 +781,7 @@ const CategoryPage: React.FC = () => {
         </div>
       )}
 
+      {/* --- ZMODYFIKOWANA PĘTLA MAPUJĄCA DYSCYPLINY --- */}
       {categoryInfo?.disciplines &&
         categoryInfo.disciplines.map((disciplineApiKey) => {
           const mappingInfo = disciplineMap[disciplineApiKey];
@@ -787,34 +791,41 @@ const CategoryPage: React.FC = () => {
             );
             return null;
           }
+
+          // 1. Filtrowanie: Weź tylko wyniki pasujące do filtra tekstowego ORAZ
+          //    mające jakikolwiek obiekt wyniku dla DANEJ dyscypliny
           const filteredSource = filteredResults.filter(
-            (r) => r && getNestedValue(r, mappingInfo.key)
+            (r) => r && getNestedValue(r, mappingInfo.key) // Sprawdza czy istnieje obiekt np. r.snatch_result
           );
 
+          // 2. Sortowanie na Frontendzie: Użyj funkcji calculateScore z mapy
           const sortedDisciplineDataSource = [...filteredSource].sort((a, b) => {
-             const posA = getNestedValue(a, mappingInfo.sortKey, Infinity);
-             const posB = getNestedValue(b, mappingInfo.sortKey, Infinity);
-             const numA = Number(posA);
-             const numB = Number(posB);
-             const finalA = isNaN(numA) ? Infinity : numA;
-             const finalB = isNaN(numB) ? Infinity : numB;
+            const scoreA = mappingInfo.calculateScore(a);
+            const scoreB = mappingInfo.calculateScore(b);
 
-             if (finalA === Infinity && finalB === Infinity) {
-                 const nameA = `${a.player?.name} ${a.player?.surname}`;
-                 const nameB = `${b.player?.name} ${b.player?.surname}`;
-                 return nameA.localeCompare(nameB);
-             }
-             if (finalA === Infinity) return 1;
-             if (finalB === Infinity) return -1;
+            // Sortuj malejąco po wyniku (score)
+            if (scoreA > scoreB) return -1;
+            if (scoreA < scoreB) return 1;
 
-             return finalA - finalB;
+            // Tie-breaking: Po punktach tiebreak (jeśli istnieją i są istotne dla tej dyscypliny)
+            // Zakładamy, że wyższy tiebreak jest lepszy
+            const tieA = a.tiebreak_points ?? -Infinity;
+            const tieB = b.tiebreak_points ?? -Infinity;
+            if (tieA > tieB) return -1;
+            if (tieA < tieB) return 1;
+
+            // Ostateczny tie-breaking: Po nazwisku i imieniu
+            const nameA = `${a.player?.name} ${a.player?.surname}`;
+            const nameB = `${b.player?.name} ${b.player?.surname}`;
+            return nameA.localeCompare(nameB);
           });
 
+          // 3. Renderowanie tabeli z już posortowanymi danymi
           return renderAntdTable(
             mappingInfo.name,
-            sortedDisciplineDataSource,
+            sortedDisciplineDataSource, // Przekaż posortowane dane
             mappingInfo.columns,
-            mappingInfo.key.toString()
+            mappingInfo.key.toString() // Użyj klucza dyscypliny jako suffix dla rowKey
           );
         })}
 
