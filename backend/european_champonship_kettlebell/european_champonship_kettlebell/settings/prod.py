@@ -11,6 +11,8 @@ CSRF_TRUSTED_ORIGINS = ["https://mehardstylekettlebell.pl", "https://www.mehards
 
 LOG_PATH = BASE_DIR.parent / "logs"
 DBBACKUP_PATH = BASE_DIR.parent / "dbbackup"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
 DATABASES = {
     "default": {
