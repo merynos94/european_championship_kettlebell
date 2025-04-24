@@ -18,7 +18,7 @@ from .constants import (
 from .player import Player
 from .results.kb_squat_one_result import KBSquatResult
 from .results.one_kettlebell_press import OneKettlebellPressResult
-from .results.overall import OverallResult
+from .results.overall import CategoryOverallResult
 from .results.pistol_squat import PistolSquatResult
 from .results.see_saw_press import SeeSawPressResult
 
@@ -53,5 +53,5 @@ __all__ = [
     "KBSquatResult",
     "OneKettlebellPressResult",
     "TwoKettlebellPressResult",
-    "OverallResult",
+    "CategoryOverallResult",
 ]

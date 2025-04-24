@@ -27,7 +27,7 @@ from .models.player import Player
 from .models.results import (
     KBSquatResult, # Updated import
     OneKettlebellPressResult,
-    OverallResult,
+    CategoryOverallResult,
     SnatchResult,
     TGUResult,
     TwoKettlebellPressResult, # Updated import
@@ -663,7 +663,7 @@ class TwoKettlebellPressResultAdmin(BaseSingleResultAdmin):
 
 
 
-@admin.register(OverallResult)
+@admin.register(CategoryOverallResult)
 class OverallResultAdmin(admin.ModelAdmin):
     # (Keep the list_display, ordering, readonly_fields, etc. as they were in the previous corrected version)
     list_display = (
@@ -765,10 +765,10 @@ class OverallResultAdmin(admin.ModelAdmin):
         return response
 
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def player_link(self, obj: OverallResult):
+    def player_link(self, obj: CategoryOverallResult):
         return player_link_display(obj.player)
 
     @admin.display(description=_("Kategorie"))
-    def get_player_categories_display(self, obj: OverallResult) -> str:
+    def get_player_categories_display(self, obj: CategoryOverallResult) -> str:
         return get_player_categories_display(obj.player)
 
