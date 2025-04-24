@@ -54,18 +54,24 @@ def update_discipline_positions(category: Category) -> None:
     Calculates and updates positions for players within a category
     for each relevant discipline. Includes detailed debugging prints.
     """
+    print(f"\n=== DEBUG: Rozpoczynam update_discipline_positions dla kategorii: {category.name} (ID: {category.id}) ===") # DEBUG START Function
+
     players_in_category = Player.objects.filter(categories=category).only("id", "weight", "surname", "name")
     if not players_in_category.exists():
-        print(f"Brak graczy w kategorii {category.id} ('{category.name}'). Pomijam obliczanie pozycji dyscyplin.")
+        print(f"DEBUG: Brak graczy w kategorii {category.id} ('{category.name}'). Pomijam obliczanie pozycji dyscyplin.")
+        print(f"=== DEBUG: Kończę update_discipline_positions dla kategorii: {category.name} (Brak graczy) ===") # DEBUG END Function (No players)
         return
 
     player_ids = list(players_in_category.values_list("id", flat=True))
+    print(f"DEBUG: Znaleziono graczy w kategorii (IDs): {player_ids}")
 
     disciplines = category.get_disciplines()
     if not disciplines:
-        print(f"Kategoria {category.id} ('{category.name}') nie ma zdefiniowanych dyscyplin. Pomijam obliczanie pozycji.")
+        print(f"DEBUG: Kategoria {category.id} ('{category.name}') nie ma zdefiniowanych dyscyplin. Pomijam obliczanie pozycji.")
+        print(f"=== DEBUG: Kończę update_discipline_positions dla kategorii: {category.name} (Brak dyscyplin) ===") # DEBUG END Function (No disciplines)
         return
 
+    # Słownik mapujący stałą dyscypliny na pole, wg którego sortujemy (malejąco)
     ordering_logic = {
         SNATCH: "-calculated_snatch_score",
         TGU: "-tgu_bw_ratio",
@@ -74,142 +80,186 @@ def update_discipline_positions(category: Category) -> None:
         TWO_KB_PRESS: "-tkbp_bw_ratio",
     }
 
-    print(f"Aktualizacja pozycji w dyscyplinach dla kategorii: {category.name} ({category.id})")
+    print(f"DEBUG: Dyscypliny do przetworzenia w kategorii: {disciplines}")
     for discipline in disciplines:
+        print(f"\n  --- DEBUG: Przetwarzanie dyscypliny: {discipline} ---") # DEBUG START Discipline
+
         if discipline not in DISCIPLINE_MODELS_MAP:
-            print(f"  OSTRZEŻENIE: Pomijam nieznaną dyscyplinę '{discipline}' w kategorii {category.id}")
+            print(f"  DEBUG WARNING: Pomijam nieznaną dyscyplinę '{discipline}' w kategorii {category.id}")
             continue
 
         model = DISCIPLINE_MODELS_MAP[discipline]
         order_by_field = ordering_logic.get(discipline)
         if not order_by_field:
-            print(f"  OSTRZEŻENIE: Brak logiki sortowania dla dyscypliny '{discipline}'. Pomijam.")
+            print(f"  DEBUG WARNING: Brak logiki sortowania dla dyscypliny '{discipline}'. Pomijam.")
             continue
 
-        print(f"  Przetwarzanie dyscypliny: {discipline}")
+        print(f"  DEBUG: Model={model.__name__}, Sortowanie po={order_by_field}")
         results_qs = model.objects.select_related("player").filter(player_id__in=player_ids)
 
-        if discipline == SNATCH:
-            results_qs = results_qs.annotate(
-                calculated_snatch_score=Case(
-                    When(kettlebell_weight__gt=0, repetitions__gt=0, then=F("kettlebell_weight") * F("repetitions")),
-                    default=Value(0.0),
-                    output_field=FloatField(),
-                )
-            )
-        elif discipline == TGU:
-             results_qs = results_qs.annotate(
-                max_tgu_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-            ).annotate(
-                tgu_bw_ratio=Case(
-                    When(player__weight__gt=0, max_tgu_result__gt=0, then=F("max_tgu_result") / F("player__weight")),
-                    default=Value(0.0),
-                    output_field=FloatField(),
-                )
-            )
-        elif discipline == ONE_KB_PRESS:
-            results_qs = results_qs.annotate(
-                max_okbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-            ).annotate(
-                okbp_bw_ratio=Case(
-                    When(player__weight__gt=0, max_okbp_result__gt=0, then=F("max_okbp_result") / F("player__weight")),
-                    default=Value(0.0),
-                    output_field=FloatField(),
-                )
-            )
-        elif discipline == KB_SQUAT:
-            results_qs = results_qs.annotate(
-                max_kbs_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-            ).annotate(
-                kbs_bw_ratio=Case(
-                    When(player__weight__gt=0, max_kbs_result__gt=0, then=F("max_kbs_result") / F("player__weight")),
-                    default=Value(0.0),
-                    output_field=FloatField(),
-                )
-            )
-        elif discipline == TWO_KB_PRESS:
-            results_qs = results_qs.annotate(
-                max_tkbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-            ).annotate(
-                tkbp_bw_ratio=Case(
-                    When(player__weight__gt=0, max_tkbp_result__gt=0, then=F("max_tkbp_result") / F("player__weight")),
-                    default=Value(0.0),
-                    output_field=FloatField(),
-                )
-            )
+        # Adnotacje do obliczenia wyniku sortującego
+        annotated_qs = results_qs # Domyślnie, jeśli nie ma specjalnej logiki
+        annotation_field_name = None # Nazwa pola z wynikiem do rankingu
 
-        ordered_results = results_qs.order_by(order_by_field, "player__surname", "player__name")
-
-        updates = []
-        current_pos = 0
-        last_score = None
-        rank_counter = 0
-        tie_start_rank = 1
-
-        print(f"    --- DEBUG: Rozpoczynam pętlę po posortowanych wynikach dla {discipline} ---")
-        for result in ordered_results:
-            rank_counter += 1
-            score = 0.0
-            player_weight_debug = result.player.weight if result.player else "Brak obiektu player"
-            max_res_debug = "N/A"
-            try: # Pobierz max_result tylko jeśli istnieje dla danej dyscypliny w adnotacjach
-                if discipline == TGU: max_res_debug = result.max_tgu_result
-                elif discipline == ONE_KB_PRESS: max_res_debug = result.max_okbp_result
-                elif discipline == KB_SQUAT: max_res_debug = result.max_kbs_result
-                elif discipline == TWO_KB_PRESS: max_res_debug = result.max_tkbp_result
-            except AttributeError:
-                max_res_debug = "Błąd atrybutu max_result" # Adnotacja mogła nie zostać dodana
-
-            try:
-                if discipline == SNATCH:
-                    score = result.calculated_snatch_score
-                elif discipline == TGU:
-                    score = result.tgu_bw_ratio
-                elif discipline == ONE_KB_PRESS:
-                    score = result.okbp_bw_ratio
-                elif discipline == KB_SQUAT:
-                    score = result.kbs_bw_ratio
-                elif discipline == TWO_KB_PRESS:
-                    score = result.tkbp_bw_ratio
-                score = float(score or 0.0)
-            except (AttributeError, TypeError, ValueError) as e_score:
-                score = 0.0
-                print(f"      WARNING: Błąd pobierania score dla {result.player}: {e_score}")
-
-            if last_score is None or abs(score - last_score) > epsilon:
-                current_pos = rank_counter
-                last_score = score
-                tie_start_rank = rank_counter
+        try:
+            if discipline == SNATCH:
+                annotation_field_name = "calculated_snatch_score"
+                annotated_qs = results_qs.annotate(
+                    calculated_snatch_score=Case(
+                        When(kettlebell_weight__gt=0, repetitions__gt=0, then=F("kettlebell_weight") * F("repetitions")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+                print(f"  DEBUG: Dodano adnotację '{annotation_field_name}' dla {discipline}")
+            elif discipline == TGU:
+                annotation_field_name = "tgu_bw_ratio"
+                annotated_qs = results_qs.annotate(
+                    max_tgu_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+                ).annotate(
+                    tgu_bw_ratio=Case(
+                        When(player__weight__gt=0, max_tgu_result__gt=0, then=F("max_tgu_result") / F("player__weight")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+                print(f"  DEBUG: Dodano adnotacje 'max_tgu_result', '{annotation_field_name}' dla {discipline}")
+            elif discipline == ONE_KB_PRESS:
+                annotation_field_name = "okbp_bw_ratio"
+                annotated_qs = results_qs.annotate(
+                    max_okbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+                ).annotate(
+                    okbp_bw_ratio=Case(
+                        When(player__weight__gt=0, max_okbp_result__gt=0, then=F("max_okbp_result") / F("player__weight")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+                print(f"  DEBUG: Dodano adnotacje 'max_okbp_result', '{annotation_field_name}' dla {discipline}")
+            elif discipline == KB_SQUAT:
+                annotation_field_name = "kbs_bw_ratio"
+                annotated_qs = results_qs.annotate(
+                    max_kbs_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+                ).annotate(
+                    kbs_bw_ratio=Case(
+                        When(player__weight__gt=0, max_kbs_result__gt=0, then=F("max_kbs_result") / F("player__weight")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+                print(f"  DEBUG: Dodano adnotacje 'max_kbs_result', '{annotation_field_name}' dla {discipline}")
+            elif discipline == TWO_KB_PRESS:
+                annotation_field_name = "tkbp_bw_ratio"
+                annotated_qs = results_qs.annotate(
+                    max_tkbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+                ).annotate(
+                    tkbp_bw_ratio=Case(
+                        When(player__weight__gt=0, max_tkbp_result__gt=0, then=F("max_tkbp_result") / F("player__weight")),
+                        default=Value(0.0),
+                        output_field=FloatField(),
+                    )
+                )
+                print(f"  DEBUG: Dodano adnotacje 'max_tkbp_result', '{annotation_field_name}' dla {discipline}")
             else:
-                current_pos = tie_start_rank
+                 print(f"  DEBUG WARNING: Brak specyficznej adnotacji dla {discipline}. Sortowanie może nie działać poprawnie.")
 
-            player_str = f"{result.player.surname} {result.player.name}" if result.player else f"Gracz ID:{result.player_id}"
-            print(f"    [RANK {rank_counter}] Zawodnik: {player_str} (ID wyniku: {result.id})")
-            if discipline != SNATCH:
-                 print(f"      DEBUG Inputs: Waga={player_weight_debug}, MaxResult={max_res_debug}")
-            print(f"      Score obliczony (użyty do rankingu): {score:.4f}")
-            print(f"      Pozycja w bazie (result.position): {result.position}")
-            print(f"      Pozycja obliczona (current_pos): {current_pos}")
+            if not annotation_field_name:
+                 print(f"  DEBUG ERROR: Nie udało się ustalić pola adnotacji dla {discipline}. Pomijam ranking.")
+                 continue
 
-            needs_update = False
-            if result.position != current_pos or result.position is None:
-                needs_update = True
-                result.position = current_pos
-                updates.append(result)
+            # Sortowanie
+            ordered_results = annotated_qs.order_by(order_by_field, "player__surname", "player__name")
+            print(f"  DEBUG: Wyniki posortowane. Liczba wyników: {ordered_results.count()}")
 
-            print(f"      Czy wymaga aktualizacji?: {'TAK' if needs_update else 'NIE'}")
+            # Fragment funkcji update_discipline_positions w services.py
 
-        print(f"    --- DEBUG: Zakończono pętlę. Liczba potencjalnych aktualizacji: {len(updates)} ---")
+            # ... (kod przed pętlą for result in ordered_results:) ...
+            updates = []
+            current_pos = 0
+            last_score = None
+            rank_counter = 0
+            tie_start_rank = 1
 
-        if updates:
-            try:
-                updated_count = model.objects.bulk_update(updates, ["position"])
-                print(f"    Zaktualizowano pozycje dla {updated_count} rekordów w {discipline}.")
-            except Exception as e_bulk:
-                print(f"    BŁĄD bulk_update pozycji dla {discipline} w kategorii {category.id}: {e_bulk}")
-                traceback.print_exc()
-        else:
-            print(f"    Brak zmian pozycji do zapisania dla {discipline}.")
+            # Usuwamy epsilon z nagłówka logu, bo go nie użyjemy
+            print(f"    --- DEBUG: Rozpoczynam pętlę rankingu dla {discipline} ---")
+            for result in ordered_results:
+                rank_counter += 1
+                player_str = f"{result.player.surname} {result.player.name}" if result.player else f"Gracz ID:{result.player_id}"
+                score = 0.0
+
+                try:
+                    score = getattr(result, annotation_field_name, 0.0)
+                    score = float(score or 0.0)
+                except (AttributeError, TypeError, ValueError) as e_score:
+                    score = 0.0
+                    print(
+                        f"      DEBUG WARNING: Błąd pobierania score ({annotation_field_name}) dla {player_str}: {e_score}")
+
+                print(f"\n    [Iteracja {rank_counter}]")
+                print(f"      Zawodnik: {player_str} (Wynik ID: {result.id})")
+                print(f"      Aktualny obliczony Score (do rankingu): {score:.10f}")  # Nadal wyświetlamy z precyzją
+                print(
+                    f"      Poprzedni Score (last_score): {last_score if last_score is not None else 'Brak (pierwszy element)'}{'.' if last_score is None else f':.10f'}")
+
+                # --- ZMIANA LOGIKI REMISU ---
+                # Używamy bezpośredniego porównania ZAMIAST epsilon
+                # UWAGA: Ryzykowne dla liczb float! Działa tylko jeśli masz pewność,
+                # że wyniki remisujących SĄ DOKŁADNIE IDENTYCZNE bitowo.
+                is_tie = False
+                if last_score is not None:
+                    # BEZPOŚREDNIE PORÓWNANIE
+                    if score == last_score:
+                        is_tie = True
+                # -----------------------------
+
+                print(
+                    f"      Czy jest remis z poprzednim? {'TAK' if is_tie else 'NIE'} (warunek: {score:.10f} == {f'{last_score:.10f}' if last_score is not None else 'None'} -> {score == last_score if last_score is not None else 'N/A'})")
+
+                if not is_tie:
+                    current_pos = rank_counter
+                    last_score = score
+                    tie_start_rank = rank_counter
+                    print(
+                        f"      -> Nie ma remisu (lub pierwszy). Nowa pozycja = rank_counter = {current_pos}. Nowy last_score = {last_score:.10f}. Nowy tie_start_rank = {tie_start_rank}.")
+                else:
+                    current_pos = tie_start_rank
+                    print(f"      -> Jest remis. Pozycja = tie_start_rank = {current_pos}.")
+
+                db_position = result.position
+                print(f"      Pozycja z Bazy Danych (result.position): {db_position}")
+                print(f"      Pozycja Obliczona (current_pos): {current_pos}")
+
+                needs_update = False
+                if db_position != current_pos or db_position is None:
+                    needs_update = True
+                    result.position = current_pos
+                    updates.append(result)
+
+                print(f"      Czy wymaga aktualizacji w DB? {'TAK' if needs_update else 'NIE'}")
+
+            print(f"    --- DEBUG: Zakończono pętlę rankingu. Liczba potencjalnych aktualizacji: {len(updates)} ---")
+
+            # ... (reszta kodu funkcji update_discipline_positions i całego pliku) ...
+
+            if updates:
+                try:
+                    # Użyj transakcji dla pewności, chociaż cała funkcja update_overall_results_for_player powinna być atomowa
+                    with transaction.atomic():
+                        updated_count = model.objects.bulk_update(updates, ["position"])
+                    print(f"    DEBUG SUCCESS: Zaktualizowano pozycje dla {updated_count} rekordów w {discipline}.")
+                except Exception as e_bulk:
+                    print(f"    DEBUG ERROR: BŁĄD bulk_update pozycji dla {discipline} w kategorii {category.id}: {e_bulk}")
+                    traceback.print_exc()
+            else:
+                print(f"    DEBUG INFO: Brak zmian pozycji do zapisania dla {discipline}.")
+
+        except Exception as e_outer:
+            print(f"  DEBUG ERROR: Niespodziewany błąd podczas przetwarzania dyscypliny {discipline} w kategorii {category.id}: {e_outer}")
+            traceback.print_exc()
+
+        print(f"  --- DEBUG: Zakończono przetwarzanie dyscypliny: {discipline} ---") # DEBUG END Discipline
+
+    print(f"=== DEBUG: Kończę update_discipline_positions dla kategorii: {category.name} (ID: {category.id}) ===") # DEBUG END Function
 
 
 def update_overall_results_for_category(category: Category) -> None:

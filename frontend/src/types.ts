@@ -59,27 +59,23 @@ export interface SeeSawPressResultData {
 }
 
 export interface KBSquatResultData {
-  result_left_1: number | null;
-  result_right_1: number | null;
-  result_left_2: number | null;
-  result_right_2: number | null;
-  result_left_3: number | null;
-  result_right_3: number | null;
-  max_score_val: number;
+  result_1: number | null; // Dodane
+  result_2: number | null; // Dodane
+  result_3: number | null; // Dodane
+  max_result_val: number; // Dodane/Zmienione z max_score_val? Sprawdź API!
   bw_percentage_val: number;
-  position: number | null;
+  position: number | null; // Jeśli API nadal to zwraca
+  // Usuń stare pola jeśli ich nie ma: result_left_1, result_right_1 etc.
 }
 
 export interface TwoKettlebellPressResultData {
-  result_left_1: number | null;
-  result_right_1: number | null;
-  result_left_2: number | null;
-  result_right_2: number | null;
-  result_left_3: number | null;
-  result_right_3: number | null;
-  max_score_val: number;
+  result_1: number | null; // Dodane
+  result_2: number | null; // Dodane
+  result_3: number | null; // Dodane
+  max_result_val: number; // Dodane/Zmienione z max_score_val? Sprawdź API!
   bw_percentage_val: number;
-  position: number | null;
+  position: number | null; // Jeśli API nadal to zwraca
+  // Usuń stare pola jeśli ich nie ma: result_left_1, result_right_1 etc.
 }
 
 export interface OverallResult {
