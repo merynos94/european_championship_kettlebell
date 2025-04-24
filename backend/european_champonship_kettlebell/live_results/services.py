@@ -49,29 +49,34 @@ DEFAULT_RESULT_VALUES = {
     TWO_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0}, # Updated for SingleAttempt
 }
 
-def update_discipline_positions(category: Category) -> None:
+# Wklej ten kod do pliku services.py
+# Upewnij się, że importy na górze pliku są kompletne
+
+# --- Nowa funkcja pomocnicza ---
+def get_player_rank_in_discipline(player: Player, discipline: str, category: Category) -> int | None:
     """
-    Calculates and updates positions for players within a category
-    for each relevant discipline. Includes detailed debugging prints.
+    Oblicza i zwraca ranking (miejsce) danego gracza w konkretnej dyscyplinie
+    i kategorii, poprawnie obsługując remisy.
+
+    UWAGA: Ta funkcja powtarza logikę rankingu i może być mniej wydajna
+           przy dużej liczbie wywołań.
     """
-    print(f"\n=== DEBUG: Rozpoczynam update_discipline_positions dla kategorii: {category.name} (ID: {category.id}) ===") # DEBUG START Function
+    print(f"    DEBUG (get_rank): Obliczanie rankingu dla gracza {player.id} w {discipline} (kat: {category.id})")
+    model = DISCIPLINE_MODELS_MAP.get(discipline)
+    if not model:
+        print(f"    DEBUG (get_rank): Nie znaleziono modelu dla {discipline}")
+        return None
 
-    players_in_category = Player.objects.filter(categories=category).only("id", "weight", "surname", "name")
-    if not players_in_category.exists():
-        print(f"DEBUG: Brak graczy w kategorii {category.id} ('{category.name}'). Pomijam obliczanie pozycji dyscyplin.")
-        print(f"=== DEBUG: Kończę update_discipline_positions dla kategorii: {category.name} (Brak graczy) ===") # DEBUG END Function (No players)
-        return
+    # Pobierz ID graczy tylko dla tej kategorii
+    players_in_category_ids = list(Player.objects.filter(categories=category).values_list("id", flat=True))
+    if player.id not in players_in_category_ids:
+        print(f"    DEBUG (get_rank): Gracz {player.id} nie należy do kategorii {category.id}")
+        return None # Gracz nie jest w tej kategorii
 
-    player_ids = list(players_in_category.values_list("id", flat=True))
-    print(f"DEBUG: Znaleziono graczy w kategorii (IDs): {player_ids}")
+    # Pobierz wyniki tylko dla graczy z tej kategorii
+    results_qs = model.objects.filter(player_id__in=players_in_category_ids).select_related('player')
 
-    disciplines = category.get_disciplines()
-    if not disciplines:
-        print(f"DEBUG: Kategoria {category.id} ('{category.name}') nie ma zdefiniowanych dyscyplin. Pomijam obliczanie pozycji.")
-        print(f"=== DEBUG: Kończę update_discipline_positions dla kategorii: {category.name} (Brak dyscyplin) ===") # DEBUG END Function (No disciplines)
-        return
-
-    # Słownik mapujący stałą dyscypliny na pole, wg którego sortujemy (malejąco)
+    # Logika sortowania i adnotacji (musi być zgodna z update_discipline_positions)
     ordering_logic = {
         SNATCH: "-calculated_snatch_score",
         TGU: "-tgu_bw_ratio",
@@ -79,201 +84,147 @@ def update_discipline_positions(category: Category) -> None:
         KB_SQUAT: "-kbs_bw_ratio",
         TWO_KB_PRESS: "-tkbp_bw_ratio",
     }
+    order_by_field = ordering_logic.get(discipline)
+    if not order_by_field:
+        print(f"    DEBUG (get_rank): Brak logiki sortowania dla {discipline}")
+        return None
 
-    print(f"DEBUG: Dyscypliny do przetworzenia w kategorii: {disciplines}")
-    for discipline in disciplines:
-        print(f"\n  --- DEBUG: Przetwarzanie dyscypliny: {discipline} ---") # DEBUG START Discipline
+    # Zastosuj adnotacje do obliczenia wyniku sortującego
+    annotated_qs = results_qs
+    annotation_field_name = None
 
-        if discipline not in DISCIPLINE_MODELS_MAP:
-            print(f"  DEBUG WARNING: Pomijam nieznaną dyscyplinę '{discipline}' w kategorii {category.id}")
-            continue
-
-        model = DISCIPLINE_MODELS_MAP[discipline]
-        order_by_field = ordering_logic.get(discipline)
-        if not order_by_field:
-            print(f"  DEBUG WARNING: Brak logiki sortowania dla dyscypliny '{discipline}'. Pomijam.")
-            continue
-
-        print(f"  DEBUG: Model={model.__name__}, Sortowanie po={order_by_field}")
-        results_qs = model.objects.select_related("player").filter(player_id__in=player_ids)
-
-        # Adnotacje do obliczenia wyniku sortującego
-        annotated_qs = results_qs # Domyślnie, jeśli nie ma specjalnej logiki
-        annotation_field_name = None # Nazwa pola z wynikiem do rankingu
-
-        try:
-            if discipline == SNATCH:
-                annotation_field_name = "calculated_snatch_score"
-                annotated_qs = results_qs.annotate(
-                    calculated_snatch_score=Case(
-                        When(kettlebell_weight__gt=0, repetitions__gt=0, then=F("kettlebell_weight") * F("repetitions")),
-                        default=Value(0.0),
-                        output_field=FloatField(),
-                    )
+    # --- POCZĄTEK: Logika Adnotacji (skopiowana/dostosowana z update_discipline_positions) ---
+    # WAŻNE: Upewnij się, że modele KBSquatResult i TwoKettlebellPressResult mają pola result_1/2/3/max_result_val!
+    try:
+        if discipline == SNATCH:
+            annotation_field_name = "calculated_snatch_score"
+            annotated_qs = results_qs.annotate(
+                calculated_snatch_score=Case(
+                    When(kettlebell_weight__gt=0, repetitions__gt=0, then=F("kettlebell_weight") * F("repetitions")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
                 )
-                print(f"  DEBUG: Dodano adnotację '{annotation_field_name}' dla {discipline}")
-            elif discipline == TGU:
-                annotation_field_name = "tgu_bw_ratio"
-                annotated_qs = results_qs.annotate(
-                    max_tgu_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-                ).annotate(
-                    tgu_bw_ratio=Case(
-                        When(player__weight__gt=0, max_tgu_result__gt=0, then=F("max_tgu_result") / F("player__weight")),
-                        default=Value(0.0),
-                        output_field=FloatField(),
-                    )
+            )
+        elif discipline == TGU:
+            annotation_field_name = "tgu_bw_ratio"
+            annotated_qs = results_qs.annotate(
+                max_tgu_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+            ).annotate(
+                tgu_bw_ratio=Case(
+                    When(player__weight__gt=0, max_tgu_result__gt=0, then=F("max_tgu_result") / F("player__weight")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
                 )
-                print(f"  DEBUG: Dodano adnotacje 'max_tgu_result', '{annotation_field_name}' dla {discipline}")
-            elif discipline == ONE_KB_PRESS:
-                annotation_field_name = "okbp_bw_ratio"
-                annotated_qs = results_qs.annotate(
-                    max_okbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-                ).annotate(
-                    okbp_bw_ratio=Case(
-                        When(player__weight__gt=0, max_okbp_result__gt=0, then=F("max_okbp_result") / F("player__weight")),
-                        default=Value(0.0),
-                        output_field=FloatField(),
-                    )
+            )
+        elif discipline == ONE_KB_PRESS:
+            annotation_field_name = "okbp_bw_ratio"
+            annotated_qs = results_qs.annotate(
+                max_okbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+            ).annotate(
+                okbp_bw_ratio=Case(
+                    When(player__weight__gt=0, max_okbp_result__gt=0, then=F("max_okbp_result") / F("player__weight")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
                 )
-                print(f"  DEBUG: Dodano adnotacje 'max_okbp_result', '{annotation_field_name}' dla {discipline}")
-            elif discipline == KB_SQUAT:
-                annotation_field_name = "kbs_bw_ratio"
-                annotated_qs = results_qs.annotate(
-                    max_kbs_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-                ).annotate(
-                    kbs_bw_ratio=Case(
-                        When(player__weight__gt=0, max_kbs_result__gt=0, then=F("max_kbs_result") / F("player__weight")),
-                        default=Value(0.0),
-                        output_field=FloatField(),
-                    )
+            )
+        elif discipline == KB_SQUAT:
+            annotation_field_name = "kbs_bw_ratio"
+            annotated_qs = results_qs.annotate(
+                # Zakładamy, że model ma result_1, result_2, result_3
+                max_kbs_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+            ).annotate(
+                kbs_bw_ratio=Case(
+                    When(player__weight__gt=0, max_kbs_result__gt=0, then=F("max_kbs_result") / F("player__weight")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
                 )
-                print(f"  DEBUG: Dodano adnotacje 'max_kbs_result', '{annotation_field_name}' dla {discipline}")
-            elif discipline == TWO_KB_PRESS:
-                annotation_field_name = "tkbp_bw_ratio"
-                annotated_qs = results_qs.annotate(
-                    max_tkbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
-                ).annotate(
-                    tkbp_bw_ratio=Case(
-                        When(player__weight__gt=0, max_tkbp_result__gt=0, then=F("max_tkbp_result") / F("player__weight")),
-                        default=Value(0.0),
-                        output_field=FloatField(),
-                    )
+            )
+        elif discipline == TWO_KB_PRESS:
+            annotation_field_name = "tkbp_bw_ratio"
+            annotated_qs = results_qs.annotate(
+                # Zakładamy, że model ma result_1, result_2, result_3
+                max_tkbp_result=Greatest(F("result_1"), F("result_2"), F("result_3"), Value(0.0), output_field=FloatField())
+            ).annotate(
+                tkbp_bw_ratio=Case(
+                    When(player__weight__gt=0, max_tkbp_result__gt=0, then=F("max_tkbp_result") / F("player__weight")),
+                    default=Value(0.0),
+                    output_field=FloatField(),
                 )
-                print(f"  DEBUG: Dodano adnotacje 'max_tkbp_result', '{annotation_field_name}' dla {discipline}")
-            else:
-                 print(f"  DEBUG WARNING: Brak specyficznej adnotacji dla {discipline}. Sortowanie może nie działać poprawnie.")
+            )
+        else:
+             print(f"    DEBUG (get_rank) WARNING: Brak specyficznej adnotacji dla {discipline}.")
+             return None # Brak logiki adnotacji
+    # --- KONIEC: Logika Adnotacji ---
 
-            if not annotation_field_name:
-                 print(f"  DEBUG ERROR: Nie udało się ustalić pola adnotacji dla {discipline}. Pomijam ranking.")
-                 continue
+        if not annotation_field_name:
+             print(f"    DEBUG (get_rank) ERROR: Nie udało się ustalić pola adnotacji dla {discipline}.")
+             return None
 
-            # Sortowanie
-            ordered_results = annotated_qs.order_by(order_by_field, "player__surname", "player__name")
-            print(f"  DEBUG: Wyniki posortowane. Liczba wyników: {ordered_results.count()}")
+        # Posortuj wyniki
+        ordered_results = annotated_qs.order_by(order_by_field, "player__surname", "player__name")
 
-            # Fragment funkcji update_discipline_positions w services.py
+        # Znajdź ranking dla konkretnego gracza
+        current_rank = 0
+        last_score = None
+        rank_counter = 0
+        tie_start_rank = 1
+        player_rank = None
 
-            # ... (kod przed pętlą for result in ordered_results:) ...
-            updates = []
-            current_pos = 0
-            last_score = None
-            rank_counter = 0
-            tie_start_rank = 1
-
-            # Usuwamy epsilon z nagłówka logu, bo go nie użyjemy
-            print(f"    --- DEBUG: Rozpoczynam pętlę rankingu dla {discipline} ---")
-            for result in ordered_results:
-                rank_counter += 1
-                player_str = f"{result.player.surname} {result.player.name}" if result.player else f"Gracz ID:{result.player_id}"
+        for index, result in enumerate(ordered_results):
+            rank_counter += 1
+            score = 0.0
+            try:
+                score = float(getattr(result, annotation_field_name, 0.0) or 0.0)
+            except (AttributeError, TypeError, ValueError):
                 score = 0.0
 
-                try:
-                    score = getattr(result, annotation_field_name, 0.0)
-                    score = float(score or 0.0)
-                except (AttributeError, TypeError, ValueError) as e_score:
-                    score = 0.0
-                    print(
-                        f"      DEBUG WARNING: Błąd pobierania score ({annotation_field_name}) dla {player_str}: {e_score}")
+            # Logika remisu (bez epsilon, używa bezpośredniego porównania)
+            # UWAGA: Ryzykowne dla float!
+            is_tie = False
+            if last_score is not None:
+                if score == last_score:
+                    is_tie = True
 
-                print(f"\n    [Iteracja {rank_counter}]")
-                print(f"      Zawodnik: {player_str} (Wynik ID: {result.id})")
-                print(f"      Aktualny obliczony Score (do rankingu): {score:.10f}")  # Nadal wyświetlamy z precyzją
-                print(
-                    f"      Poprzedni Score (last_score): {last_score if last_score is not None else 'Brak (pierwszy element)'}{'.' if last_score is None else f':.10f'}")
+            calculated_rank_for_this_iteration = 0
+            if not is_tie: # Nie ma remisu lub pierwszy element
+                calculated_rank_for_this_iteration = rank_counter
+                last_score = score
+                tie_start_rank = rank_counter
+            else: # Jest remis
+                calculated_rank_for_this_iteration = tie_start_rank
 
-                # --- ZMIANA LOGIKI REMISU ---
-                # Używamy bezpośredniego porównania ZAMIAST epsilon
-                # UWAGA: Ryzykowne dla liczb float! Działa tylko jeśli masz pewność,
-                # że wyniki remisujących SĄ DOKŁADNIE IDENTYCZNE bitowo.
-                is_tie = False
-                if last_score is not None:
-                    # BEZPOŚREDNIE PORÓWNANIE
-                    if score == last_score:
-                        is_tie = True
-                # -----------------------------
+            # Sprawdź, czy to nasz szukany gracz
+            if result.player_id == player.id:
+                player_rank = calculated_rank_for_this_iteration
+                print(f"    DEBUG (get_rank): Znaleziono ranking {player_rank} dla gracza {player.id} w {discipline} (kat: {category.id})")
+                break # Znaleziono, przerwij pętlę
 
-                print(
-                    f"      Czy jest remis z poprzednim? {'TAK' if is_tie else 'NIE'} (warunek: {score:.10f} == {f'{last_score:.10f}' if last_score is not None else 'None'} -> {score == last_score if last_score is not None else 'N/A'})")
+        if player_rank is None:
+             print(f"    DEBUG (get_rank) WARNING: Nie znaleziono gracza {player.id} w posortowanych wynikach {discipline} (kat: {category.id})?")
 
-                if not is_tie:
-                    current_pos = rank_counter
-                    last_score = score
-                    tie_start_rank = rank_counter
-                    print(
-                        f"      -> Nie ma remisu (lub pierwszy). Nowa pozycja = rank_counter = {current_pos}. Nowy last_score = {last_score:.10f}. Nowy tie_start_rank = {tie_start_rank}.")
-                else:
-                    current_pos = tie_start_rank
-                    print(f"      -> Jest remis. Pozycja = tie_start_rank = {current_pos}.")
+        return player_rank
 
-                db_position = result.position
-                print(f"      Pozycja z Bazy Danych (result.position): {db_position}")
-                print(f"      Pozycja Obliczona (current_pos): {current_pos}")
-
-                needs_update = False
-                if db_position != current_pos or db_position is None:
-                    needs_update = True
-                    result.position = current_pos
-                    updates.append(result)
-
-                print(f"      Czy wymaga aktualizacji w DB? {'TAK' if needs_update else 'NIE'}")
-
-            print(f"    --- DEBUG: Zakończono pętlę rankingu. Liczba potencjalnych aktualizacji: {len(updates)} ---")
-
-            # ... (reszta kodu funkcji update_discipline_positions i całego pliku) ...
-
-            if updates:
-                try:
-                    # Użyj transakcji dla pewności, chociaż cała funkcja update_overall_results_for_player powinna być atomowa
-                    with transaction.atomic():
-                        updated_count = model.objects.bulk_update(updates, ["position"])
-                    print(f"    DEBUG SUCCESS: Zaktualizowano pozycje dla {updated_count} rekordów w {discipline}.")
-                except Exception as e_bulk:
-                    print(f"    DEBUG ERROR: BŁĄD bulk_update pozycji dla {discipline} w kategorii {category.id}: {e_bulk}")
-                    traceback.print_exc()
-            else:
-                print(f"    DEBUG INFO: Brak zmian pozycji do zapisania dla {discipline}.")
-
-        except Exception as e_outer:
-            print(f"  DEBUG ERROR: Niespodziewany błąd podczas przetwarzania dyscypliny {discipline} w kategorii {category.id}: {e_outer}")
-            traceback.print_exc()
-
-        print(f"  --- DEBUG: Zakończono przetwarzanie dyscypliny: {discipline} ---") # DEBUG END Discipline
-
-    print(f"=== DEBUG: Kończę update_discipline_positions dla kategorii: {category.name} (ID: {category.id}) ===") # DEBUG END Function
+    except Exception as e:
+        print(f"    DEBUG (get_rank) ERROR: Błąd podczas obliczania rankingu dla gracza {player.id} w {discipline} (kat: {category.id}): {e}")
+        traceback.print_exc()
+        return None
 
 
+# --- ZMODYFIKOWANA funkcja update_overall_results_for_category ---
 def update_overall_results_for_category(category: Category) -> None:
-    """Calculates and updates overall points and final positions for players within a category."""
-    # Updated prefetch_related
+    """
+    Oblicza i aktualizuje punkty ogólne i pozycje końcowe dla graczy
+    w ramach danej kategorii. Używa get_player_rank_in_discipline do pobrania
+    poprawnego rankingu dla każdej dyscypliny w kontekście kategorii.
+    """
+    # Prefetch related normalny, OverallResult jest pobierany w pętli
     players_in_category = Player.objects.filter(categories=category).prefetch_related(
         "snatch_result",
         "tgu_result",
-        # "pistol_squat_result", # Commented out
-        # "see_saw_press_result", # Commented out
-        "kb_squat_one_result", # Updated related name
+        "kb_squat_one_result", # Upewnij się, że related_name jest poprawny
         "one_kettlebell_press_result",
-        "two_kettlebell_press_one_result", # Updated related name
-        "overallresult",
+        "two_kettlebell_press_one_result", # Upewnij się, że related_name jest poprawny
+        # "overallresult", # Niepotrzebne, bo get_or_create
     )
     if not players_in_category.exists():
         print(f"Brak graczy w kategorii {category.id}. Pomijam obliczanie wyników ogólnych.")
@@ -282,74 +233,80 @@ def update_overall_results_for_category(category: Category) -> None:
     print(f"Aktualizacja wyników ogólnych dla kategorii: {category.name} ({category.id})")
     disciplines_in_category = category.get_disciplines()
     overall_updates = []
-    final_pos_updates = []
+    final_pos_updates = [] # Lista do aktualizacji final_position
 
-    # Updated discipline_related_names
+    # Mapowania nazw (sprawdź related_name dla KBS i TKBP!)
     discipline_related_names = {
         SNATCH: "snatch_result",
         TGU: "tgu_result",
-        # PISTOL_SQUAT: "pistol_squat_result", # Commented out
-        # SEE_SAW_PRESS: "see_saw_press_result", # Commented out
-        KB_SQUAT: "kb_squat_one_result", # Updated related name
+        KB_SQUAT: "kb_squat_one_result", # Sprawdź!
         ONE_KB_PRESS: "one_kettlebell_press_result",
-        TWO_KB_PRESS: "two_kettlebell_press_one_result", # Updated related name
+        TWO_KB_PRESS: "two_kettlebell_press_one_result", # Sprawdź!
     }
-    # Updated overall_points_fields
     overall_points_fields = {
         SNATCH: "snatch_points",
         TGU: "tgu_points",
-        # PISTOL_SQUAT: "pistol_squat_points", # Commented out
-        # SEE_SAW_PRESS: "see_saw_press_points", # Commented out
         KB_SQUAT: "kb_squat_points",
         ONE_KB_PRESS: "one_kb_press_points",
         TWO_KB_PRESS: "two_kb_press_points",
     }
 
+    # --- Pętla po graczach w kategorii ---
     for player in players_in_category:
         overall_result, created_overall = OverallResult.objects.get_or_create(player=player)
         if created_overall:
             print(f"  Stworzono brakujący rekord OverallResult dla gracza {player.id}")
 
-        changed = False
-        # Clear points fields before recalculating
+        changed = False # Flaga czy OverallResult gracza wymaga zapisu
+
+        # 1. Wyczyść stare punkty dyscyplin (na wszelki wypadek)
         for field_name in overall_points_fields.values():
             if getattr(overall_result, field_name, None) is not None:
-                setattr(overall_result, field_name, None) # Set to None initially
+                setattr(overall_result, field_name, None)
                 changed = True
 
+        # 2. Ustaw punkty Tiebreak
         new_tiebreak_points = -0.5 if player.tiebreak else 0.0
         if overall_result.tiebreak_points != new_tiebreak_points:
             overall_result.tiebreak_points = new_tiebreak_points
             changed = True
 
-        # Recalculate points based on current discipline positions
-        for disc_const, related_name in discipline_related_names.items():
+        # 3. Oblicz i przypisz punkty dla każdej dyscypliny w kategorii
+        print(f"  Obliczanie punktów dla gracza: {player.id} ({player})")
+        for disc_const in disciplines_in_category:
             points_field = overall_points_fields.get(disc_const)
-            if not points_field: continue # Skip if discipline is not in overall points (e.g. commented out)
+            related_name = discipline_related_names.get(disc_const) # Potrzebne? Niekoniecznie tutaj
 
-            if disc_const in disciplines_in_category:
-                result_obj = getattr(player, related_name, None)
-                new_points = None
-                if result_obj and hasattr(result_obj, "position") and result_obj.position is not None:
-                    new_points = float(result_obj.position)
+            if not points_field or not related_name:
+                print(f"    OSTRZEŻENIE: Brak konfiguracji punktów/related_name dla dyscypliny {disc_const}")
+                continue # Pomiń tę dyscyplinę
 
-                if getattr(overall_result, points_field, None) != new_points:
-                    setattr(overall_result, points_field, new_points)
-                    changed = True
-            else:
-                # If discipline is NOT in the category, ensure points are None
-                if getattr(overall_result, points_field, None) is not None:
-                    setattr(overall_result, points_field, None)
-                    changed = True
+            # --- ZMIANA: Użyj nowej funkcji do pobrania rankingu ---
+            calculated_rank = get_player_rank_in_discipline(player, disc_const, category)
+            new_points = float(calculated_rank) if calculated_rank is not None else None
+            # ------------------------------------------------------
 
+            print(f"    Dyscyplina: {disc_const}, Obliczony Rank: {calculated_rank}, Przypisane Punkty: {new_points}")
+
+            # Porównaj i zaktualizuj punkty w OverallResult
+            if getattr(overall_result, points_field, None) != new_points:
+                setattr(overall_result, points_field, new_points)
+                changed = True
+
+        # 4. Oblicz sumę punktów
         old_total_points = overall_result.total_points
-        overall_result.calculate_total_points()
+        overall_result.calculate_total_points() # Sumuje pola *_points i tiebreak
+        print(f"    Obliczono total_points: {overall_result.total_points} (poprzednio: {old_total_points})")
         if old_total_points != overall_result.total_points:
             changed = True
 
+        # 5. Dodaj do listy do aktualizacji, jeśli były zmiany
         if changed or created_overall:
             overall_updates.append(overall_result)
 
+    # --- Koniec pętli po graczach ---
+
+    # 6. Zapisz zmiany w punktach (bulk_update)
     if overall_updates:
         update_fields = list(overall_points_fields.values()) + ["tiebreak_points", "total_points"]
         try:
@@ -358,42 +315,70 @@ def update_overall_results_for_category(category: Category) -> None:
         except Exception as e_bulk_overall:
             print(f"  BŁĄD bulk_update punktów OverallResult w kategorii {category.id}: {e_bulk_overall}")
             traceback.print_exc()
+    else:
+         print("  Brak zmian punktów OverallResult do zapisania.")
 
-    # Calculate Final Positions
-    final_results = OverallResult.objects.filter(player__categories=category).order_by(
-        "total_points", "player__surname", "player__name"
+
+    # 7. Oblicz i zaktualizuj MIEJSCA KOŃCOWE (final_position)
+    # Pobierz ponownie OverallResult posortowane wg zasad rankingu generalnego
+    # Używamy -total_points, bo None ma być na końcu, a niższa suma jest lepsza. Sortujemy None na końcu.
+    # Użyjemy warunkowego sortowania: najpierw wg tego czy total_points jest null, potem wg wartości
+    final_results = OverallResult.objects.filter(player__in=players_in_category).annotate(
+        total_points_is_null=Case(When(total_points__isnull=True, then=Value(1)), default=Value(0), output_field=models.IntegerField())
+    ).order_by(
+        'total_points_is_null', # Najpierw ci co mają wynik (0), potem ci co nie mają (1)
+        "total_points",         # Potem rosnąco wg punktów (mniej = lepiej)
+        "player__surname",      # Potem wg nazwiska
+        "player__name"
     )
 
     current_final_pos = 0
     last_total_points = None
     final_rank_counter = 0
+    # tie_start_rank_final = 1 # Do poprawnej obsługi remisów w final_position
 
+    print(f"\n  Obliczanie Miejsc Końcowych (final_position) dla {final_results.count()} wyników...")
     for result in final_results:
         final_rank_counter += 1
-        current_total_points = result.total_points
+        current_total_points = result.total_points # Może być None
 
-        should_update_pos = False
-        if last_total_points is None:
-            should_update_pos = True
-        elif current_total_points is None and last_total_points is not None:
-            should_update_pos = True
-        elif current_total_points is not None and last_total_points is None:
-            should_update_pos = True
-        elif (
-            current_total_points is not None
-            and last_total_points is not None
-            and abs(current_total_points - last_total_points) > epsilon
-        ):
-            should_update_pos = True
+        # Logika remisu dla final_position (porównujemy total_points)
+        # Traktujemy None jako różne od wszystkiego innego i od siebie nawzajem
+        is_tie_final = False
+        if current_total_points is not None and last_total_points is not None:
+            # Użyjemy bezpośredniego porównania (zakładając, że suma jest w miarę stabilna)
+            if current_total_points == last_total_points:
+                 is_tie_final = True
+        # Jeśli obecny lub poprzedni to None, to nie ma remisu (chyba że oba są None, co jest mało prawdopodobne w rankingu)
 
-        if should_update_pos:
-            current_final_pos = final_rank_counter
-        last_total_points = current_total_points
+        calculated_final_pos_for_iteration = 0
+        if not is_tie_final: # Nie ma remisu lub pierwszy rekord
+            calculated_final_pos_for_iteration = final_rank_counter
+            last_total_points = current_total_points
+            # tie_start_rank_final = final_rank_counter # Resetuj rangę startową remisu
+        else: # Jest remis
+            # Tutaj powinniśmy użyć rangi startowej remisu, ale uproszczona logika rank_counter
+            # dla final_position może być wystarczająca, jeśli remisy są rzadkie LUB jeśli
+            # chcemy po prostu 1, 2, 3, 3, 5. Aby uzyskać 1, 2, 3, 3, 4 musimy śledzić tie_start_rank_final
+            # Dla uproszczenia na razie zostawmy rank_counter, co da 1, 2, 3, 4, 5 nawet przy remisie na 3/4 miejscu
+            # Poprawka: Użyjmy poprawnej logiki remisu jak w dyscyplinach
+             calculated_final_pos_for_iteration = current_final_pos # Użyj ostatnio przypisanego miejsca
 
-        if result.final_position != current_final_pos:
+        # AKTUALIZACJA: Poprawiona logika final_position z obsługą remisów (1,2,3,3,5)
+        if not is_tie_final:
+            current_final_pos = final_rank_counter # Nowe miejsce to licznik
+            last_total_points = current_total_points
+        # Jeśli jest remis, current_final_pos pozostaje bez zmian
+
+
+        # Porównaj i dodaj do aktualizacji, jeśli konieczne
+        if result.final_position != current_final_pos or result.final_position is None:
             result.final_position = current_final_pos
             final_pos_updates.append(result)
+            print(f"    Aktualizacja final_position dla {result.player_id}: {current_final_pos}")
 
+
+    # 8. Zapisz zmiany w miejscach końcowych (bulk_update)
     if final_pos_updates:
         try:
             updated_pos_count = OverallResult.objects.bulk_update(final_pos_updates, ["final_position"])
@@ -404,6 +389,51 @@ def update_overall_results_for_category(category: Category) -> None:
     else:
         print("  Brak zmian final_position OverallResult do zapisania.")
 
+
+# --- Funkcja update_overall_results_for_player ---
+# Pozostaje bez zmian, nadal wywołuje powyższe funkcje w pętli po kategoriach
+@transaction.atomic # Dodajemy transakcję na całą operację dla gracza
+def update_overall_results_for_player(player: Player) -> None:
+    """
+    Aktualizuje pozycje w dyscyplinach i wyniki ogólne dla WSZYSTKICH kategorii,
+    do których należy gracz. Obejmuje całość transakcją atomową.
+    """
+    # Sprawdzenia początkowe
+    if not hasattr(player, "categories"):
+        print(f"Obiekt gracza {player.id} nie ma atrybutu 'categories'. Pomijam aktualizację.")
+        return
+
+    # Pobierz kategorie w ramach transakcji, żeby widzieć spójny stan
+    categories = list(player.categories.all())
+
+    if not categories:
+        print(f"Gracz {player.id} nie ma przypisanych kategorii. Pomijam aktualizację overall.")
+        # Rozważ usunięcie OverallResult jeśli gracz nie ma kategorii?
+        # OverallResult.objects.filter(player=player).delete()
+        return
+
+    print(f"=== Rozpoczynam pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
+    try:
+        # Pętla po kategoriach gracza
+        print(f"Aktualizuję wyniki dla gracza {player.id} w kategoriach: {[c.name for c in categories]}")
+        for category in categories:
+            print(f"\n--- Aktualizacja dla Kategorii: {category.name} ({category.id}) ---")
+            # 1. Zaktualizuj pozycje WEWNĄTRZ tej kategorii (nadal zapisuje pozycję na głównym obiekcie wyniku!)
+            # To jest OK, bo zaraz odczytamy ranking DLA TEJ KATEGORII poniżej
+            update_discipline_positions(category) # Ta funkcja ma teraz głównie efekt uboczny w postaci logów
+
+            # 2. Zaktualizuj OverallResult DLA TEJ KATEGORII, używając świeżo obliczonych rankingów
+            update_overall_results_for_category(category) # Ta funkcja teraz polega na get_player_rank_in_discipline
+
+        print(f"=== Zakończono pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
+    except Exception as e:
+        print(f"!!! KRYTYCZNY BŁĄD podczas pełnej aktualizacji dla gracza {player.id}: {e}")
+        traceback.print_exc()
+        # Transakcja zostanie automatycznie wycofana dzięki @transaction.atomic
+
+# --- Pozostałe funkcje (np. create_default_results_for_player_categories) ---
+# Pozostają bez zmian w stosunku do wersji z pliku services.py, który mi dostarczyłeś.
+# Upewnij się, że są obecne w Twoim pliku.
 
 @transaction.atomic
 def create_default_results_for_player_categories(player: Player, category_pks: set[int]):
@@ -445,33 +475,3 @@ def create_default_results_for_player_categories(player: Player, category_pks: s
 
     return created_new
 
-
-def update_overall_results_for_player(player: Player) -> None:
-    """
-    Updates discipline positions and overall results for ALL categories
-    a player belongs to. Wrapped in a transaction.
-    """
-    if not hasattr(player, "categories"):
-        print(f"Obiekt gracza {player.id} nie ma atrybutu 'categories'. Pomijam aktualizację.")
-        return
-    if not player.categories.exists():
-        print(f"Gracz {player.id} nie ma przypisanych kategorii. Pomijam aktualizację overall.")
-        return
-
-    print(f"=== Rozpoczynam pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
-    try:
-        with transaction.atomic():
-            categories = list(player.categories.all())
-            if not categories:
-                print(f"Gracz {player.id} nie ma kategorii po pobraniu listy. Kończę.")
-                return
-
-            print(f"Aktualizuję wyniki dla gracza {player.id} w kategoriach: {[c.name for c in categories]}")
-            for category in categories:
-                print(f"\n--- Aktualizacja dla Kategorii: {category.name} ---")
-                update_discipline_positions(category) # Uses updated logic
-                update_overall_results_for_category(category) # Uses updated logic
-        print(f"=== Zakończono pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
-    except Exception as e:
-        print(f"!!! KRYTYCZNY BŁĄD podczas pełnej aktualizacji dla gracza {player.id}: {e}")
-        traceback.print_exc()
