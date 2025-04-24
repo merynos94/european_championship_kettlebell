@@ -347,16 +347,17 @@ a:hover {
   border-color: var(--primary-color) !important;
   box-shadow: 0 0 0 2px rgb(255, 255, 255) !important;
 } /* Focus style for inputs */
-
+/* --background-color-base: #a51414;
+--background-gradient-end: #401010; */
 .ant-drawer-content-wrapper {
-  background: #e0e0e0;
+  background: #a51414;
 } /* Lighter background for Drawer */
 .ant-drawer-header {
-  background: #f5f5f5;
+  background: #401010;
   border-bottom: 1px solid #d9d9d9;
 }
 .ant-drawer-title {
-  color: rgba(229, 255, 0, 0.85);
+  color: var(--text-color) !important;
   font-weight: 600;
 } /* Darker title text */
 .ant-drawer-close {
@@ -370,7 +371,7 @@ a:hover {
   background: transparent !important;
 }
 .ant-menu-light .ant-menu-item a {
-  color: rgba(193, 243, 14, 0.85) !important;
+  color: rgba(80, 26, 26, 0.85) !important;
   font-weight: 500;
 } /* Darker menu text in Drawer */
 .ant-menu-light .ant-menu-item-selected {

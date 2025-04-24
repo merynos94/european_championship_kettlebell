@@ -11,7 +11,7 @@ from .serializers import (
     CategorySerializer,
     CategoryResultsSerializer,
     SportClubSerializer, # Add if you want an endpoint for clubs
-    PlayerBasicInfoSerializer, 
+    PlayerBasicInfoSerializer,
 )
 
 # --- ViewSet for Categories and their Results ---

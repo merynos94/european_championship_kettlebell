@@ -1,1 +1,1 @@
-"""European Kettlebell Championships Django App"""
+"""Hardstyle Kettlebell European Championship Django App"""

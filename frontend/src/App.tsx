@@ -9,7 +9,7 @@ import "./index.css";
 
 function App() {
   useEffect(() => {
-    document.title = "European Kettlebell Championship";
+    document.title = "Hardstyle Kettlebell European Championship";
   }, []);
   
   return (
