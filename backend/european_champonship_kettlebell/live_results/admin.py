@@ -117,7 +117,7 @@ class PlayerAdmin(ImportExportModelAdmin):
         "get_okbp_bw_percentage_display",
         "get_tkbp_bw_percentage_display", # Uses TwoKettlebellPressResult
         "tiebreak",
-        "get_overall_score_display",
+
     )
     list_filter = ("club", "categories", "tiebreak", ("weight", admin.EmptyFieldListFilter))
     search_fields = ("name", "surname", "club__name", "categories__name")
@@ -192,7 +192,7 @@ class PlayerAdmin(ImportExportModelAdmin):
         for discipline_code, field_name in self.DISCIPLINE_TO_FIELD_MAP.items():
             if discipline_code in allowed_disciplines:
                 readonly.append(field_name)
-        readonly.append("get_overall_score_display")
+        # readonly.append("get_overall_score_display")
         return tuple(readonly)
 
     @admin.display(description=_("Kategorie"))
@@ -243,11 +243,11 @@ class PlayerAdmin(ImportExportModelAdmin):
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
-    @admin.display(description=_("Wynik Ogólny"), ordering="categoryoverallresult__total_points")
-    def get_overall_score_display(self, obj: Player) -> str:
-        overall = getattr(obj, "category_results", None)
-        total = getattr(overall, "total_points", None)
-        return f"{total:.1f}" if total is not None else "---"
+    # @admin.display(description=_("Wynik Ogólny"), ordering="categoryoverallresult__total_points")
+    # def get_overall_score_display(self, obj: Player) -> str:
+    #     overall = getattr(obj, "category_results", None)
+    #     total = getattr(overall, "total_points", None)
+    #     return f"{total:.1f}" if total is not None else "---"
 
     def get_import_resource_classes(self, request=None):
         return [PlayerImportResource]
