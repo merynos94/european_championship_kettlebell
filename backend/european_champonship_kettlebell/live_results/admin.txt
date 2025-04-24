@@ -129,9 +129,9 @@ class PlayerAdmin(ImportExportModelAdmin):
         "kb_squat_one_result",
         "one_kettlebell_press_result",
         "two_kettlebell_press_one_result",
-        "category_results",
+        "categoryoverallresult",
     )
-    ordering = ("-category_results__total_points", "surname", "name")
+    ordering = ("-categoryoverallresult__total_points", "surname", "name")
 
     DISCIPLINE_TO_FIELD_MAP = {
         SNATCH: "get_snatch_score_display",
@@ -245,7 +245,7 @@ class PlayerAdmin(ImportExportModelAdmin):
 
     @admin.display(description=_("Wynik Ogólny"), ordering="categoryoverallresult__total_points")
     def get_overall_score_display(self, obj: Player) -> str:
-        overall = getattr(obj, "category_results", None)
+        overall = getattr(obj, "categoryoverallresult", None)
         total = getattr(overall, "total_points", None)
         return f"{total:.1f}" if total is not None else "---"
 
@@ -771,4 +771,5 @@ class CategoryOverallResultAdmin(admin.ModelAdmin):
     @admin.display(description=_("Kategorie"))
     def get_player_categories_display(self, obj: CategoryOverallResult) -> str:
         return get_player_categories_display(obj.player)
+
 
