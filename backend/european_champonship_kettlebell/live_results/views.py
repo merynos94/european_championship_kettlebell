@@ -11,8 +11,7 @@ from .serializers import (
     CategorySerializer,
     CategoryResultsSerializer,
     SportClubSerializer, # Add if you want an endpoint for clubs
-    PlayerBasicInfoSerializer, # May be needed for other endpoints
-    # ... import other serializers if creating separate endpoints for them ...
+    PlayerBasicInfoSerializer, 
 )
 
 # --- ViewSet for Categories and their Results ---
@@ -25,8 +24,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CategorySerializer       # Use the simple serializer for category list/detail
     permission_classes = [permissions.AllowAny] # Allow anyone to read categories (can change to IsAuthenticatedOrReadOnly)
 
-    # Custom 'results' action available for a specific category instance
-    # Will be available at URL like /api/categories/{pk}/results/
     @action(detail=True, methods=['get'], url_path='results', serializer_class=CategoryResultsSerializer)
     def results(self, request, pk=None):
         """
@@ -167,15 +164,3 @@ def generate_start_list(request):
         form = StationForm()
 
     return render(request, "station_form.html", {"form": form})
-# --- Optional: ViewSet for Players ---
-# You might want a general endpoint for searching/listing players,
-# independent of category, e.g., for autocompletion.
-# Use PlayerBasicInfoSerializer or a full PlayerSerializer as needed.
-# class PlayerViewSet(viewsets.ReadOnlyModelViewSet):
-#     """ViewSet for listing/searching players."""
-#     queryset = Player.objects.select_related('club').prefetch_related('categories').order_by('surname', 'name')
-#     serializer_class = PlayerSerializer # Or PlayerBasicInfoSerializer
-#     permission_classes = [permissions.AllowAny] # Or others
-#     # Filtering could be added, e.g., by surname:
-#     # filter_backends = [filters.SearchFilter]
-#     # search_fields = ['name', 'surname', 'club__name']

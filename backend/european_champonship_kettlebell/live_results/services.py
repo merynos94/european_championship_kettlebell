@@ -24,20 +24,16 @@ DISCIPLINE_MODELS_MAP = {
     KB_SQUAT: KBSquatResult,
     ONE_KB_PRESS: OneKettlebellPressResult,
     TWO_KB_PRESS: TwoKettlebellPressResult,
-    # Upewnij się, że usunięto/zakomentowano nieużywane dyscypliny
 }
 
-# Upewnij się, że te wartości domyślne są poprawne dla Twoich modeli
 DEFAULT_RESULT_VALUES = {
     SNATCH: {"kettlebell_weight": 0, "repetitions": 0},
     TGU: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
     ONE_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
-    # Zakładamy, że KBS i TKBP mają teraz taką samą strukturę jak TGU/OKBP
     KB_SQUAT: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
     TWO_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
 }
 
-# Mapowanie nazw related_name (sprawdź poprawność!)
 DISCIPLINE_RELATED_NAMES = {
     SNATCH: "snatch_result",
     TGU: "tgu_result",
@@ -65,12 +61,6 @@ DISCIPLINE_ORDERING_LOGIC = {
     TWO_KB_PRESS: "-tkbp_bw_ratio",       # Wynik = % masy ciała
 }
 
-# --- Funkcja update_discipline_positions (pozostaje jak w Twoim pliku) ---
-# Ta funkcja oblicza rankingi w dyscyplinach i zapisuje je w polu 'position'
-# poszczególnych obiektów wyników (np. SnatchResult). W nowej logice odczytu punktów,
-# wartość zapisana w 'position' nie jest już bezpośrednio używana do przypisania punktów
-# w OverallResult, ale sama funkcja obliczająca ranking jest potrzebna i używana
-# przez get_player_rank_in_discipline. Zachowujemy ją bez zmian.
 def update_discipline_positions(category: Category) -> None:
     """
     Calculates and updates positions for players within a category
