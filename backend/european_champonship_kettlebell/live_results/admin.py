@@ -14,6 +14,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from import_export.admin import ImportExportModelAdmin
 from .services import update_discipline_positions, update_overall_results_for_category, update_overall_results_for_player
+from .models.tiebreak import PlayerCategoryTiebreak
 
 from .models.category import Category
 from .models.constants import (
@@ -117,10 +118,9 @@ class PlayerAdmin(ImportExportModelAdmin):
         "get_kbs_bw_percentage_display", # Uses KBSquatResult
         "get_okbp_bw_percentage_display",
         "get_tkbp_bw_percentage_display", # Uses TwoKettlebellPressResult
-        "tiebreak",
 
     )
-    list_filter = ("club", "categories", "tiebreak", ("weight", admin.EmptyFieldListFilter))
+    list_filter = ("club", "categories", ("weight", admin.EmptyFieldListFilter))
     search_fields = ("name", "surname", "club__name", "categories__name")
     list_select_related = ("club",)
     list_prefetch_related = (
@@ -132,7 +132,7 @@ class PlayerAdmin(ImportExportModelAdmin):
         "two_kettlebell_press_one_result",
         "category_results",
     )
-    ordering = ("-category_results__total_points", "surname", "name")
+    ordering = ("surname", "name")
 
     DISCIPLINE_TO_FIELD_MAP = {
         SNATCH: "get_snatch_score_display",
@@ -165,7 +165,7 @@ class PlayerAdmin(ImportExportModelAdmin):
     def get_fieldsets(self, request, obj: Player | None = None):
         allowed_disciplines = self.get_allowed_disciplines(obj)
         fieldsets = [
-            (_("Dane Podstawowe"), {"fields": ("name", "surname", "weight", "club", "categories", "tiebreak")}),
+            (_("Dane Podstawowe"), {"fields": ("name", "surname", "weight", "club", "categories")}),
         ]
         results_fields = []
         # Use updated DISCIPLINE_TO_FIELD_MAP
@@ -747,7 +747,7 @@ class CategoryOverallResultAdmin(admin.ModelAdmin):
     )
     list_select_related = ("player", "player__club")
     list_prefetch_related = ("player__categories",)
-    list_filter = ("player__categories", "final_position")
+    list_filter = ("category", "final_position")
     search_fields = ("player__name", "player__surname", "player__club__name")
     actions = ["export_overall_results_as_html"]
 
@@ -825,3 +825,40 @@ class CategoryOverallResultAdmin(admin.ModelAdmin):
     def get_player_categories_display(self, obj: CategoryOverallResult) -> str:
         return get_player_categories_display(obj.player)
 
+@admin.register(PlayerCategoryTiebreak)
+class PlayerCategoryTiebreakAdmin(admin.ModelAdmin):
+    list_display = ('player', 'category')
+    list_filter = ('category', 'player__club') # Filtruj wg kategorii lub klubu gracza
+    search_fields = ('player__name', 'player__surname', 'category__name')
+    autocomplete_fields = ('player', 'category') # Ułatwia wybór
+    list_select_related = ('player', 'category') # Optymalizacja
+
+    def save_model(self, request, obj, form, change):
+        """Po zapisaniu rekordu tiebreak, przelicz wyniki dla gracza."""
+        super().save_model(request, obj, form, change)
+        player = getattr(obj, 'player', None)
+        if player:
+            try:
+                print(f"[Admin PlayerCategoryTiebreakAdmin save_model] Zapisano tiebreak dla gracza {player.id} w kat {obj.category.id}. Uruchamiam przeliczanie...")
+                update_overall_results_for_player(player) # Przelicz dla gracza
+                print(f"[Admin PlayerCategoryTiebreakAdmin save_model] Zakończono przeliczanie dla gracza {player.id}.")
+                self.message_user(request, f"Wyniki dla zawodnika {player} zostały przeliczone po zmianie tiebreak.", level="INFO")
+            except Exception as e:
+                print(f"[Admin PlayerCategoryTiebreakAdmin save_model] BŁĄD podczas przeliczania wyników dla gracza {player.id}: {e}")
+                traceback.print_exc()
+                self.message_user(request, f"Wystąpił błąd podczas przeliczania wyników dla gracza {player}: {e}", level="ERROR")
+
+    def delete_model(self, request, obj):
+        """Po usunięciu rekordu tiebreak, przelicz wyniki dla gracza."""
+        player = getattr(obj, 'player', None) # Pobierz gracza PRZED usunięciem
+        super().delete_model(request, obj)
+        if player:
+             try:
+                print(f"[Admin PlayerCategoryTiebreakAdmin delete_model] Usunięto tiebreak dla gracza {player.id} w kat {obj.category.id}. Uruchamiam przeliczanie...")
+                update_overall_results_for_player(player) # Przelicz dla gracza
+                print(f"[Admin PlayerCategoryTiebreakAdmin delete_model] Zakończono przeliczanie dla gracza {player.id}.")
+                self.message_user(request, f"Wyniki dla zawodnika {player} zostały przeliczone po usunięciu tiebreak.", level="INFO")
+             except Exception as e:
+                print(f"[Admin PlayerCategoryTiebreakAdmin delete_model] BŁĄD podczas przeliczania wyników dla gracza {player.id}: {e}")
+                traceback.print_exc()
+                self.message_user(request, f"Wystąpił błąd podczas przeliczania wyników dla gracza {player}: {e}", level="ERROR")
