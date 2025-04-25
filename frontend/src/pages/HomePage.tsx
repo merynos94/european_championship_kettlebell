@@ -113,7 +113,7 @@ const HomePage: React.FC = () => {
   // --- Renderowanie Komponentu (bez zmian z ostatniej wersji) ---
   return (
     <div className={styles.homeContainer}>
-      {/* <Title level={1}>European Kettlebell Championship - Live Results</Title> */}
+      {/* <Title level={1}>Hardstyle Kettlebell European Championship- Live Results</Title> */}
 
       {isLoading && (
         <div className={styles.centered}>

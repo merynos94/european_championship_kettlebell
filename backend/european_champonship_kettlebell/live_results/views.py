@@ -14,6 +14,9 @@ from .serializers import (
     CategoryResultsSerializer, # Ten serializer też został zmodyfikowany
     SportClubSerializer,
     # PlayerBasicInfoSerializer, # Już niepotrzebny bezpośrednio tutaj? Jest używany w CategoryResultsSerializer
+    CategoryResultsSerializer,
+    SportClubSerializer, # Add if you want an endpoint for clubs
+    PlayerBasicInfoSerializer,
 )
 
 # --- ViewSet for Categories and their Results ---
