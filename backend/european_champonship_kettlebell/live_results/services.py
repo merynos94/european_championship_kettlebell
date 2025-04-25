@@ -365,45 +365,75 @@ def update_overall_results_for_category(category: Category) -> None:
 
     print(f"--- [DEBUG OVERALL - {category.id}] Koniec update_overall_results_for_category ---")
 
-@transaction.atomic # Upewnij się, że ten dekorator jest obecny
+@transaction.atomic
 def update_overall_results_for_player(player: Player) -> None:
     """
-    Aktualizuje wyniki dla WSZYSTKICH kategorii gracza.
+    Aktualizuje wyniki dla WSZYSTKICH kategorii gracza ORAZ usuwa
+    przestarzałe wyniki CategoryOverallResult dla kategorii, z których gracz został usunięty.
     """
     if not hasattr(player, "categories"):
         print(f"Gracz {player.id} ({player}) nie ma atrybutu 'categories'. Pomijam.")
         return
 
+    # --- 1. Pobierz aktualne kategorie gracza ---
     try:
-        # Pobierz kategorie gracza BEZ błędnego prefetch_related
-        # ZMIANA TUTAJ vvv
-        categories = list(player.categories.all())
-        # KONIEC ZMIANY ^^^
+        # Pobierz obiekty Category, a potem ich ID
+        current_categories = list(player.categories.all())
+        current_category_ids = set(c.id for c in current_categories)
     except Exception as e_fetch:
-        # Zaktualizowano komunikat błędu
         print(f"BŁĄD pobierania kategorii dla gracza {player.id} ({player}): {e_fetch}")
-        traceback.print_exc() # Dodaj traceback dla lepszej diagnostyki
-        return # Zakończ funkcję, jeśli nie udało się pobrać kategorii
-
-    if not categories:
-        print(f"Gracz {player.id} ({player}) nie ma przypisanych kategorii. Pomijam.")
-        # Rozważ usunięcie starych wyników Overall dla tego gracza, jeśli taka jest logika
-        # CategoryOverallResult.objects.filter(player=player).delete()
+        traceback.print_exc()
         return
 
     print(f"=== Rozpoczynam pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
+    print(f"  Aktualne ID kategorii gracza: {current_category_ids}")
+
+    # --- 2. Usuń przestarzałe wyniki CategoryOverallResult ---
     try:
-        print(f"Aktualizuję wyniki dla gracza {player.id} w kategoriach: {[c.name for c in categories]}")
-        for category in categories:
+        # Pobierz ID kategorii, dla których ISTNIEJĄ wyniki Overall dla tego gracza
+        existing_overall_result_category_ids = set(
+            CategoryOverallResult.objects.filter(player=player).values_list('category_id', flat=True)
+        )
+        print(f"  ID kategorii z istniejącymi wynikami Overall: {existing_overall_result_category_ids}")
+
+        # Znajdź ID kategorii, które są w istniejących wynikach, ale NIE MA ich w aktualnych kategoriach gracza
+        category_ids_to_delete_results_for = existing_overall_result_category_ids - current_category_ids
+
+        if category_ids_to_delete_results_for:
+            print(f"  Usuwanie przestarzałych wyników Overall dla kategorii o ID: {category_ids_to_delete_results_for}")
+            deleted_count, _ = CategoryOverallResult.objects.filter(
+                player=player,
+                category_id__in=category_ids_to_delete_results_for
+            ).delete()
+            print(f"  Usunięto {deleted_count} przestarzałych rekordów CategoryOverallResult.")
+        else:
+            print("  Brak przestarzałych wyników Overall do usunięcia.")
+
+    except Exception as e_delete:
+        print(f"  BŁĄD podczas usuwania przestarzałych wyników Overall dla gracza {player.id} ({player}): {e_delete}")
+        traceback.print_exc()
+        # Kontynuuj mimo błędu w usuwaniu? Zależnie od wymagań. Można tu dać 'return'.
+
+    # --- 3. Kontynuuj z aktualizacją wyników dla AKTUALNYCH kategorii ---
+    if not current_categories:
+        print(f"Gracz {player.id} ({player}) nie ma przypisanych żadnych aktualnych kategorii. Kończę aktualizację.")
+        # Można by tu jawnie usunąć WSZYSTKIE pozostałe wyniki Overall dla gracza, jeśli taka logika jest potrzebna
+        # CategoryOverallResult.objects.filter(player=player).delete()
+        return
+
+    # Istniejąca logika aktualizacji dla bieżących kategorii
+    try:
+        print(f"Aktualizuję wyniki dla gracza {player.id} w kategoriach: {[c.name for c in current_categories]}")
+        for category in current_categories: # Iteruj po obiektach Category
             print(f"\n--- Aktualizacja dla Kategorii: {category.name} ({category.id}) ---")
-            # 1. Oblicz pozycje w dyscyplinach dla tej kategorii (zapisuje w SnatchResult.position itp.)
+            # 1. Oblicz pozycje w dyscyplinach dla tej kategorii
             update_discipline_positions(category)
-            # 2. Oblicz wyniki ogólne dla tej kategorii (odczytuje pozycje z kroku 1)
+            # 2. Oblicz wyniki ogólne dla tej kategorii
             update_overall_results_for_category(category)
         print(f"=== Zakończono pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
     except Exception as e:
-        print(f"!!! KRYTYCZNY BŁĄD podczas pełnej aktualizacji dla gracza {player.id} ({player}): {e}")
-        traceback.print_exc() # Zawsze loguj pełny traceback przy krytycznych błędach
+        print(f"!!! KRYTYCZNY BŁĄD podczas aktualizacji bieżących wyników dla gracza {player.id} ({player}): {e}")
+        traceback.print_exc()
 
 
 # --- Funkcja create_default_results_for_player_categories (bez zmian) ---
