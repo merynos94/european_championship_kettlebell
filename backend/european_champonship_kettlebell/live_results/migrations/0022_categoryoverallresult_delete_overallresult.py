@@ -37,3 +37,4 @@ class Migration(migrations.Migration):
             name='OverallResult',
         ),
     ]
+
