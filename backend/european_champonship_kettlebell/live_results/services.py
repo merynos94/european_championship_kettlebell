@@ -35,11 +35,12 @@ DISCIPLINE_ORDERING_LOGIC = {
     KB_SQUAT: "-kbs_bw_ratio", TWO_KB_PRESS: "-tkbp_bw_ratio",
 }
 DEFAULT_RESULT_VALUES = { # Potwierdź wartości domyślne
-    SNATCH: {"kettlebell_weight": 0, "repetitions": 0},
-    TGU: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
-    ONE_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
-    KB_SQUAT: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
-    TWO_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0, "max_result_val": 0.0, "bw_percentage_val": 0.0},
+    SNATCH: {"kettlebell_weight": 0.0, "repetitions": 0}, # Użyj 0.0 dla FloatField
+    # Usunięto 'max_result_val' i 'bw_percentage_val' z poniższych
+    TGU: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0},
+    ONE_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0},
+    KB_SQUAT: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0},
+    TWO_KB_PRESS: {"result_1": 0.0, "result_2": 0.0, "result_3": 0.0},
 }
 
 # --- Funkcja update_discipline_positions (BEZ ZMIAN FUNKCJONALNYCH) ---
