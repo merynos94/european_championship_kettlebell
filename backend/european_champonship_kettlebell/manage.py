@@ -7,7 +7,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "european_champonship_kettlebell.settings.base")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "european_champonship_kettlebell.settings.prod")
     # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "european_champonship_kettlebell.settings")
 
     try:
