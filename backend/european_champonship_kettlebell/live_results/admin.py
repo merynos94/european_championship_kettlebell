@@ -171,15 +171,13 @@ class PlayerAdmin(ImportExportModelAdmin):
         for discipline_code, field_name in self.DISCIPLINE_TO_FIELD_MAP.items():
             if discipline_code in allowed_disciplines:
                 results_fields.append(field_name)
-        if results_fields or True:
-            results_fields.append("get_overall_score_display")
         if results_fields:
             fieldsets.append(
                 (
                     _("Wyniki Obliczone (Tylko do odczytu)"),
                     {
                         "classes": ("collapse",),
-                        "fields": tuple(results_fields),
+                        "fields": tuple(results_fields), # Użyj tylko istniejących pól
                     },
                 )
             )
