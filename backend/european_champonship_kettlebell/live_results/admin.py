@@ -682,12 +682,8 @@ class SnatchResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
 class TGUResultAdmin(BaseSingleResultAdmin):
     discipline_code = TGU
 
-    # DODAJ JAWNIE TĘ METODĘ (nawet jeśli jest identyczna jak w BaseSingleResultAdmin)
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
     def get_player_name(self, obj):
-        # Możesz po prostu wywołać metodę z klasy bazowej:
-        # return super().get_player_name(obj)
-        # LUB skopiować jej kod:
         player = getattr(obj, "player", None)
         return str(player) if player else _("Brak Gracza")
 
@@ -696,19 +692,29 @@ class TGUResultAdmin(BaseSingleResultAdmin):
 class OneKettlebellPressResultAdmin(BaseSingleResultAdmin):
     discipline_code = ONE_KB_PRESS
 
+    @admin.display(description=_("Zawodnik"), ordering="player__surname")
+    def get_player_name(self, obj):
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
 
 # Updated admin registration to use BaseSingleResultAdmin based on new model [cite: 1]
 @admin.register(KBSquatResult)
 class KBSquatResultAdmin(BaseSingleResultAdmin):
     discipline_code = KB_SQUAT
 
-
+    @admin.display(description=_("Zawodnik"), ordering="player__surname")
+    def get_player_name(self, obj):
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
 # Inherits from BaseSingleResultAdmin, should work if BaseSingleAttemptResult has result_1,2,3
 @admin.register(TwoKettlebellPressResult)
 class TwoKettlebellPressResultAdmin(BaseSingleResultAdmin):
     discipline_code = TWO_KB_PRESS
 
-
+    @admin.display(description=_("Zawodnik"), ordering="player__surname")
+    def get_player_name(self, obj):
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
 
 @admin.register(CategoryOverallResult)
 class CategoryOverallResultAdmin(admin.ModelAdmin):
