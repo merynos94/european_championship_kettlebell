@@ -682,6 +682,15 @@ class SnatchResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
 class TGUResultAdmin(BaseSingleResultAdmin):
     discipline_code = TGU
 
+    # DODAJ JAWNIE TĘ METODĘ (nawet jeśli jest identyczna jak w BaseSingleResultAdmin)
+    @admin.display(description=_("Zawodnik"), ordering="player__surname")
+    def get_player_name(self, obj):
+        # Możesz po prostu wywołać metodę z klasy bazowej:
+        # return super().get_player_name(obj)
+        # LUB skopiować jej kod:
+        player = getattr(obj, "player", None)
+        return str(player) if player else _("Brak Gracza")
+
 
 @admin.register(OneKettlebellPressResult)
 class OneKettlebellPressResultAdmin(BaseSingleResultAdmin):
