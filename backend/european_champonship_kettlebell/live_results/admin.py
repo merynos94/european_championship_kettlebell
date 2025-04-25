@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from import_export.admin import ImportExportModelAdmin
+from .services import update_discipline_positions, update_overall_results_for_category, update_overall_results_for_player
 
 from .models.category import Category
 from .models.constants import (
@@ -536,6 +537,25 @@ class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
     autocomplete_fields = ("player",)
     ordering = ('position', 'player__surname', 'player__name')
 
+    def save_model(self, request, obj, form, change):
+        """Po zapisaniu wyniku, przelicz wyniki dla powiązanego zawodnika."""
+        super().save_model(request, obj, form, change)
+        player = getattr(obj, 'player', None)
+        if player:
+            try:
+                print(f"[Admin {self.__class__.__name__} save_model] Zapisano wynik dla gracza {player.id}. Uruchamiam przeliczanie...")
+                # Uruchom pełną aktualizację dla zawodnika - to przeliczy wszystkie jego kategorie
+                update_overall_results_for_player(player)
+                print(f"[Admin {self.__class__.__name__} save_model] Zakończono przeliczanie dla gracza {player.id}.")
+                self.message_user(request, f"Wyniki dla zawodnika {player} zostały przeliczone.", level="INFO")
+            except Exception as e:
+                print(f"[Admin {self.__class__.__name__} save_model] BŁĄD podczas przeliczania wyników dla gracza {player.id}: {e}")
+                traceback.print_exc()
+                self.message_user(request, f"Wystąpił błąd podczas przeliczania wyników dla gracza {player}: {e}", level="ERROR")
+        else:
+             print(f"[Admin {self.__class__.__name__} save_model] Nie znaleziono gracza dla obiektu {obj}. Pomijam przeliczanie.")
+
+
     def response_change(self, request, obj):
         """
         Called after saving changes to an existing object.
@@ -543,16 +563,16 @@ class BaseSingleResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
         changelist view without preserving filters or ordering.
         Otherwise, fall back to default Django admin behavior.
         """
+        # Ta metoda może pozostać bez zmian LUB możesz przenieść logikę z save_model tutaj,
+        # jeśli chcesz, aby przeliczenie następowało PO zapisie, a nie w jego trakcie.
+        # Wersja z save_model jest zazwyczaj wystarczająca.
         if "_save" in request.POST:
             list_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist')
-            messages.success(request, _("Zmiany w %(name)s zostały zapisane pomyślnie.") % {'name': str(obj)})
+            # Komunikat o sukcesie z save_model już się pojawi, więc ten można usunąć lub zmodyfikować
+            # messages.success(request, _("Zmiany w %(name)s zostały zapisane pomyślnie.") % {'name': str(obj)})
             return HttpResponseRedirect(list_url)
         else:
             return super().response_change(request, obj)
-    @admin.display(description=_("Zawodnik"), ordering="player__surname")
-    def get_player_name(self, obj):
-        player = getattr(obj, "player", None)
-        return str(player) if player else _("Brak Gracza")
 
     @admin.display(description=_("Max Wynik"))
     def get_max_result_display(self, obj) -> str:
@@ -598,18 +618,38 @@ class SnatchResultAdmin(BaseResultAdminMixin, admin.ModelAdmin):
     autocomplete_fields = ("player",)
     ordering = ('position', 'player__surname', 'player__name')
 
-    def response_change(self, request, obj):
-        """
-        Called after saving changes to an existing object.
-        If the standard 'Save' button was pressed, redirect to the clean
-        changelist view without preserving filters or ordering.
-        Otherwise, fall back to default Django admin behavior.
-        """
-        if "_save" in request.POST:
-            list_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist')
-            messages.success(request, _("Zmiany w %(name)s zostały zapisane pomyślnie.") % {'name': str(obj)})
-            return HttpResponseRedirect(list_url)
+    def save_model(self, request, obj: SnatchResult, form, change):
+        """Po zapisaniu wyniku Snatch, przelicz wyniki dla powiązanego zawodnika."""
+        super().save_model(request, obj, form, change)
+        player = getattr(obj, 'player', None)
+        if player:
+            try:
+                print(f"[Admin SnatchResultAdmin save_model] Zapisano wynik dla gracza {player.id}. Uruchamiam przeliczanie...")
+                # Uruchom pełną aktualizację dla zawodnika
+                update_overall_results_for_player(player)
+                print(f"[Admin SnatchResultAdmin save_model] Zakończono przeliczanie dla gracza {player.id}.")
+                self.message_user(request, f"Wyniki dla zawodnika {player} zostały przeliczone.", level="INFO")
+            except Exception as e:
+                print(f"[Admin SnatchResultAdmin save_model] BŁĄD podczas przeliczania wyników dla gracza {player.id}: {e}")
+                traceback.print_exc()
+                self.message_user(request, f"Wystąpił błąd podczas przeliczania wyników dla gracza {player}: {e}", level="ERROR")
         else:
+            print(f"[Admin SnatchResultAdmin save_model] Nie znaleziono gracza dla obiektu {obj}. Pomijam przeliczanie.")
+
+
+    def response_change(self, request, obj):
+       """
+       Called after saving changes to an existing object.
+       If the standard 'Save' button was pressed, redirect to the clean
+       changelist view without preserving filters or ordering.
+       Otherwise, fall back to default Django admin behavior.
+       """
+       # Ta metoda może pozostać bez zmian.
+       if "_save" in request.POST:
+            list_url = reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist')
+            # messages.success(request, _("Zmiany w %(name)s zostały zapisane pomyślnie.") % {'name': str(obj)})
+            return HttpResponseRedirect(list_url)
+       else:
             return super().response_change(request, obj)
 
     @admin.display(description=_("Zawodnik"), ordering="player__surname")
