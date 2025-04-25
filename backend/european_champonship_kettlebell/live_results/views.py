@@ -19,6 +19,41 @@ from .serializers import (
     PlayerBasicInfoSerializer,
 )
 
+# Plik: views.py (fragment - CategoryResultsView)
+
+from rest_framework import generics, permissions
+from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch # Potrzebne do prefetch
+
+# Importuj NOWY model i serializer, oraz Category, Player (Player może nie być potrzebny bezpośrednio)
+from .models.results.overall import CategoryOverallResult # Poprawna ścieżka?
+from .serializers import CategoryResultsSerializer
+from .models import Category # Potrzebne do get_object_or_404
+
+class CategoryResultsView(generics.ListAPIView):
+    serializer_class = CategoryResultsSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        category_id = self.kwargs.get('category_id')
+        category = get_object_or_404(Category, pk=category_id) # Pobierz kategorię
+
+        queryset = CategoryOverallResult.objects.filter(
+            category=category # Filtruj po kategorii
+        ).select_related(
+            'player',
+            'player__club'
+        ).prefetch_related(
+            # Użyj poprawnych related_name z modelu Player!
+            Prefetch('player__snatch_result'),
+            Prefetch('player__tgu_result'),
+            Prefetch('player__kb_squat_one_result'),
+            Prefetch('player__one_kettlebell_press_result'),
+            Prefetch('player__two_kettlebell_press_one_result'),
+        ).order_by(
+            'final_position', 'total_points', 'player__surname', 'player__name'
+        )
+        return queryset
 # --- ViewSet for Categories and their Results ---
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """

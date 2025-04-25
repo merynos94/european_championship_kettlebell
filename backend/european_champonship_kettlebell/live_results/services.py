@@ -150,7 +150,6 @@ def update_discipline_positions(category: Category) -> None:
     print(f"=== DEBUG: Koniec update_discipline_positions dla kategorii: {category.name} ===")
 
 
-# --- ZMODYFIKOWANA funkcja update_overall_results_for_category (Uproszczona) ---
 def update_overall_results_for_category(category: Category) -> None:
     """
     Oblicza i aktualizuje punkty ogólne i pozycje końcowe dla graczy
@@ -161,7 +160,7 @@ def update_overall_results_for_category(category: Category) -> None:
 
     if not player_ids_in_category:
         print(f"Brak graczy w kat. {category.id}. Pomijam update_overall_results_for_category.")
-        CategoryOverallResult.objects.filter(category=category).delete() # Usuń stare wyniki, jeśli nie ma graczy
+        CategoryOverallResult.objects.filter(category=category).delete()
         return
 
     print(f"Aktualizacja CategoryOverallResult dla kat: {category.name} ({category.id}), gracze: {player_ids_in_category}")
@@ -175,7 +174,6 @@ def update_overall_results_for_category(category: Category) -> None:
             results = model_class.objects.filter(player_id__in=player_ids_in_category).values('player_id', 'position')
             discipline_positions[disc_const] = {r['player_id']: r['position'] for r in results}
 
-    # Pobierz istniejące CategoryOverallResult i obiekty Player
     players_map = {p.id: p for p in Player.objects.filter(id__in=player_ids_in_category)}
     overall_results_map = {
         or_obj.player_id: or_obj
@@ -184,12 +182,10 @@ def update_overall_results_for_category(category: Category) -> None:
     overall_updates = []
     final_pos_updates = []
 
-    # --- Pętla po ID graczy w kategorii ---
     for player_id in player_ids_in_category:
         player = players_map.get(player_id)
-        if not player: continue # Na wszelki wypadek
+        if not player: continue
 
-        # Pobierz lub stwórz CategoryOverallResult dla gracza i kategorii
         overall_result = overall_results_map.get(player_id)
         created_overall = False
         if not overall_result:
@@ -199,74 +195,68 @@ def update_overall_results_for_category(category: Category) -> None:
 
         changed = False
 
-        # 1. Wyczyść/Ustaw punkty Tiebreak
         new_tiebreak_points = -0.5 if player.tiebreak else 0.0
         if overall_result.tiebreak_points != new_tiebreak_points:
             overall_result.tiebreak_points = new_tiebreak_points
             changed = True
 
-        # 2. Przypisz punkty na podstawie odczytanej pozycji
+        print(f"  Przypisywanie punktów dla gracza: {player_id} ({player})")
         for disc_const in disciplines_in_category:
             points_field = OVERALL_POINTS_FIELDS.get(disc_const)
             if not points_field: continue
 
+            # --- ZMIANA: Odczytujemy 'position' z wcześniej pobranych danych ---
             position = discipline_positions.get(disc_const, {}).get(player_id)
             new_points = float(position) if position is not None else None
-
+            # ---------------------------------------------------------------
             print(f"    Dyscyplina: {disc_const}, Odczytana Pozycja: {position}, Przypisane Punkty: {new_points}")
+
             if getattr(overall_result, points_field, None) != new_points:
                 setattr(overall_result, points_field, new_points)
                 changed = True
-        # Wyzeruj punkty dla dyscyplin spoza kategorii (jeśli były wcześniej)
+        # Wyzeruj punkty dla dyscyplin spoza kategorii
         for disc_const, points_field in OVERALL_POINTS_FIELDS.items():
              if disc_const not in disciplines_in_category:
                   if getattr(overall_result, points_field, None) is not None:
                        setattr(overall_result, points_field, None)
                        changed = True
 
-
-        # 3. Oblicz sumę punktów
         old_total_points = overall_result.total_points
         overall_result.calculate_total_points()
         print(f"    Obliczono total_points: {overall_result.total_points} (poprzednio: {old_total_points})")
         if old_total_points != overall_result.total_points:
             changed = True
 
-        # 4. Dodaj do listy do aktualizacji
         if changed or created_overall:
             overall_updates.append(overall_result)
-            # Zaktualizuj mapę, aby mieć najnowszy obiekt do obliczenia final_position
             overall_results_map[player_id] = overall_result
 
-
-    # 5. Zapisz zmiany w punktach (bulk_create/update)
     if overall_updates:
         to_create = [res for res in overall_updates if res.pk is None]
         to_update = [res for res in overall_updates if res.pk is not None]
         update_fields = list(OVERALL_POINTS_FIELDS.values()) + ["tiebreak_points", "total_points"]
         try:
-            if to_create: CategoryOverallResult.objects.bulk_create(to_create)
-            if to_update: CategoryOverallResult.objects.bulk_update(to_update, update_fields)
-            print(f"  Zapisano zmiany punktów dla {len(to_create)} (nowych) i {len(to_update)} (istniejących) CategoryOverallResult.")
-             # Zaktualizuj obiekty w mapie po bulk_create, aby miały PK
             if to_create:
-                new_results_map = {or_obj.player_id: or_obj for or_obj in CategoryOverallResult.objects.filter(category=category, player_id__in=[p.id for p in to_create])}
+                created_list = CategoryOverallResult.objects.bulk_create(to_create)
+                print(f"  Stworzono {len(created_list)} nowych CategoryOverallResult.")
+                # Zaktualizuj mapę
+                new_results_map = {or_obj.player_id: or_obj for or_obj in CategoryOverallResult.objects.filter(category=category, player_id__in=[p.player_id for p in to_create])}
                 overall_results_map.update(new_results_map)
+            if to_update:
+                updated_points_count = CategoryOverallResult.objects.bulk_update(to_update, update_fields)
+                print(f"  Zaktualizowano punkty CategoryOverallResult dla {updated_points_count} graczy.")
         except Exception as e_bulk:
             print(f"  BŁĄD bulk operacji CategoryOverallResult (punkty) w kat {category.id}: {e_bulk}")
             traceback.print_exc()
     else:
          print("  Brak zmian punktów CategoryOverallResult do zapisania.")
 
-    # 6. Oblicz i zaktualizuj MIEJSCA KOŃCOWE (final_position) DLA TEJ KATEGORII
-    # Pobierz wszystkie (potencjalnie zaktualizowane) wyniki dla tej kategorii
+    # Oblicz i zaktualizuj MIEJSCA KOŃCOWE (final_position)
     final_results_qs = CategoryOverallResult.objects.filter(
-        category=category,
-        player_id__in=player_ids_in_category
+        category=category, player_id__in=player_ids_in_category
     ).annotate(
         total_points_is_null=Case(When(total_points__isnull=True, then=Value(1)), default=Value(0), output_field=IntegerField())
-    ).select_related('player') # Potrzebne do sortowania po nazwisku
-    # Sortuj wg punktów (nulls last), potem nazwiska
+    ).select_related('player')
     final_results_list = list(final_results_qs.order_by(
         'total_points_is_null', "total_points", "player__surname", "player__name"
     ))
@@ -276,8 +266,8 @@ def update_overall_results_for_category(category: Category) -> None:
     final_rank_counter = 0
     tie_start_rank_final = 1
 
-    print(f"\n  Obliczanie Miejsc Końcowych (final_position) dla {len(final_results_list)} wyników w kat. {category.id}...")
-    for result in final_results_list: # Iteruj po liście obiektów z pamięci
+    print(f"\n  Obliczanie Miejsc Końcowych dla {len(final_results_list)} wyników w kat. {category.id}...")
+    for result in final_results_list:
         final_rank_counter += 1
         current_total_points = result.total_points
 
@@ -295,8 +285,8 @@ def update_overall_results_for_category(category: Category) -> None:
             calculated_final_pos_for_iteration = tie_start_rank_final
 
         if result.final_position != calculated_final_pos_for_iteration or result.final_position is None:
-            result.final_position = calculated_final_pos_for_iteration # Zmień obiekt w pamięci
-            final_pos_updates.append(result) # Dodaj do listy do aktualizacji
+            result.final_position = calculated_final_pos_for_iteration
+            final_pos_updates.append(result)
             print(f"    Aktualizacja final_position dla gracza {result.player_id} w kat {category.id}: {calculated_final_pos_for_iteration}")
 
     if final_pos_updates:
@@ -309,7 +299,6 @@ def update_overall_results_for_category(category: Category) -> None:
     else:
         print(f"  Brak zmian final_position CategoryOverallResult do zapisania w kat {category.id}.")
     print(f"--- Koniec update_overall_results_for_category dla kat: {category.name} ---")
-
 
 # --- Funkcja update_overall_results_for_player (z dekoratorem transakcji) ---
 @transaction.atomic
