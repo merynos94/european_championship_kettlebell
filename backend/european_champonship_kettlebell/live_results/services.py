@@ -4,6 +4,7 @@ import traceback
 from django.db import transaction
 from django.db.models import Case, F, FloatField, Value, When, IntegerField
 from django.db.models.functions import Greatest
+from .models.tiebreak import PlayerCategoryTiebreak
 
 # Importuj NOWY model CategoryOverallResult i upewnij się, że reszta importów jest poprawna
 from .models import Category, Player
@@ -31,8 +32,13 @@ OVERALL_POINTS_FIELDS = {
     ONE_KB_PRESS: "one_kb_press_points", TWO_KB_PRESS: "two_kb_press_points",
 }
 DISCIPLINE_ORDERING_LOGIC = {
-    SNATCH: "-calculated_snatch_score", TGU: "-tgu_bw_ratio", ONE_KB_PRESS: "-okbp_bw_ratio",
-    KB_SQUAT: "-kbs_bw_ratio", TWO_KB_PRESS: "-tkbp_bw_ratio",
+    SNATCH: "-calculated_snatch_score",
+    TGU: "-tgu_bw_ratio", # Było OK
+    # ZMIENIONO PONIŻSZE vvv
+    ONE_KB_PRESS: "-one_kettlebell_press_bw_ratio",
+    KB_SQUAT: "-kb_squat_bw_ratio",
+    TWO_KB_PRESS: "-two_kettlebell_press_bw_ratio",
+    # KONIEC ZMIAN ^^^
 }
 DEFAULT_RESULT_VALUES = { # Potwierdź wartości domyślne
     SNATCH: {"kettlebell_weight": 0.0, "repetitions": 0}, # Użyj 0.0 dla FloatField
@@ -48,7 +54,9 @@ DEFAULT_RESULT_VALUES = { # Potwierdź wartości domyślne
 # indywidualnych wyników (np. SnatchResult.position).
 def update_discipline_positions(category: Category) -> None:
     """Oblicza i aktualizuje pozycje graczy w dyscyplinach DLA DANEJ KATEGORII."""
+
     print(f"\n=== DEBUG: Rozpoczynam update_discipline_positions dla kategorii: {category.name} (ID: {category.id}) ===")
+    DEBUG_DISCIPLINES = {KB_SQUAT, ONE_KB_PRESS, TWO_KB_PRESS}
 
     players_in_category = Player.objects.filter(categories=category).only("id", "weight", "surname", "name")
     if not players_in_category.exists():
@@ -158,10 +166,12 @@ def update_overall_results_for_category(category: Category) -> None:
     Odczytuje obliczone wcześniej pozycje z indywidualnych wyników.
     """
     player_ids_in_category = list(Player.objects.filter(categories=category).values_list('id', flat=True))
+    DEBUG_DISCIPLINES = {KB_SQUAT, ONE_KB_PRESS, TWO_KB_PRESS}
 
     if not player_ids_in_category:
         print(f"Brak graczy w kat. {category.id}. Pomijam update_overall_results_for_category.")
-        CategoryOverallResult.objects.filter(category=category).delete()
+        # Rozważ usunięcie starych wyników, jeśli logika biznesowa tego wymaga
+        # CategoryOverallResult.objects.filter(category=category).delete()
         return
 
     print(f"Aktualizacja CategoryOverallResult dla kat: {category.name} ({category.id}), gracze: {player_ids_in_category}")
@@ -169,20 +179,37 @@ def update_overall_results_for_category(category: Category) -> None:
 
     # Pobierz indywidualne wyniki (tylko player_id i position) dla optymalizacji
     discipline_positions = {}
+    # Dodano print debugujący
+    print(f"\n[DEBUG OVERALL - {category.id}] Pobieranie pozycji dla dyscyplin: {disciplines_in_category}")
     for disc_const in disciplines_in_category:
         model_class = DISCIPLINE_MODELS_MAP.get(disc_const)
         if model_class:
-            results = model_class.objects.filter(player_id__in=player_ids_in_category).values('player_id', 'position')
-            discipline_positions[disc_const] = {r['player_id']: r['position'] for r in results}
+            # Upewnij się, że pole 'position' istnieje w modelu
+            try:
+                results = model_class.objects.filter(player_id__in=player_ids_in_category).values('player_id', 'position')
+                discipline_positions[disc_const] = {r['player_id']: r['position'] for r in results}
+                 # Dodano blok print debugujący
+                if disc_const in DEBUG_DISCIPLINES:
+                    print(f"  [DEBUG OVERALL - {category.id}] Pozycje dla {disc_const}: {discipline_positions[disc_const]}")
+            except Exception as e_val:
+                 print(f"  BŁĄD pobierania pozycji dla {model_class.__name__} w kat {category.id}: {e_val}")
+                 discipline_positions[disc_const] = {} # Ustaw pusty słownik w razie błędu
 
     players_map = {p.id: p for p in Player.objects.filter(id__in=player_ids_in_category)}
+    # Pobierz istniejące wyniki Overall dla tej kategorii i graczy
     overall_results_map = {
         or_obj.player_id: or_obj
         for or_obj in CategoryOverallResult.objects.filter(category=category, player_id__in=player_ids_in_category)
     }
     overall_updates = []
     final_pos_updates = []
-
+    tiebreak_info = set(
+        PlayerCategoryTiebreak.objects.filter(
+            category=category,
+            player_id__in=player_ids_in_category
+        ).values_list('player_id', flat=True)
+    )
+    print(f"  [DEBUG OVERALL - {category.id}] Gracze z tiebreakiem w tej kat: {tiebreak_info}") # Log debugujący
     for player_id in player_ids_in_category:
         player = players_map.get(player_id)
         if not player: continue
@@ -190,137 +217,177 @@ def update_overall_results_for_category(category: Category) -> None:
         overall_result = overall_results_map.get(player_id)
         created_overall = False
         if not overall_result:
-            overall_result, created_overall = CategoryOverallResult.objects.get_or_create(player=player, category=category)
+            # Użyj get_or_create dla bezpieczeństwa, jeśli jakimś cudem mapa jest niekompletna
+            overall_result, created_overall = CategoryOverallResult.objects.get_or_create(
+                player=player,
+                category=category,
+                # Można dodać defaults={}, ale get_or_create i tak użyje domyślnych modelu
+            )
             if created_overall: print(f"  Stworzono CategoryOverallResult dla gracza {player_id} w kat {category.id}")
-        else: print(f"  Aktualizacja CategoryOverallResult dla gracza {player_id} w kat {category.id}")
+            overall_results_map[player_id] = overall_result # Dodaj do mapy, jeśli stworzono
+        # else: print(f"  Aktualizacja CategoryOverallResult dla gracza {player_id} w kat {category.id}") # Mniej istotny log
 
-        changed = False
+        changed = False # Flaga śledząca, czy cokolwiek się zmieniło dla tego gracza
 
-        new_tiebreak_points = -0.5 if player.tiebreak else 0.0
+        # Aktualizuj punkty tiebreak
+        apply_tiebreak_for_this_category = player_id in tiebreak_info
+        new_tiebreak_points = -0.5 if apply_tiebreak_for_this_category else 0.0
         if overall_result.tiebreak_points != new_tiebreak_points:
             overall_result.tiebreak_points = new_tiebreak_points
             changed = True
+            print(f"    [DEBUG OVERALL - {category.id}] Aktualizacja tiebreak_points dla gracza {player_id} na {new_tiebreak_points}") # Log debugujący
 
-        print(f"  Przypisywanie punktów dla gracza: {player_id} ({player})")
+        # Dodano print debugujący
+        print(f"  [DEBUG OVERALL - {category.id}] Przypisywanie punktów dla gracza: {player_id} ({player})")
         for disc_const in disciplines_in_category:
             points_field = OVERALL_POINTS_FIELDS.get(disc_const)
-            if not points_field: continue
+            if not points_field: continue # Pomiń, jeśli dyscyplina nie ma mapowania na pole punktowe
 
-            # --- ZMIANA: Odczytujemy 'position' z wcześniej pobranych danych ---
-            position = discipline_positions.get(disc_const, {}).get(player_id)
+            # Odczytujemy 'position' z wcześniej pobranych danych
+            # Używamy .get(player_id) z domyślnym None, aby uniknąć KeyError
+            position = discipline_positions.get(disc_const, {}).get(player_id) # Bezpieczny dostęp
+            # Konwertuj pozycję na float lub None
             new_points = float(position) if position is not None else None
-            # ---------------------------------------------------------------
-            print(f"    Dyscyplina: {disc_const}, Odczytana Pozycja: {position}, Przypisane Punkty: {new_points}")
 
+            # Dodano blok print debugujący
+            if disc_const in DEBUG_DISCIPLINES:
+                 print(f"    [DEBUG OVERALL - {category.id}] Dyscyplina: {disc_const}, Gracz: {player_id}")
+                 print(f"      -> Odczytana Pozycja: {position}")
+                 print(f"      -> Pole punktowe: {points_field}")
+                 print(f"      -> Przypisane Punkty (new_points): {new_points}")
+
+            # Sprawdź, czy wartość się zmieniła przed ustawieniem
             if getattr(overall_result, points_field, None) != new_points:
                 setattr(overall_result, points_field, new_points)
                 changed = True
-        # Wyzeruj punkty dla dyscyplin spoza kategorii
-        for disc_const, points_field in OVERALL_POINTS_FIELDS.items():
-             if disc_const not in disciplines_in_category:
-                  if getattr(overall_result, points_field, None) is not None:
-                       setattr(overall_result, points_field, None)
-                       changed = True
+                # Dodano print informujący o zmianie
+                if disc_const in DEBUG_DISCIPLINES:
+                    print(f"      *** ZMIANA punktów {points_field} dla gracza {player_id} na {new_points} ***")
 
+        # Wyzeruj punkty dla dyscyplin spoza kategorii
+        # (Ważne, jeśli gracz zmienił kategorię lub dyscypliny w kategorii zostały usunięte)
+        for disc_const_all, points_field_all in OVERALL_POINTS_FIELDS.items():
+             if disc_const_all not in disciplines_in_category:
+                  if getattr(overall_result, points_field_all, None) is not None:
+                       setattr(overall_result, points_field_all, None)
+                       changed = True
+                       print(f"    [DEBUG OVERALL - {category.id}] Zerowanie punktów {points_field_all} dla gracza {player_id} (dyscyplina poza kat.)")
+
+
+        # Oblicz sumę punktów po aktualizacji pól dyscyplin
         old_total_points = overall_result.total_points
-        overall_result.calculate_total_points()
-        print(f"    Obliczono total_points: {overall_result.total_points} (poprzednio: {old_total_points})")
+        overall_result.calculate_total_points() # Wywołaj metodę z modelu
+        print(f"    [DEBUG OVERALL - {category.id}] Obliczono total_points: {overall_result.total_points} (poprzednio: {old_total_points})")
         if old_total_points != overall_result.total_points:
             changed = True
 
+        # Jeśli cokolwiek się zmieniło (lub obiekt został dopiero stworzony), dodaj go do listy do zapisu
         if changed or created_overall:
-            overall_updates.append(overall_result)
-            overall_results_map[player_id] = overall_result
+            # Nie dodawaj do overall_updates, jeśli obiekt dopiero co został stworzony przez get_or_create
+            # Dodaj go tylko jeśli istniał i się zmienił
+            if not created_overall and changed:
+                 overall_updates.append(overall_result)
 
+
+    # Zapisz zmiany punktów za pomocą bulk_update (tylko dla istniejących i zmienionych)
     if overall_updates:
-        to_create = [res for res in overall_updates if res.pk is None]
-        to_update = [res for res in overall_updates if res.pk is not None]
         update_fields = list(OVERALL_POINTS_FIELDS.values()) + ["tiebreak_points", "total_points"]
         try:
-            if to_create:
-                created_list = CategoryOverallResult.objects.bulk_create(to_create)
-                print(f"  Stworzono {len(created_list)} nowych CategoryOverallResult.")
-                # Zaktualizuj mapę
-                new_results_map = {or_obj.player_id: or_obj for or_obj in CategoryOverallResult.objects.filter(category=category, player_id__in=[p.player_id for p in to_create])}
-                overall_results_map.update(new_results_map)
-            if to_update:
-                updated_points_count = CategoryOverallResult.objects.bulk_update(to_update, update_fields)
-                print(f"  Zaktualizowano punkty CategoryOverallResult dla {updated_points_count} graczy.")
+            # Dodano print debugujący
+            print(f"  [DEBUG OVERALL - {category.id}] Próba bulk_update dla pól: {update_fields}")
+            updated_points_count = CategoryOverallResult.objects.bulk_update(overall_updates, update_fields)
+             # Dodano print debugujący
+            print(f"  [DEBUG OVERALL - {category.id}] Wynik bulk_update (punkty): {updated_points_count} rekordów.")
         except Exception as e_bulk:
             print(f"  BŁĄD bulk operacji CategoryOverallResult (punkty) w kat {category.id}: {e_bulk}")
             traceback.print_exc()
     else:
-         print("  Brak zmian punktów CategoryOverallResult do zapisania.")
+         print(f"  [DEBUG OVERALL - {category.id}] Brak zmian punktów CategoryOverallResult do zapisania (poza nowo stworzonymi).")
 
-    # Oblicz i zaktualizuj MIEJSCA KOŃCOWE (final_position)
+
+    # --- Oblicz i zaktualizuj MIEJSCA KOŃCOWE (final_position) ---
+    # Pobierz WSZYSTKIE wyniki dla kategorii (w tym te nowo stworzone)
     final_results_qs = CategoryOverallResult.objects.filter(
         category=category, player_id__in=player_ids_in_category
     ).annotate(
+        # Pomocnicza adnotacja do sortowania - nulls last dla total_points
         total_points_is_null=Case(When(total_points__isnull=True, then=Value(1)), default=Value(0), output_field=IntegerField())
-    ).select_related('player')
+    ).select_related('player') # select_related dla dostępu do player__surname etc.
+
+    # Sortuj wg total_points (niskie lepsze, nulls last), potem nazwiska
     final_results_list = list(final_results_qs.order_by(
         'total_points_is_null', "total_points", "player__surname", "player__name"
     ))
 
     current_final_pos = 0
-    last_total_points = None
-    final_rank_counter = 0
-    tie_start_rank_final = 1
+    last_total_points = None # Śledzi ostatni wynik do obsługi remisów
+    final_rank_counter = 0 # Licznik pozycji w pętli
+    tie_start_rank_final = 1 # Zapamiętuje pozycję, od której zaczął się remis
 
-    print(f"\n  Obliczanie Miejsc Końcowych dla {len(final_results_list)} wyników w kat. {category.id}...")
+    print(f"\n  [DEBUG OVERALL - {category.id}] Obliczanie Miejsc Końcowych dla {len(final_results_list)} wyników...")
     for result in final_results_list:
         final_rank_counter += 1
-        current_total_points = result.total_points
+        current_total_points = result.total_points # Może być None
 
         is_tie_final = False
+        # Sprawdź remis (tylko jeśli oba wyniki nie są None LUB oba są None)
         if current_total_points is not None and last_total_points is not None:
+            # Użyj porównania z tolerancją dla float? Na razie dokładne.
             if current_total_points == last_total_points: is_tie_final = True
-        elif current_total_points is None and last_total_points is None: is_tie_final = True
+        elif current_total_points is None and last_total_points is None: is_tie_final = True # Dwa None to też "remis" na końcu listy
 
         calculated_final_pos_for_iteration = 0
         if not is_tie_final:
+            # Nowy wynik (lub pierwszy wynik) -> nowa pozycja
             calculated_final_pos_for_iteration = final_rank_counter
-            last_total_points = current_total_points
-            tie_start_rank_final = final_rank_counter
+            last_total_points = current_total_points # Zaktualizuj ostatni wynik
+            tie_start_rank_final = final_rank_counter # Zapamiętaj pozycję startową potencjalnego remisu
         else:
+            # Remis -> użyj pozycji startowej remisu
             calculated_final_pos_for_iteration = tie_start_rank_final
 
+        # Sprawdź, czy pozycja się zmieniła
         if result.final_position != calculated_final_pos_for_iteration or result.final_position is None:
             result.final_position = calculated_final_pos_for_iteration
-            final_pos_updates.append(result)
-            print(f"    Aktualizacja final_position dla gracza {result.player_id} w kat {category.id}: {calculated_final_pos_for_iteration}")
+            final_pos_updates.append(result) # Dodaj do listy do aktualizacji
+            # print(f"    Aktualizacja final_position dla gracza {result.player_id} w kat {category.id}: {calculated_final_pos_for_iteration}") # Mniej istotny log
 
+    # Zapisz zmiany miejsc końcowych za pomocą bulk_update
     if final_pos_updates:
         try:
             updated_pos_count = CategoryOverallResult.objects.bulk_update(final_pos_updates, ["final_position"])
-            print(f"  Zaktualizowano final_position CategoryOverallResult dla {updated_pos_count} graczy w kat {category.id}.")
+            print(f"  [DEBUG OVERALL - {category.id}] Zaktualizowano final_position CategoryOverallResult dla {updated_pos_count} graczy.")
         except Exception as e_bulk_final:
             print(f"  BŁĄD bulk_update final_position CategoryOverallResult w kat {category.id}: {e_bulk_final}")
             traceback.print_exc()
     else:
-        print(f"  Brak zmian final_position CategoryOverallResult do zapisania w kat {category.id}.")
-    print(f"--- Koniec update_overall_results_for_category dla kat: {category.name} ---")
+        print(f"  [DEBUG OVERALL - {category.id}] Brak zmian final_position CategoryOverallResult do zapisania.")
 
-# --- Funkcja update_overall_results_for_player (z dekoratorem transakcji) ---
-@transaction.atomic
+    print(f"--- [DEBUG OVERALL - {category.id}] Koniec update_overall_results_for_category ---")
+
+@transaction.atomic # Upewnij się, że ten dekorator jest obecny
 def update_overall_results_for_player(player: Player) -> None:
     """
     Aktualizuje wyniki dla WSZYSTKICH kategorii gracza.
     """
     if not hasattr(player, "categories"):
-        print(f"Gracz {player.id} nie ma 'categories'. Pomijam.")
+        print(f"Gracz {player.id} ({player}) nie ma atrybutu 'categories'. Pomijam.")
         return
 
     try:
-        # Użyj prefetch_related dla optymalizacji, jeśli Category ma dużo relacji
-        categories = list(player.categories.prefetch_related('disciplines_relation')) # Załóżmy, że tak się nazywa M2M do Discipline
+        # Pobierz kategorie gracza BEZ błędnego prefetch_related
+        # ZMIANA TUTAJ vvv
+        categories = list(player.categories.all())
+        # KONIEC ZMIANY ^^^
     except Exception as e_fetch:
-        print(f"BŁĄD pobierania kategorii dla gracza {player.id}: {e_fetch}")
-        return
+        # Zaktualizowano komunikat błędu
+        print(f"BŁĄD pobierania kategorii dla gracza {player.id} ({player}): {e_fetch}")
+        traceback.print_exc() # Dodaj traceback dla lepszej diagnostyki
+        return # Zakończ funkcję, jeśli nie udało się pobrać kategorii
 
     if not categories:
-        print(f"Gracz {player.id} nie ma kategorii. Pomijam.")
-        # Usuń stare wyniki gracza we wszystkich kategoriach
+        print(f"Gracz {player.id} ({player}) nie ma przypisanych kategorii. Pomijam.")
+        # Rozważ usunięcie starych wyników Overall dla tego gracza, jeśli taka jest logika
         # CategoryOverallResult.objects.filter(player=player).delete()
         return
 
@@ -335,8 +402,8 @@ def update_overall_results_for_player(player: Player) -> None:
             update_overall_results_for_category(category)
         print(f"=== Zakończono pełną aktualizację wyników dla gracza: {player} ({player.id}) ===")
     except Exception as e:
-        print(f"!!! KRYTYCZNY BŁĄD podczas pełnej aktualizacji dla gracza {player.id}: {e}")
-        traceback.print_exc()
+        print(f"!!! KRYTYCZNY BŁĄD podczas pełnej aktualizacji dla gracza {player.id} ({player}): {e}")
+        traceback.print_exc() # Zawsze loguj pełny traceback przy krytycznych błędach
 
 
 # --- Funkcja create_default_results_for_player_categories (bez zmian) ---

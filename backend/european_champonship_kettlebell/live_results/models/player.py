@@ -19,7 +19,6 @@ class Player(models.Model):
     categories = models.ManyToManyField(
         "live_results.Category", verbose_name=_("Kategorie"), related_name="players", blank=True
     )
-    tiebreak = models.BooleanField(_("Zastosowano Tiebreak"), default=False)
 
     class Meta:
         verbose_name = _("Zawodnik")
