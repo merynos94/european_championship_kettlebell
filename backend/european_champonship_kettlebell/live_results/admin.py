@@ -210,11 +210,6 @@ class PlayerAdmin(ImportExportModelAdmin):
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
-    # @admin.display(description=_("SSP (%BW)")) # Commented out based on request
-    # def get_ssp_bw_percentage_display(self, obj: Player) -> str:
-    #     res = getattr(obj, "see_saw_press_result", None)
-    #     bw = getattr(res, "bw_percentage", None)
-    #     return f"{bw:.2f}%" if bw is not None else "---"
 
     @admin.display(description=_("KBS (%BW)"))
     def get_kbs_bw_percentage_display(self, obj: Player) -> str:
@@ -223,11 +218,6 @@ class PlayerAdmin(ImportExportModelAdmin):
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
-    # @admin.display(description=_("Pistol (%BW)")) # Commented out based on request
-    # def get_pistol_bw_percentage_display(self, obj: Player) -> str:
-    #     res = getattr(obj, "pistol_squat_result", None)
-    #     bw = getattr(res, "bw_percentage", None)
-    #     return f"{bw:.2f}%" if bw is not None else "---"
 
     @admin.display(description=_("OKBP (%BW)"))
     def get_okbp_bw_percentage_display(self, obj: Player) -> str:
@@ -242,11 +232,6 @@ class PlayerAdmin(ImportExportModelAdmin):
         bw = getattr(res, "bw_percentage", None)
         return f"{bw:.2f}%" if bw is not None else "---"
 
-    # @admin.display(description=_("Wynik Ogólny"), ordering="categoryoverallresult__total_points")
-    # def get_overall_score_display(self, obj: Player) -> str:
-    #     overall = getattr(obj, "category_results", None)
-    #     total = getattr(overall, "total_points", None)
-    #     return f"{total:.1f}" if total is not None else "---"
 
     def get_import_resource_classes(self, request=None):
         return [PlayerImportResource]
@@ -255,55 +240,64 @@ class PlayerAdmin(ImportExportModelAdmin):
         return [PlayerExportResource]
 
     def save_model(self, request, obj: Player, form, change):
-        """Handles saving the Player model. Triggers a full results update after saving (e.g., for weight changes)."""
+        """Obsługuje zapis modelu Player BEZ uruchamiania przeliczania."""
+        # TYLKO zapisz model główny
         super().save_model(request, obj, form, change)
-        print(f"[Admin save_model] Saved player {obj.id}. Triggering overall results recalculation...")
-        try:
-            update_overall_results_for_player(obj)
-            print(f"[Admin save_model] Finished recalculating overall results for player {obj.id}.")
-        except Exception as e:
-            print(f"[Admin save_model] ERROR during results recalculation for player {obj.id}: {e}")
-            traceback.print_exc()
-            self.message_user(request, f"An error occurred during results recalculation: {e}", level="ERROR")
+        # USUŃ WYWOŁANIE STĄD vvv
+        # print(f"[Admin save_model] Saved player {obj.id}. Triggering overall results recalculation...")
+        # try:
+        #     update_overall_results_for_player(obj) # <--- USUNIĘTE
+        #     print(f"[Admin save_model] Finished recalculating overall results for player {obj.id}.")
+        # except Exception as e:
+        #     print(f"[Admin save_model] ERROR during results recalculation for player {obj.id}: {e}")
+        #     traceback.print_exc()
+        #     self.message_user(request, f"An error occurred during results recalculation: {e}", level="ERROR")
+        print(f"[Admin save_model] Zapisano podstawowe dane gracza {obj.id}.") # Zmień log
+
 
     def save_related(self, request, form, formsets, change):
-        """Called AFTER saving ManyToMany relationships (e.g., categories). Ideal place to create default records for NEW players."""
+        """
+        Wywoływana PO zapisaniu relacji ManyToMany (np. kategorii).
+        Idealne miejsce do tworzenia domyślnych rekordów ORAZ aktualizacji/czyszczenia wyników.
+        """
+        # Najpierw standardowe zachowanie (np. zapisanie danych z formsetów, jeśli były)
         super().save_related(request, form, formsets, change)
 
-        if not change:
-            player_instance = form.instance
-            category_pks = set(player_instance.categories.values_list("pk", flat=True))
+        # Pobierz instancję gracza z formularza
+        player_instance = form.instance
 
+        # ---- Logika tworzenia domyślnych wyników dla NOWYCH graczy ----
+        if not change: # Uruchom tylko dla nowo tworzonych graczy
+            category_pks = set(player_instance.categories.values_list("pk", flat=True))
             if category_pks:
-                print(
-                    f"[Admin save_related] New player {player_instance.id} has categories {category_pks}. Creating default result records..."
-                )
+                print(f"[Admin save_related] Nowy gracz {player_instance.id} ma kategorie {category_pks}. Tworzenie domyślnych rekordów...")
                 try:
                     created_any = create_default_results_for_player_categories(player_instance, category_pks)
                     if created_any:
-                        print(
-                            f"[Admin save_related] Created new default result records for player {player_instance.id}.")
+                        print(f"[Admin save_related] Stworzono nowe domyślne rekordy dla gracza {player_instance.id}.")
                     else:
-                        print(
-                            f"[Admin save_related] No new default records created (likely already existed?) for player {player_instance.id}."
-                        )
-
-                    print(f"[Admin save_related] Triggering full results update for new player {player_instance.id}...")
-                    update_overall_results_for_player(player_instance)
-                    print(f"[Admin save_related] Finished update for new player {player_instance.id}.")
-
-                except Exception as e:
-                    print(f"[Admin save_related] CRITICAL ERROR while handling new player {player_instance.id}: {e}")
+                        print(f"[Admin save_related] Brak nowych domyślnych rekordów dla gracza {player_instance.id} (prawdopodobnie już istniały?).")
+                except Exception as e_create:
+                    print(f"[Admin save_related] BŁĄD podczas tworzenia domyślnych rekordów dla nowego gracza {player_instance.id}: {e_create}")
                     traceback.print_exc()
-                    self.message_user(
-                        request,
-                        f"An error occurred while creating/updating results for the new player: {e}",
-                        level="ERROR",
-                    )
+                    self.message_user(request, f"Błąd tworzenia domyślnych wyników dla gracza: {e_create}", level="ERROR")
             else:
-                print(
-                    f"[Admin save_related] New player {player_instance.id} has no assigned categories. Skipping default results creation."
-                )
+                print(f"[Admin save_related] Nowy gracz {player_instance.id} nie ma przypisanych kategorii. Pomijam tworzenie domyślnych wyników.")
+
+        # ---- Logika aktualizacji/czyszczenia wyników (ZAWSZE po zapisie relacji) ----
+        # Przenieś wywołanie update_overall_results_for_player TUTAJ
+        print(f"[Admin save_related] Gracz {player_instance.id} zapisany (change={change}). Uruchamiam pełną aktualizację/czyszczenie wyników...")
+        try:
+            # Ta funkcja teraz obsługuje zarówno aktualizację DLA AKTUALNYCH kategorii,
+            # jak i usuwanie wyników DLA USUNIĘTYCH kategorii.
+            update_overall_results_for_player(player_instance)
+            print(f"[Admin save_related] Zakończono aktualizację/czyszczenie wyników dla gracza {player_instance.id}.")
+            # Możesz dodać komunikat sukcesu, ale może być ich za dużo, jeśli edytujesz wielu graczy
+            # self.message_user(request, f"Wyniki dla gracza {player_instance} zostały zaktualizowane.", level="INFO")
+        except Exception as e_update:
+            print(f"[Admin save_related] BŁĄD podczas aktualizacji/czyszczenia wyników dla gracza {player_instance.id}: {e_update}")
+            traceback.print_exc()
+            self.message_user(request, f"Błąd aktualizacji wyników dla gracza: {e_update}", level="ERROR")
 
 
 @admin.register(SportClub)
