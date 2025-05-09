@@ -1,0 +1,54 @@
+.categoryContainer {
+  padding: 1rem 0;
+}
+
+.backButton {
+  margin-bottom: 1.5rem;
+  padding-left: 0 !important;
+  color: var(--link-color) !important;
+  font-weight: 500;
+}
+.backButton:hover {
+  color: var(--link-hover-color) !important;
+  text-decoration: underline;
+}
+
+.categoryTitle {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #FFFFFF !important;
+}
+
+.categoryDisciplines {
+  font-style: italic;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 2rem;
+  color: #FFFFFF !important;
+}
+
+.filterInput {
+  margin-bottom: 2rem;
+  max-width: 500px;
+  color: #FFFFFF !important;
+}
+
+.disciplineTableTitle {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color:red;
+}
+
+.overallTable {
+  margin-bottom: 2rem;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  min-height: 200px;
+}

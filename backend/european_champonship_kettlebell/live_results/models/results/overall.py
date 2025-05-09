@@ -1,72 +1,32 @@
-# -*- coding: utf-8 -*-
-"""Model definition for OverallResult."""
-from typing import TYPE_CHECKING
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    from ..player import Player # Dostosuj ścieżkę jeśli Player jest gdzie indziej
 
-class OverallResult(models.Model):
-    """
-    Stores the calculated points per discipline, total points,
-    and final position for a player across all disciplines in their categories.
-    Points typically correspond to the player's position in that discipline (lower is better).
-    """
-    player = models.OneToOneField['Player'](
-        'Player', # Użyj stringa
-        on_delete=models.CASCADE,
-        verbose_name=_("Player"),
-        related_name="overallresult" # Django domyślnie użyje overallresult_set lub overallresult
-    )
-    # Punkty za pozycję w każdej dyscyplinie (niżej = lepiej)
-    snatch_points = models.FloatField(_("Snatch Points (Position)"), null=True, blank=True, default=0.0)
-    tgu_points = models.FloatField(_("TGU Points (Position)"), null=True, blank=True, default=0.0)
-    see_saw_press_points = models.FloatField(_("See Saw Press Points (Position)"), null=True, blank=True, default=0.0)
-    kb_squat_points = models.FloatField(_("KB Squat Points (Position)"), null=True, blank=True, default=0.0)
-    pistol_squat_points = models.FloatField(_("Pistol Squat Points (Position)"), null=True, blank=True, default=0.0)
-    one_kb_press_points = models.FloatField(_("One KB Press Points (Position)"), null=True, blank=True, default=0.0) # <--- NOWE
-    two_kb_press_points = models.FloatField(_("Two KB Press Points (Position)"), null=True, blank=True, default=0.0) # <--- NOWE
-
-
-    # Punkty karne za remis (np. -0.5)
-    tiebreak_points = models.FloatField(_("Tiebreak Points"), default=0.0)
-
-    # Suma punktów (niżej = lepiej) - obliczana
-    total_points = models.FloatField(_("Total Points"), null=True, blank=True, default=0.0, db_index=True) # Indeks dla szybszego sortowania
-
-    # Końcowa pozycja w kategorii (niżej = lepiej) - obliczana
-    final_position = models.IntegerField(_("Final Position"), null=True, blank=True, db_index=True) # Indeks dla szybszego sortowania
+class CategoryOverallResult(models.Model):
+    player = models.ForeignKey("live_results.Player", on_delete=models.CASCADE, related_name="category_results", verbose_name=_("Zawodnik"))
+    category = models.ForeignKey("live_results.Category", on_delete=models.CASCADE, related_name="overall_results", verbose_name=_("Kategoria"))
+    snatch_points = models.FloatField(_("Punkty Snatch"), null=True, blank=True)
+    tgu_points = models.FloatField(_("Punkty TGU"), null=True, blank=True)
+    kb_squat_points = models.FloatField(_("Punkty KB Squat"), null=True, blank=True)
+    one_kb_press_points = models.FloatField(_("Punkty OKBP"), null=True, blank=True)
+    two_kb_press_points = models.FloatField(_("Punkty TKBP"), null=True, blank=True)
+    tiebreak_points = models.FloatField(_("Punkty Tiebreak"), default=0.0)
+    total_points = models.FloatField(_("Suma Punktów"), null=True, blank=True, db_index=True)
+    final_position = models.PositiveIntegerField(_("Miejsce Końcowe"), null=True, blank=True, db_index=True)
 
     class Meta:
-        verbose_name = _("Overall Result")
-        verbose_name_plural = _("Overall Results")
-        # Domyślne sortowanie wg pozycji końcowej, potem wg sumy punktów
-        ordering = ['final_position', 'total_points', 'player__surname']
+        verbose_name = _("Wynik Ogólny Kategorii")
+        verbose_name_plural = _("Wyniki Ogólne Kategorii")
+        unique_together = ('player', 'category')
+        ordering = ["category", "final_position", "total_points"]
 
-    def __str__(self) -> str:
-        pos = f"Pos: {self.final_position}" if self.final_position is not None else "Pos: N/A"
-        pts = f"Pts: {self.total_points:.1f}" if self.total_points is not None else "Pts: N/A"
-        return f"{self.player} - Overall - {pos}, {pts}"
+    def calculate_total_points(self): # Bez zmian
+        points_to_sum = [ self.snatch_points, self.tgu_points, self.kb_squat_points, self.one_kb_press_points, self.two_kb_press_points, ]
+        valid_points = [p for p in points_to_sum if p is not None]
+        self.total_points = sum(valid_points) + (self.tiebreak_points or 0.0) if valid_points else None
 
-    def calculate_total_points(self) -> None:
-        """
-        Sums the points from all disciplines and the tiebreak points.
-        This method only updates the instance's total_points attribute, it does NOT save.
-        Saving should be handled externally after calling this method.
-        """
-        # Użyj 0.0 jeśli punktacja dla dyscypliny to None
-        total = (
-            (self.snatch_points or 0.0) +
-            (self.tgu_points or 0.0) +
-            (self.see_saw_press_points or 0.0) +
-            (self.kb_squat_points or 0.0) +
-            (self.pistol_squat_points or 0.0) +
-            (self.one_kb_press_points or 0.0) + # <--- NOWE
-            (self.two_kb_press_points or 0.0) + # <--- NOWE
-            (self.tiebreak_points or 0.0)
-        )
-        self.total_points = round(total, 1)# Zaokrąglenie do 1 miejsca po przecinku
-
-    # Celowo nie ma tu metody save(), aby uniknąć niekontrolowanych zapisów.
-    # Logika przypisywania punktów i pozycji końcowej znajduje się w `services.py`.
+    def __str__(self): # Bez zmian
+        player_name = str(self.player) if hasattr(self, "player") and self.player else "Brak Zawodnika"
+        cat_name = str(self.category) if hasattr(self, "category") and self.category else "Brak Kategorii"
+        pos = self.final_position if self.final_position is not None else "N/A"; pts = f"{self.total_points:.1f}" if self.total_points is not None else "N/A"
+        return f"Wyniki ({cat_name}): {player_name} - Miejsce: {pos}, Punkty: {pts}"

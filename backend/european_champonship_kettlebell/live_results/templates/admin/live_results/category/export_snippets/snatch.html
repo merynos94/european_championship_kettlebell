@@ -1,0 +1,9 @@
+{% load results_extras %}
+<div class="discipline-detail">
+{% with weight=result.kettlebell_weight|default:0 reps=result.repetitions|default:0 score=result.result|default:0 %}
+    {{ weight|floatformat:"0" }}kg x {{ reps }} = <strong>{{ score|floatformat:"1" }}</strong>
+    {% if result.position %}
+    <span class="position-in-discipline">({{ result.position }}. miejsce)</span>
+    {% endif %}
+{% endwith %}
+</div>

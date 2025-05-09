@@ -1,1 +1,1 @@
-"""European Kettlebell Championships - Exact Live App"""
+"""Hardstyle Kettlebell European Championship - Exact Live App"""

@@ -1,16 +1,22 @@
-# -*- coding: utf-8 -*-
+from .bases import BaseDoubleAttemptResult, BaseSingleAttemptResult
+from .kb_squat_one_result import KBSquatResult
+from .one_kettlebell_press import OneKettlebellPressResult
+from .overall import CategoryOverallResult
+from .pistol_squat import PistolSquatResult
+from .see_saw_press import SeeSawPressResult
 from .snatch import SnatchResult
 from .tgu import TGUResult
-from .pistol_squat import PistolSquatResult
-from .see_saw_press import SeeSawPressResult, BestSeeSawPressResult
-from .kb_squat import KBSquatResult, BestKBSquatResult
-from .overall import OverallResult
+from .two_kettlebell_press_one_result import TwoKettlebellPressResult
 
 __all__ = [
-    'SnatchResult',
-    'TGUResult',
-    'PistolSquatResult',
-    'SeeSawPressResult', 'BestSeeSawPressResult',
-    'KBSquatResult', 'BestKBSquatResult',
-    'OverallResult',
+    "BaseDoubleAttemptResult",
+    "BaseSingleAttemptResult",
+    "KBSquatResult",
+    "SeeSawPressResult",
+    "TwoKettlebellPressResult",
+    "OneKettlebellPressResult",
+    "PistolSquatResult",
+    "TGUResult",
+    "SnatchResult",
+    "CategoryOverallResult",
 ]

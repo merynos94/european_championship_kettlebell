@@ -1,0 +1,72 @@
+{% load results_extras %} {# Załaduj własne filtry, jeśli są potrzebne (np. getattribute) #}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 10px; font-size: 0.9em;}
+        h1 { text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: center; vertical-align: middle;}
+        th { background-color: #f2f2f2; font-weight: bold; white-space: nowrap; }
+        tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        tbody tr:hover { background-color: #e8f4f8; }
+        .player-name { text-align: left; white-space: nowrap;}
+        .club-name, .categories-list { text-align: left; font-size: 0.9em; color: #555; }
+        .points { font-weight: bold; }
+        .final-points { font-size: 1.1em; }
+        .no-result { color: #aaa; font-style: italic;}
+    </style>
+</head>
+<body>
+
+    <h1>{{ title }}</h1>
+
+    {% if results_with_cats %}
+    <table>
+        <thead>
+            <tr>
+                <th>Miejsce</th>
+                <th>Zawodnik</th>
+                <th>Klub</th>
+                <th>Kategorie</th>
+                {% comment %} Nagłówki dla punktów dyscyplin {% endcomment %}
+                {% for col_info in discipline_columns %}
+                    <th>Pkt {{ col_info.name }}</th>
+                {% endfor %}
+                <th>Pkt Tiebreak</th>
+                <th>Suma Pkt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row_data in results_with_cats %}
+            {% with result=row_data.result %} {# Wygodny dostęp do obiektu OverallResult #}
+            <tr>
+                <td>{{ result.final_position|default:"-" }}</td>
+                <td class="player-name">{{ result.player.full_name }}</td>
+                <td class="club-name">{{ result.player.club.name|default:"-" }}</td>
+                <td class="categories-list">{{ row_data.categories_str }}</td>
+
+                {% comment %} Wyświetl punkty dla każdej dyscypliny {% endcomment %}
+                {% for col_info in discipline_columns %}
+                    {% with points=result|getattribute:col_info.field_name %}
+                        <td>{% if points is not None %}{{ points|floatformat:"0" }}{% else %}<span class="no-result">-</span>{% endif %}</td>
+                    {% endwith %}
+                {% endfor %}
+
+                <td>{% if result.tiebreak_points is not None %}{{ result.tiebreak_points|floatformat:"1" }}{% else %}<span class="no-result">-</span>{% endif %}</td>
+                <td class="points final-points">{% if result.total_points is not None %}{{ result.total_points|floatformat:"1" }}{% else %}<span class="no-result">-</span>{% endif %}</td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>Brak wyników do wyświetlenia.</p>
+    {% endif %}
+
+    <p style="margin-top: 30px; font-size: 0.8em; text-align: center;">Wygenerowano: {% now "Y-m-d H:i:s" %}</p>
+
+</body>
+</html>

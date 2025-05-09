@@ -1,0 +1,383 @@
+/* index.css */
+
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;700&display=swap");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --background-color-base: #a51414;
+  --background-gradient-end: #401010;
+  --text-color: #ffffff;
+  --text-input-search: #000000;
+  --border-color: #000000;
+  --link-color: #1c701f;
+  --link-hover-color: #ffccbc;
+  --primary-color: #ffffff;
+  --search-box-color: #000000;
+  --primary-color-hover: #ffab91;
+  --navy-blue-dark: #011c26;
+  --navy-blue-border: #f4cb89;
+  --navy-blue-hover-bg: #588c8c;
+  --navy-blue-hover-border: #e80d0d;
+  --footer-text-color: #ffffff;
+  --background-card-color: #f4cb89;
+  --backgroud-card-hover: #588c8c;
+  --test: #588c8c;
+  --font-header: "Bebas Neue", sans-serif;
+  --font-military: "Oswald", sans-serif;
+  --font-secondary: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+html {
+  font-family: var(--font-secondary);
+  line-height: 1.6;
+  color: var(--text-color);
+}
+
+body {
+  background: linear-gradient(
+      145deg,
+      var(--background-gradient-end) 0%,
+      var(--background-color-base) 70%,
+      var(--background-gradient-end) 100%
+    )
+    no-repeat fixed;
+  background-size: cover;
+  overflow-x: hidden;
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-secondary) !important;
+  color: var(--text-color) !important;
+}
+
+h1 {
+  font-family: var(--font-header);
+  font-weight: 400;
+  letter-spacing: 1.1px;
+  line-height: 1.2;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color) !important;
+}
+
+h2 {
+  font-family: var(--font-header);
+  font-weight: 400;
+  letter-spacing: 1.1px;
+  line-height: 1.2;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color) !important;
+}
+
+h3 {
+  font-family: var(--font-header);
+  font-weight: 400;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color) !important;
+  text-transform: uppercase;
+}
+
+h4,
+h5,
+h6 {
+  font-family: var(--font-military);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+p {
+  color: var(--text-color);
+  font-family: var(--font-military)
+
+}
+a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover {
+  color: var(--link-hover-color);
+}
+
+.ant-btn {
+  font-family: var(--font-header);
+  font-weight: 400;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.ant-btn .anticon {
+  font-family: "anticon";
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.loading-message,
+.error-message {
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 600px;
+  border-radius: 4px;
+  text-align: center;
+  border: 1px solid;
+}
+.loading-message {
+  background-color: rgba(255, 235, 59, 0.1);
+  border-color: #ffeb3b;
+  color: #ffeb3b;
+}
+.error-message {
+  background-color: rgba(244, 67, 54, 0.1);
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  min-height: 200px;
+}
+
+.boldColumn span {
+  font-weight: 700 !important;
+  color: var(--primary-color);
+}
+
+#root > div > .ant-layout {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.ant-layout {
+  background: transparent !important;
+}
+
+.ant-layout-footer {
+  background-color: #401010 !important;
+  color: var(
+    --footer-text-color
+  ) !important; /* Changed to --footer-text-color variable */
+  padding: 1.5rem;
+  width: 100%;
+  border-top: none !important;
+}
+
+.ant-layout-content {
+  background-color: #011c26 !important; /* Darkened background for better contrast, matching --navy-blue-dark */
+  backdrop-filter: blur(5px); /* Slight blur for depth effect */
+  margin: 8px; /* Added margin on all sides */
+  padding: 12px; /* Added inner padding */
+  border-radius: 8px; /* Increased border radius */
+  border: 1px solid var(--navy-blue-border); /* Subtle border */
+}
+.ant-layout-header > .ant-menu-horizontal {
+  flex-grow: 1; /* Allow the menu to take up available free space */
+  flex-shrink: 1; /* Allow the menu to shrink if there is not enough space */
+  min-width: 0; /* Important for flex-shrink to work correctly below content size */
+
+  /* Ensure there is no fixed width that could interfere */
+  width: auto !important;
+  max-width: none !important;
+}
+
+/* Optional: Ensure that internal menu elements do not block */
+.ant-layout-header .ant-menu-item,
+.ant-layout-header .ant-menu-submenu {
+  flex-shrink: 0; /* Menu items usually should not shrink */
+}
+.ant-layout-header {
+  background: transparent !important;
+  padding: 0 16px !important;
+  border-bottom: none !important;
+}
+.ant-typography {
+  color: #FFFFFF !important;
+}
+/* AntD table styles */
+.ant-table-wrapper .ant-table {
+  background: var(--navy-blue-dark) !important;
+  color: var(--text-color);
+}
+.ant-table-thead > tr > th {
+  background: var(--navy-blue-dark) !important;
+  color: var(--text-color) !important;
+  border-bottom: 1px solid var(--navy-blue-border) !important; /* Adjusted border color */
+  font-family: var(--font-military);
+  font-weight: 700;
+  text-transform: uppercase; /* Added for consistency */
+  letter-spacing: 0.5px; /* Added for consistency */
+}
+.ant-table-tbody > tr > td {
+  background-color: var(--navy-blue-dark) !important; 
+  border-bottom: 1px solid var(--navy-blue-border) !important; /* Adjusted border color */
+  color: var(--text-color) !important;
+}
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  background: var(
+    --navy-blue-hover-bg
+  ) !important; /* Using variable for hover */
+}
+
+/* Styles for Spin, Alert, Pagination, Tabs, Card, List, Input, Drawer */
+.ant-spin-dot-item {
+  background-color: var(--primary-color) !important;
+} /* Change Spin dot color */
+.ant-spin-text {
+  color: var(--text-color) !important;
+  opacity: 0.8;
+}
+
+.ant-alert-warning {
+  background-color: rgba(250, 173, 20, 0.15) !important;
+  border-color: #faad14 !important;
+}
+.ant-alert-warning .ant-alert-message,
+.ant-alert-warning .ant-alert-description {
+  color: #faad14 !important;
+}
+.ant-alert-error {
+  background-color: rgba(244, 67, 54, 0.15) !important;
+  border-color: #f44336 !important;
+}
+.ant-alert-error .ant-alert-message,
+.ant-alert-error .ant-alert-description {
+  color: #f44336 !important;
+}
+
+.ant-pagination-item a,
+.ant-pagination-item-link,
+.ant-pagination-options-quick-jumper input {
+  color: var(--text-color) !important;
+  background-color: transparent !important;
+  border-color: var(--navy-blue-border) !important;
+  border-radius: 4px;
+} /* Adjusted border color and added rounding */
+.ant-pagination-disabled .ant-pagination-item-link {
+  color: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(23, 58, 94, 0.5) !important;
+} /* Style for disabled items */
+.ant-pagination-item-active {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+.ant-pagination-item-active a {
+  color: #000 !important;
+}
+.ant-pagination-jump-next .ant-pagination-item-link-icon,
+.ant-pagination-jump-prev .ant-pagination-item-link-icon {
+  color: var(--text-color) !important;
+} /* Color for '...' dots */
+
+.ant-tabs-tab {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-family: var(--font-military);
+  font-weight: 700;
+  text-transform: uppercase;
+} /* Changed color and added transformation */
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary-color) !important;
+}
+.ant-tabs-ink-bar {
+  background: var(--primary-color) !important;
+}
+.ant-tabs-nav {
+  margin-bottom: 20px !important;
+} /* Added bottom margin for tabs */
+
+.ant-card {
+  background-color: transparent !important;
+  border-color: var(--background-card-color) !important;
+} /* Set transparent background for cards */
+.ant-card-head {
+  border-bottom-color: var(--background-card-color) !important;
+}
+.ant-card-head-title {
+  color: var(--text-color) !important;
+  font-family: var(--font-military) !important;
+  font-weight: 700 !important;
+  font-size: 1.2em !important;
+  text-transform: uppercase;
+} /* Added transformation */
+
+.ant-list-split .ant-list-item {
+  border-bottom-color: var(--navy-blue-border) !important;
+} /* Adjusted list separator color */
+
+.ant-input-search
+  > .ant-input-group
+  > .ant-input-group-addon:last-child
+  .ant-input-search-button {
+  background-color: var(--search-box-color);
+  border-color: var(--primary-color);
+}
+.ant-input-search
+  > .ant-input-group
+  > .ant-input-group-addon:last-child
+  .ant-input-search-button:hover {
+  background-color: var(--primary-color-hover);
+  border-color: var(--primary-color-hover);
+}
+.ant-input,
+.ant-input-search .ant-input {
+  background-color: transparent !important;
+  border-color: var(--navy-blue-border) !important;
+  color: var(--text-input-search) !important;
+} /* Adjusted input background and border */
+.ant-input::placeholder {
+  color: rgb(150, 150, 150) !important;
+} /* Adjusted placeholder color */
+.ant-input:focus,
+.ant-input-focused {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 2px rgb(255, 255, 255) !important;
+} /* Focus style for inputs */
+/* --background-color-base: #a51414;
+--background-gradient-end: #401010; */
+.ant-drawer-content-wrapper {
+  background: #a51414;
+} /* Lighter background for Drawer */
+.ant-drawer-header {
+  background: #401010;
+  border-bottom: 1px solid #d9d9d9;
+}
+.ant-drawer-title {
+  color: var(--text-color) !important;
+  font-weight: 600;
+} /* Darker title text */
+.ant-drawer-close {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+.ant-drawer-body {
+  padding: 0;
+} /* Removed default padding from Drawer body (moved from inline styles in the component) */
+
+.ant-menu-light {
+  background: transparent !important;
+}
+.ant-menu-light .ant-menu-item a {
+  color: rgba(80, 26, 26, 0.85) !important;
+  font-weight: 500;
+} /* Darker menu text in Drawer */
+.ant-menu-light .ant-menu-item-selected {
+  background-color: rgba(255, 138, 101, 0.1) !important;
+} /* Lighter highlight for selected item */
+.ant-menu-light .ant-menu-item-selected a {
+  color: var(--primary-color) !important;
+  font-weight: 600;
+} /* Color and weight for active link */

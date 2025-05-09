@@ -1,62 +1,17 @@
-"""Model definition for TGUResult."""
-
-from typing import TYPE_CHECKING, cast
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-if TYPE_CHECKING:
-    from ..player import Player  # Adjust this import path to match your project structure
+from .bases import BaseSingleAttemptResult
 
-class TGUResult(models.Model):
-    """Stores the results for the Turkish Get-Up discipline attempts."""
 
-    player = models.OneToOneField["Player"](
-        "Player", on_delete=models.CASCADE, verbose_name=_("Player"), related_name="tgu_result"
+class TGUResult(BaseSingleAttemptResult):
+    player = models.OneToOneField(
+        "live_results.Player", on_delete=models.CASCADE, verbose_name=_("Zawodnik"), related_name="tgu_result"
     )
-    result_1 = models.FloatField(_("Podejście 1"), default=0.0)
-    result_2 = models.FloatField(_("Podejście 2"), default=0.0)
-    result_3 = models.FloatField(_("Podejście 3"), default=0.0)
-    position = models.IntegerField(_("Miejsce w kategorii"), null=True, blank=True)
 
-    class Meta:
+    class Meta(BaseSingleAttemptResult.Meta):
         verbose_name = _("Wynik Turkish Get-Up")
         verbose_name_plural = _("Wyniki Turkish Get-Up")
-        ordering = ["player__categories", "-position"]
 
     def __str__(self) -> str:
-        return f"{self.player} - TGU Attempts: {self.result_1}/{self.result_2}/{self.result_3}"
-
-    @property
-    def max_result(self) -> float:
-        """Returns the maximum weight lifted across attempts."""
-        return max(self.result_1 or 0.0, self.result_2 or 0.0, self.result_3 or 0.0)
-
-    @max_result.setter
-    def max_result(self, value: float) -> None:
-        """Sets the maximum result to one of the attempts."""
-        # Convert None values to 0.0 for comparison
-        r1 = self.result_1 or 0.0
-        r2 = self.result_2 or 0.0
-        r3 = self.result_3 or 0.0
-
-        # Determine which result to update based on current values
-        if r1 <= r2 and r1 <= r3:
-            self.result_1 = value
-        elif r2 <= r1 and r2 <= r3:
-            self.result_2 = value
-        else:
-            self.result_3 = value
-
-    @property
-    def bw_percentage(self) -> float | None:
-        """Calculates the max result as a percentage of player's body weight."""
-        if TYPE_CHECKING:
-            from ..player import Player
-            player = cast(Player, self.player)
-        else:
-            player = self.player
-
-        if player.weight and player.weight > 0:
-            return round((self.max_result / player.weight) * 100, 2)
-        return None
+        return f"{self.player} - TGU Attempts: {self.result_1 or 0}/{self.result_2 or 0}/{self.result_3 or 0}"

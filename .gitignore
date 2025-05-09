@@ -10,14 +10,12 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
 lib/
 lib64/
 parts/
-sdist/
 var/
 wheels/
 share/python-wheels/
@@ -174,3 +172,11 @@ backend/.DS_Store
 .DS_Store
 backend/european_champonship_kettlebell/logfile
 backend/.env
+
+# Static files by collecstatic 
+/backend/european_champonship_kettlebell/staticfiles/
+/backend/european_champonship_kettlebell/zawodnicy_part_1.csv
+/backend/european_champonship_kettlebell/zawodnicy_part_2.csv
+/backend/european_champonship_kettlebell/zawodnicy_part_3.csv
+/backend/european_champonship_kettlebell/zawodnicy_part_4.csv
+/backend/european_champonship_kettlebell/zawodnicy_part_5.csv
