@@ -98,7 +98,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     render: (club: string | null | undefined) => club || "-",
     sorter: (a: OverallResult, b: OverallResult) =>
       (a.player?.club_name || "").localeCompare(b.player?.club_name || ""),
-    responsive: ["md"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     ellipsis: true,
   },
   {
@@ -109,7 +109,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     sorter: (a: OverallResult, b: OverallResult) =>
       (a.player?.weight ?? 0) - (b.player?.weight ?? 0),
     align: "right",
-    responsive: ["lg"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 80,
   },
   {
@@ -130,7 +130,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     sorter: (a: OverallResult, b: OverallResult) =>
       (a.snatch_points ?? -Infinity) - (b.snatch_points ?? -Infinity),
     align: "right",
-    responsive: ["lg"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 100,
   },
   {
@@ -141,7 +141,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     sorter: (a: OverallResult, b: OverallResult) =>
       (a.tgu_points ?? -Infinity) - (b.tgu_points ?? -Infinity),
     align: "right",
-    responsive: ["lg"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 100,
   },
   {
@@ -152,7 +152,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     sorter: (a: OverallResult, b: OverallResult) =>
       (a.kb_squat_points ?? -Infinity) - (b.kb_squat_points ?? -Infinity),
     align: "right",
-    responsive: ["xl"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 100,
   },
   {
@@ -164,7 +164,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
       (a.one_kb_press_points ?? -Infinity) -
       (b.one_kb_press_points ?? -Infinity),
     align: "right",
-    responsive: ["xl"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 100,
   },
   {
@@ -176,7 +176,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
       (a.two_kb_press_points ?? -Infinity) -
       (b.two_kb_press_points ?? -Infinity),
     align: "right",
-    responsive: ["xl"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 100,
   },
   {
@@ -187,7 +187,7 @@ const overallColumns: TableProps<OverallResult>["columns"] = [
     sorter: (a: OverallResult, b: OverallResult) =>
       (a.tiebreak_points ?? -Infinity) - (b.tiebreak_points ?? -Infinity),
     align: "right",
-    responsive: ["xl"],
+    responsive: ["xs", "sm", "md", "lg", "xl", "xxl"],
     width: 100,
   },
 ];

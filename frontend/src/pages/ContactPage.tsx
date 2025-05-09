@@ -50,7 +50,7 @@ const ContactPage: React.FC = () => {
         <Col xs={24} md={12} lg={8}>
           <Card title="Lokalizacja Zawodów" bordered={false}>
             <Paragraph>
-              <EnvironmentOutlined /> Hala Sportowa "Arena Mistrzów"
+              <EnvironmentOutlined /> Hala "Słoneczna"
               <br />
               Powstańców Warszawy 8i,<br />
               57-200 Ząbkowice Śląskie.
