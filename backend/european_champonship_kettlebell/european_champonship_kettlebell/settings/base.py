@@ -20,7 +20,20 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 dotenv_path = BASE_DIR.parent / '.env'
 # --- Environment Variable Loading ---
-# Load environment variables from .env file (should be done early)
+
+
+# --- Backup Configuration ---
+BACKUP_DIR = BASE_DIR.parent / 'live_results' / 'backup'
+
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+DBBACKUP_STORAGE_OPTIONS = {'location': str(BACKUP_DIR)}
+
+DBBACKUP_FILENAME_TEMPLATE = '{databasename}-{servername}-{datetime}.{extension}'
+DBBACKUP_DATETIME_FORMAT = '%Y-%m-%d-%H%M%S'
+
+DBBACKUP_CLEANUP_KEEP = 10
 
 load_dotenv(dotenv_path=dotenv_path, override=True)  # Explicitly point to .env in BASE_DIR
 
@@ -52,6 +65,7 @@ INSTALLED_APPS = [
     "import_export",
     # Your apps
     "live_results",
+    "dbbackup"
 ]
 
 MIDDLEWARE = [
@@ -288,7 +302,3 @@ JAZZMIN_UI_TWEAKS = {
     },
     "actions_sticky_top": True  # Make admin actions sticky
 }
-
-# --- Custom Project Settings ---
-# Add any custom settings specific to your project here
-# EXAMPLE_SETTING = "example_value"
